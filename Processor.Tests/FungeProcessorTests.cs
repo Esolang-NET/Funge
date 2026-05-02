@@ -38,11 +38,7 @@ public class FungeProcessorTests
 
     [TestMethod]
     public void Quit_ReturnsExitCode()
-    {
-        Assert.AreEqual(42, RunGetExitCode("42*q")); // 4*2=8 → q → exit 8? No: 4,2,*,q → 8
-        // Actually: '4' push 4, '2' push 2, '*' mul = 8, 'q' exit 8
-        Assert.AreEqual(8, RunGetExitCode("42*q"));
-    }
+        => Assert.AreEqual(8, RunGetExitCode("42*q"));
 
     // ── Output ────────────────────────────────────────────────────────────
 
@@ -70,7 +66,7 @@ public class FungeProcessorTests
 
     [TestMethod]
     public void Divide()
-        => Assert.AreEqual("3 ", Run("96/.@"));
+        => Assert.AreEqual("1 ", Run("96/.@"));
 
     [TestMethod]
     public void Remainder()
@@ -100,11 +96,11 @@ public class FungeProcessorTests
 
     [TestMethod]
     public void Swap()
-        => Assert.AreEqual("3 5 ", Run("53\\..@"));
+        => Assert.AreEqual("5 3 ", Run("53\\..@"));
 
     [TestMethod]
     public void Pop_Discard()
-        => Assert.AreEqual("3 ", Run("53$.@"));
+        => Assert.AreEqual("5 ", Run("53$.@"));
 
     // ── Direction ─────────────────────────────────────────────────────────
 
@@ -122,12 +118,8 @@ public class FungeProcessorTests
 #pragma warning disable IDE0022
     public void NorthSouthIf_NonZero_GoesNorth()
     {
-        // Two-row program: row 0 has '1|' at col 0-1
-        // going North from (1,0) wraps to (1,1)... but there's no row 1.
-        // Use a simpler test: '|' with 0 goes South → no second row → wraps? Skip.
-        // Test '|' with 0 (goes South) in single-row program
-        Assert.AreEqual("0 ", Run("0|.@")); // 0 → South from (1,0), wrap to (1,0)=| forever… use direct test
-        // Simpler: just verify 1_ goes West
+        const string source = "v @\n>1|";
+        Assert.AreEqual(string.Empty, Run(source));
     }
 #pragma warning restore IDE0022
 
@@ -149,7 +141,7 @@ public class FungeProcessorTests
 
     [TestMethod]
     public void HexDigits()
-        => Assert.AreEqual("10 11 12 13 14 15 ", Run("abcdef......@"));
+        => Assert.AreEqual("15 14 13 12 11 10 ", Run("abcdef......@"));
 
     // ── String mode ───────────────────────────────────────────────────────
 
@@ -158,7 +150,7 @@ public class FungeProcessorTests
     public void StringMode_PushesChars()
     {
         // "Hi" pushes 'H'=72 then 'i'=105; i is on top
-        Assert.AreEqual("Hi", Run("\"Hi\",,@"));
+        Assert.AreEqual("iH", Run("\"Hi\",,@"));
     }
 #pragma warning restore IDE0022
 
@@ -180,8 +172,8 @@ public class FungeProcessorTests
 #pragma warning disable IDE0022
     public void GetPut_ReadWrite()
     {
-        // p: put value 65 at (5,0); g: get it back; output
-        Assert.AreEqual("65 ", Run("05065p05g.@"));
+        // p pops y,x,v. Build v=65 via 8*8+1, then store at (5,0) and read back.
+        Assert.AreEqual("65 ", Run("88*1+50p50g.@"));
     }
 #pragma warning restore IDE0022
 
