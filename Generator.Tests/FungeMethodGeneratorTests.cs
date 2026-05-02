@@ -108,7 +108,7 @@ public class FungeMethodGeneratorTests
         RunGenerators(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
-        Assert.AreEqual(3, comp.SyntaxTrees.Count()); // input.cs + attribute + method
+        Assert.AreEqual(4, comp.SyntaxTrees.Count()); // input.cs + attributes + helper + method
     }
 
     [TestMethod]
