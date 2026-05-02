@@ -1,23 +1,25 @@
-using Esolang.Funge.Parser;
-using Esolang.Funge.Processor;
-using System.CommandLine;
+using Esolang.Funge.Interpreter;
 
-var pathArgument = new Argument<string>("path")
+namespace Esolang.Funge.Interpreter
 {
-    Description = "Path to a Funge-98 source file (.b98).",
-};
+    /// <summary>
+    /// Entry point for the dotnet-funge command-line tool.
+    /// </summary>
+    public static class Program
+    {
+        /// <summary>
+        /// Runs the command-line pipeline and returns the process exit code.
+        /// </summary>
+        /// <param name="args">Command-line arguments.</param>
+        /// <returns>The exit code.</returns>
+        public static async Task<int> RunAsync(string[] args)
+        {
+            var rootCommand = FungeInterpreterExtensions.BuildRootCommand();
+            return await rootCommand.Parse(args).InvokeAsync();
+        }
 
-var rootCommand = new RootCommand("Run Funge-98 (Befunge-98) programs.")
-{
-    pathArgument,
-};
-
-rootCommand.SetAction(parseResult =>
-{
-    var path = parseResult.GetValue(pathArgument)!;
-    var space = FungeParser.ParseFile(path);
-    var proc = new FungeProcessor(space, Console.Out, Console.In);
-    return proc.Run();
-});
-
-return await rootCommand.Parse(args).InvokeAsync();
+        /// <summary>Application entry point.</summary>
+        public static async Task<int> Main(string[] args)
+            => await RunAsync(args);
+    }
+}

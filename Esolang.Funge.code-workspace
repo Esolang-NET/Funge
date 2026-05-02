@@ -21,6 +21,10 @@
 			"path": "Interpreter"
 		},
 		{
+			"name": "Esolang.Funge.Interpreter.Tests",
+			"path": "Interpreter.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Parser",
 			"path": "Parser"
 		},

@@ -13,4 +13,5 @@
   <Project Path="Processor/Esolang.Funge.Processor.csproj" />
   <Project Path="Processor.Tests/Esolang.Funge.Processor.Tests.csproj" />
   <Project Path="Interpreter/Esolang.Funge.Interpreter.csproj" />
+  <Project Path="Interpreter.Tests/Esolang.Funge.Interpreter.Tests.csproj" />
 </Solution>
