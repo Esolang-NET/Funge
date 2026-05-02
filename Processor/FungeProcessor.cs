@@ -40,8 +40,8 @@ public sealed class FungeProcessor
     {
         var ips = new LinkedList<InstructionPointer>();
         ips.AddFirst(new InstructionPointer(_nextIpId++));
-        int exitCode = 0;
-        bool quit = false;
+        var exitCode = 0;
+        var quit = false;
 
         while (ips.Count > 0 && !quit && !cancellationToken.IsCancellationRequested)
         {
@@ -51,7 +51,7 @@ public sealed class FungeProcessor
                 var nextNode = node.Next;
                 var ip = node.Value;
 
-                bool suppressAdvance = false;
+                var suppressAdvance = false;
                 ExecuteInstruction(ip, ips, node, ref exitCode, ref quit, ref suppressAdvance);
 
                 if (ip.IsStopped || quit)
@@ -108,7 +108,7 @@ public sealed class FungeProcessor
 
             case ':': // Duplicate
             {
-                int v = ip.StackStack.Pop();
+                var v = ip.StackStack.Pop();
                 ip.StackStack.Push(v);
                 ip.StackStack.Push(v);
                 break;
@@ -241,9 +241,9 @@ public sealed class FungeProcessor
 
             case 'j': // Jump Forward s cells (suppressAdvance: sets position directly)
             {
-                int s = ip.StackStack.Pop();
+                var s = ip.StackStack.Pop();
                 var dir = s >= 0 ? ip.Delta : ip.Delta.Reflect();
-                for (int i = 0; i < Math.Abs(s); i++)
+                for (var i = 0; i < Math.Abs(s); i++)
                     ip.Position = _space.Advance(ip.Position, dir);
                 suppressAdvance = true;
                 break;
@@ -263,7 +263,7 @@ public sealed class FungeProcessor
 
             case 's': // Store Character: store to next cell, skip it
             {
-                int val = ip.StackStack.Pop();
+                var val = ip.StackStack.Pop();
                 ip.Position = _space.Advance(ip.Position, ip.Delta);
                 _space[ip.Position] = val;
                 break;
@@ -285,7 +285,7 @@ public sealed class FungeProcessor
             case 'p': // Put: write cell at (x+offset, y+offset)
             {
                 int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
-                int val = ip.StackStack.Pop();
+                var val = ip.StackStack.Pop();
                 _space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)] = val;
                 break;
             }
@@ -304,13 +304,13 @@ public sealed class FungeProcessor
             {
                 var line = _input.ReadLine();
                 if (line is null) { ip.Delta = ip.Delta.Reflect(); break; }
-                ip.StackStack.Push(int.TryParse(line.Trim(), out int v) ? v : 0);
+                ip.StackStack.Push(int.TryParse(line.Trim(), out var v) ? v : 0);
                 break;
             }
 
             case '~': // Input Character
             {
-                int ch = _input.Read();
+                var ch = _input.Read();
                 if (ch < 0) ip.Delta = ip.Delta.Reflect();
                 else ip.StackStack.Push(ch);
                 break;
@@ -328,7 +328,7 @@ public sealed class FungeProcessor
 
             case 'k': // Iterate: execute next instruction n times
             {
-                int n = ip.StackStack.Pop();
+                var n = ip.StackStack.Pop();
 
                 // Advance to find next non-space instruction
                 var instrPos = _space.Advance(ip.Position, ip.Delta);
@@ -343,10 +343,10 @@ public sealed class FungeProcessor
                 else
                 {
                     // Execute n times; reset position to instrPos before each execution
-                    for (int i = 0; i < n && !ip.IsStopped && !quit; i++)
+                    for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
                     {
                         ip.Position = instrPos;
-                        bool dummy = false;
+                        var dummy = false;
                         ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy);
                     }
                     ip.Position = instrPos;
@@ -366,12 +366,12 @@ public sealed class FungeProcessor
             // ── Stack Stack operations ────────────────────────────────────────
             case '{': // Begin Block
             {
-                int n = ip.StackStack.Pop();
+                var n = ip.StackStack.Pop();
 
                 // Collect n items from TOSS (top item first)
                 var items = new List<int>();
                 if (n > 0)
-                    for (int i = 0; i < n; i++) items.Add(ip.StackStack.Pop());
+                    for (var i = 0; i < n; i++) items.Add(ip.StackStack.Pop());
 
                 // Push storage offset to current TOSS (will become SOSS)
                 ip.StackStack.Push(ip.Offset.X);
@@ -383,14 +383,14 @@ public sealed class FungeProcessor
                 if (n > 0)
                 {
                     // Re-push items so original top is on top of new TOSS
-                    for (int i = items.Count - 1; i >= 0; i--)
+                    for (var i = items.Count - 1; i >= 0; i--)
                         ip.StackStack.Push(items[i]);
                 }
                 else if (n < 0)
                 {
                     // Push |n| zeros to SOSS
                     var soss = ip.StackStack.SOSS!;
-                    for (int i = 0; i < -n; i++) soss.Push(0);
+                    for (var i = 0; i < -n; i++) soss.Push(0);
                 }
 
                 // Set storage offset to next cell position
@@ -400,7 +400,7 @@ public sealed class FungeProcessor
 
             case '}': // End Block
             {
-                int n = ip.StackStack.Pop();
+                var n = ip.StackStack.Pop();
                 if (!ip.StackStack.HasSOSS)
                 {
                     ip.Delta = ip.Delta.Reflect();
@@ -409,29 +409,29 @@ public sealed class FungeProcessor
 
                 // Collect items from TOSS
                 var items = new List<int>();
-                for (int i = 0; i < Math.Max(0, n); i++) items.Add(ip.StackStack.Pop());
+                for (var i = 0; i < Math.Max(0, n); i++) items.Add(ip.StackStack.Pop());
 
                 // Pop current TOSS (discard remaining items)
                 ip.StackStack.PopCurrentStack();
 
                 // Restore storage offset (Y on top, then X)
-                int oy = ip.StackStack.Pop();
-                int ox = ip.StackStack.Pop();
+                var oy = ip.StackStack.Pop();
+                var ox = ip.StackStack.Pop();
                 ip.Offset = new FungeVector(ox, oy);
 
                 // If n < 0, discard |n| items from (now current) TOSS
                 if (n < 0)
-                    for (int i = 0; i < -n; i++) ip.StackStack.Pop();
+                    for (var i = 0; i < -n; i++) ip.StackStack.Pop();
 
                 // Push collected items (original top on top)
-                for (int i = items.Count - 1; i >= 0; i--)
+                for (var i = items.Count - 1; i >= 0; i--)
                     ip.StackStack.Push(items[i]);
                 break;
             }
 
             case 'u': // Stack Under Stack
             {
-                int n = ip.StackStack.Pop();
+                var n = ip.StackStack.Pop();
                 if (!ip.StackStack.HasSOSS)
                 {
                     ip.Delta = ip.Delta.Reflect();
@@ -439,16 +439,16 @@ public sealed class FungeProcessor
                 }
                 var soss = ip.StackStack.SOSS!;
                 if (n > 0)
-                    for (int i = 0; i < n; i++) ip.StackStack.Push(soss.Count > 0 ? soss.Pop() : 0);
+                    for (var i = 0; i < n; i++) ip.StackStack.Push(soss.Count > 0 ? soss.Pop() : 0);
                 else if (n < 0)
-                    for (int i = 0; i < -n; i++) soss.Push(ip.StackStack.Pop());
+                    for (var i = 0; i < -n; i++) soss.Push(ip.StackStack.Pop());
                 break;
             }
 
             // ── System info ──────────────────────────────────────────────────
             case 'y': // Get SysInfo
             {
-                int c = ip.StackStack.Pop();
+                var c = ip.StackStack.Pop();
                 PushSysInfo(ip, ips.Count, c);
                 break;
             }
@@ -456,16 +456,16 @@ public sealed class FungeProcessor
             // ── Fingerprints (reflect – not implemented) ─────────────────────
             case '(': // Load Semantics
             {
-                int n = ip.StackStack.Pop();
-                for (int i = 0; i < n; i++) ip.StackStack.Pop();
+                var n = ip.StackStack.Pop();
+                for (var i = 0; i < n; i++) ip.StackStack.Pop();
                 ip.Delta = ip.Delta.Reflect();
                 break;
             }
 
             case ')': // Unload Semantics
             {
-                int n = ip.StackStack.Pop();
-                for (int i = 0; i < n; i++) ip.StackStack.Pop();
+                var n = ip.StackStack.Pop();
+                for (var i = 0; i < n; i++) ip.StackStack.Pop();
                 ip.Delta = ip.Delta.Reflect();
                 break;
             }
@@ -501,10 +501,10 @@ public sealed class FungeProcessor
     /// If <paramref name="c"/> is greater than zero, only item <paramref name="c"/>
     /// (1-indexed from top) is left on the stack.
     /// </summary>
-    private void PushSysInfo(InstructionPointer ip, int concurrentIpCount, int c)
+    private void PushSysInfo(InstructionPointer ip, int _, int c)
     {
         // Build list of items in order: items[0] will be last-pushed (item 1 from top)
-        var items = new List<int>();
+        List<int> items = [];
 
         // 1. Flags: bit 0 = /t (concurrency supported)
         items.Add(1);
@@ -542,9 +542,9 @@ public sealed class FungeProcessor
 
         var now = DateTime.Now;
         // 20. Current date: (year-1900)*10000 + month*100 + day
-        items.Add((now.Year - 1900) * 10000 + now.Month * 100 + now.Day);
+        items.Add(((now.Year - 1900) * 10000) + (now.Month * 100) + now.Day);
         // 21. Current time: HH*10000 + MM*100 + SS
-        items.Add(now.Hour * 10000 + now.Minute * 100 + now.Second);
+        items.Add((now.Hour * 10000) + (now.Minute * 100) + now.Second);
         // 22. Number of stacks in stack stack
         items.Add(ip.StackStack.StackCount);
         // 23+. Size of each stack (TOSS first)
@@ -556,14 +556,14 @@ public sealed class FungeProcessor
         items.Add(0);
 
         // Push in reverse order so items[0] ends up on top (= item 1)
-        for (int i = items.Count - 1; i >= 0; i--)
+        for (var i = items.Count - 1; i >= 0; i--)
             ip.StackStack.Push(items[i]);
 
         if (c > 0)
         {
             // Pick the c-th item from top of pushed items
             var popped = new int[items.Count];
-            for (int i = 0; i < items.Count; i++)
+            for (var i = 0; i < items.Count; i++)
                 popped[i] = ip.StackStack.Pop();
             ip.StackStack.Push(c <= items.Count ? popped[c - 1] : 0);
         }

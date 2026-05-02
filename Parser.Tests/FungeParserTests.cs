@@ -62,33 +62,23 @@ public class FungeVectorTests
 {
     [TestMethod]
     public void RotateRight_EastBecomeSouth()
-    {
-        Assert.AreEqual(FungeVector.South, FungeVector.East.RotateRight());
-    }
+        => Assert.AreEqual(FungeVector.South, FungeVector.East.RotateRight());
 
     [TestMethod]
     public void RotateRight_SouthBecomeWest()
-    {
-        Assert.AreEqual(FungeVector.West, FungeVector.South.RotateRight());
-    }
+        => Assert.AreEqual(FungeVector.West, FungeVector.South.RotateRight());
 
     [TestMethod]
     public void RotateLeft_EastBecomeNorth()
-    {
-        Assert.AreEqual(FungeVector.North, FungeVector.East.RotateLeft());
-    }
+        => Assert.AreEqual(FungeVector.North, FungeVector.East.RotateLeft());
 
     [TestMethod]
     public void Reflect_EastBecomeWest()
-    {
-        Assert.AreEqual(FungeVector.West, FungeVector.East.Reflect());
-    }
+        => Assert.AreEqual(FungeVector.West, FungeVector.East.Reflect());
 
     [TestMethod]
     public void Addition()
-    {
-        Assert.AreEqual(new FungeVector(3, 5), new FungeVector(1, 2) + new FungeVector(2, 3));
-    }
+        => Assert.AreEqual(new FungeVector(3, 5), new FungeVector(1, 2) + new FungeVector(2, 3));
 }
 
 [TestClass]

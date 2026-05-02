@@ -68,11 +68,11 @@ public sealed class FungeSpace
         if (!_hasAny)
             return pos;
 
-        int nextX = pos.X + delta.X;
-        int nextY = pos.Y + delta.Y;
+        var nextX = pos.X + delta.X;
+        var nextY = pos.Y + delta.Y;
 
-        int width = _maxX - _minX + 1;
-        int height = _maxY - _minY + 1;
+        var width = _maxX - _minX + 1;
+        var height = _maxY - _minY + 1;
 
         if (nextX < _minX)
             nextX = _maxX - ((_minX - nextX - 1) % width);
