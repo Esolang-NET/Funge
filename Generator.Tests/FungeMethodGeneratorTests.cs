@@ -73,12 +73,12 @@ public class FungeMethodGeneratorTests
         }
         ms.Seek(0, SeekOrigin.Begin);
 
-    #if NET48
+#if NET48
         return Assembly.Load(ms.ToArray());
-    #else
+#else
         var ctx = new System.Runtime.Loader.AssemblyLoadContext(nameof(FungeMethodGeneratorTests), isCollectible: true);
         return ctx.LoadFromStream(ms);
-    #endif
+#endif
     }
 
     void AssertNoErrors(ImmutableArray<Diagnostic> diagnostics, Compilation compilation)

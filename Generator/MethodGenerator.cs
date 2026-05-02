@@ -117,7 +117,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var generatedTargets = source.Collect();
 
         var additionalFiles = context.AdditionalTextsProvider
-            .Select(static (text, token) => (Path: text.Path, Text: text.GetText(token)?.ToString()))
+            .Select(static (text, token) => (text.Path, Text: text.GetText(token)?.ToString()))
             .Collect();
 
         var languageVersion = context.ParseOptionsProvider
@@ -282,7 +282,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     static ExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax)
     {
-        ReturnKind returnKind = method.ReturnType switch
+        var returnKind = method.ReturnType switch
         {
             { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
             { Name: "String", ContainingNamespace.Name: "System" } => ReturnKind.String,
@@ -309,7 +309,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             return new(false, returnKind, InputKind.None, OutputKind.None, "", "", null,
                 DiagnosticDescriptors.InvalidReturnType.Id);
 
-        OutputKind outputKind = returnKind switch
+        var outputKind = returnKind switch
         {
             ReturnKind.String or ReturnKind.TaskString or ReturnKind.ValueTaskString
                 => OutputKind.ReturnString,
@@ -318,11 +318,11 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             _ => OutputKind.None,
         };
 
-        InputKind inputKind = InputKind.None;
-        string inputExpr = "";
-        string outputExpr = "";
+        var inputKind = InputKind.None;
+        var inputExpr = "";
+        var outputExpr = "";
         string? cancellationTokenName = null;
-        bool hasCancellationToken = false;
+        var hasCancellationToken = false;
 
         foreach (var p in method.Parameters)
         {
@@ -500,23 +500,23 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             case ReturnKind.Void:
             case ReturnKind.Task:
             case ReturnKind.ValueTask:
-            {
-                if (binding.OutputKind == OutputKind.PipeWriter)
                 {
-                    sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
-                    sb.AppendLine($"        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
-                    sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, __fungeOutput);");
+                    if (binding.OutputKind == OutputKind.PipeWriter)
+                    {
+                        sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
+                        sb.AppendLine($"        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
+                        sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, __fungeOutput);");
+                    }
+                    else
+                    {
+                        var outExpr = binding.OutputKind == OutputKind.TextWriter
+                            ? binding.OutputExpression
+                            : "global::System.IO.TextWriter.Null";
+                        sb.AppendLine($"        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
+                        sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, {outExpr});");
+                    }
+                    break;
                 }
-                else
-                {
-                    var outExpr = binding.OutputKind == OutputKind.TextWriter
-                        ? binding.OutputExpression
-                        : "global::System.IO.TextWriter.Null";
-                    sb.AppendLine($"        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
-                    sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, {outExpr});");
-                }
-                break;
-            }
         }
 
         switch (binding.ReturnKind)
@@ -548,10 +548,10 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     {
         sb.AppendLine($"        int __minX = {space.MinX}, __minY = {space.MinY}, __maxX = {space.MaxX}, __maxY = {space.MaxY};");
         sb.AppendLine("        var __cells = new global::System.Collections.Generic.Dictionary<(int, int), int>();");
-        for (int y = space.MinY; y <= space.MaxY; y++)
-            for (int x = space.MinX; x <= space.MaxX; x++)
+        for (var y = space.MinY; y <= space.MaxY; y++)
+            for (var x = space.MinX; x <= space.MaxX; x++)
             {
-                int val = space[new FungeVector(x, y)];
+                var val = space[new FungeVector(x, y)];
                 if (val != ' ')
                     sb.AppendLine($"        __cells[({x}, {y})] = {val};");
             }
@@ -564,12 +564,12 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     static (bool usesOutput, bool usesInput) ScanFungeIo(FungeSpace space)
     {
         bool usesOutput = false, usesInput = false;
-        for (int y = space.MinY; y <= space.MaxY; y++)
-            for (int x = space.MinX; x <= space.MaxX; x++)
+        for (var y = space.MinY; y <= space.MaxY; y++)
+            for (var x = space.MinX; x <= space.MaxX; x++)
             {
-                int c = space[new FungeVector(x, y)];
-                if (c == '.' || c == ',') usesOutput = true;
-                if (c == '&' || c == '~') usesInput = true;
+                var c = space[new FungeVector(x, y)];
+                if (c is '.' or ',') usesOutput = true;
+                if (c is '&' or '~') usesInput = true;
                 if (usesOutput && usesInput) return (true, true);
             }
         return (usesOutput, usesInput);

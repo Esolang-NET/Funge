@@ -1,5 +1,3 @@
-using Esolang.Funge.Interpreter;
-
 namespace Esolang.Funge.Interpreter;
 
 /// <summary>

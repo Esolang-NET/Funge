@@ -107,20 +107,20 @@ public sealed class FungeProcessor
                 break;
 
             case ':': // Duplicate
-            {
-                var v = ip.StackStack.Pop();
-                ip.StackStack.Push(v);
-                ip.StackStack.Push(v);
-                break;
-            }
+                {
+                    var v = ip.StackStack.Pop();
+                    ip.StackStack.Push(v);
+                    ip.StackStack.Push(v);
+                    break;
+                }
 
             case '\\': // Swap
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(b);
-                ip.StackStack.Push(a);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(b);
+                    ip.StackStack.Push(a);
+                    break;
+                }
 
             case 'n': // Clear Stack
                 ip.StackStack.ClearToss();
@@ -128,46 +128,46 @@ public sealed class FungeProcessor
 
             // ── Arithmetic ───────────────────────────────────────────────────
             case '+':
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(a + b);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(a + b);
+                    break;
+                }
 
             case '-':
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(a - b);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(a - b);
+                    break;
+                }
 
             case '*':
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(a * b);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(a * b);
+                    break;
+                }
 
             case '/':
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(b == 0 ? 0 : a / b);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(b == 0 ? 0 : a / b);
+                    break;
+                }
 
             case '%': // Remainder
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(b == 0 ? 0 : a % b);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(b == 0 ? 0 : a % b);
+                    break;
+                }
 
             case '`': // Greater Than
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                ip.StackStack.Push(a > b ? 1 : 0);
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    ip.StackStack.Push(a > b ? 1 : 0);
+                    break;
+                }
 
             // ── Digit/hex pushers ────────────────────────────────────────────
             case '0' or '1' or '2' or '3' or '4'
@@ -219,20 +219,20 @@ public sealed class FungeProcessor
                 break;
 
             case 'x': // Absolute Delta
-            {
-                int dy = ip.StackStack.Pop(), dx = ip.StackStack.Pop();
-                ip.Delta = new FungeVector(dx, dy);
-                break;
-            }
+                {
+                    int dy = ip.StackStack.Pop(), dx = ip.StackStack.Pop();
+                    ip.Delta = new FungeVector(dx, dy);
+                    break;
+                }
 
             case 'w': // Compare
-            {
-                int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
-                if (a > b) ip.Delta = ip.Delta.RotateRight();
-                else if (a < b) ip.Delta = ip.Delta.RotateLeft();
-                // a == b: no change (acts as 'z')
-                break;
-            }
+                {
+                    int b = ip.StackStack.Pop(), a = ip.StackStack.Pop();
+                    if (a > b) ip.Delta = ip.Delta.RotateRight();
+                    else if (a < b) ip.Delta = ip.Delta.RotateLeft();
+                    // a == b: no change (acts as 'z')
+                    break;
+                }
 
             // ── Movement modifiers ───────────────────────────────────────────
             case '#': // Trampoline: skip next cell
@@ -240,14 +240,14 @@ public sealed class FungeProcessor
                 break;
 
             case 'j': // Jump Forward s cells (suppressAdvance: sets position directly)
-            {
-                var s = ip.StackStack.Pop();
-                var dir = s >= 0 ? ip.Delta : ip.Delta.Reflect();
-                for (var i = 0; i < Math.Abs(s); i++)
-                    ip.Position = _space.Advance(ip.Position, dir);
-                suppressAdvance = true;
-                break;
-            }
+                {
+                    var s = ip.StackStack.Pop();
+                    var dir = s >= 0 ? ip.Delta : ip.Delta.Reflect();
+                    for (var i = 0; i < Math.Abs(s); i++)
+                        ip.Position = _space.Advance(ip.Position, dir);
+                    suppressAdvance = true;
+                    break;
+                }
 
             case ';': // Jump Over: skip until next ;
                 ip.Position = _space.Advance(ip.Position, ip.Delta);
@@ -262,12 +262,12 @@ public sealed class FungeProcessor
                 break;
 
             case 's': // Store Character: store to next cell, skip it
-            {
-                var val = ip.StackStack.Pop();
-                ip.Position = _space.Advance(ip.Position, ip.Delta);
-                _space[ip.Position] = val;
-                break;
-            }
+                {
+                    var val = ip.StackStack.Pop();
+                    ip.Position = _space.Advance(ip.Position, ip.Delta);
+                    _space[ip.Position] = val;
+                    break;
+                }
 
             // ── String mode ──────────────────────────────────────────────────
             case '"': // Toggle Stringmode
@@ -276,19 +276,19 @@ public sealed class FungeProcessor
 
             // ── FungeSpace get/put ───────────────────────────────────────────
             case 'g': // Get: read cell at (x+offset, y+offset)
-            {
-                int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
-                ip.StackStack.Push(_space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)]);
-                break;
-            }
+                {
+                    int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
+                    ip.StackStack.Push(_space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)]);
+                    break;
+                }
 
             case 'p': // Put: write cell at (x+offset, y+offset)
-            {
-                int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
-                var val = ip.StackStack.Pop();
-                _space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)] = val;
-                break;
-            }
+                {
+                    int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
+                    var val = ip.StackStack.Pop();
+                    _space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)] = val;
+                    break;
+                }
 
             // ── I/O ──────────────────────────────────────────────────────────
             case '.': // Output Integer
@@ -301,20 +301,20 @@ public sealed class FungeProcessor
                 break;
 
             case '&': // Input Integer
-            {
-                var line = _input.ReadLine();
-                if (line is null) { ip.Delta = ip.Delta.Reflect(); break; }
-                ip.StackStack.Push(int.TryParse(line.Trim(), out var v) ? v : 0);
-                break;
-            }
+                {
+                    var line = _input.ReadLine();
+                    if (line is null) { ip.Delta = ip.Delta.Reflect(); break; }
+                    ip.StackStack.Push(int.TryParse(line.Trim(), out var v) ? v : 0);
+                    break;
+                }
 
             case '~': // Input Character
-            {
-                var ch = _input.Read();
-                if (ch < 0) ip.Delta = ip.Delta.Reflect();
-                else ip.StackStack.Push(ch);
-                break;
-            }
+                {
+                    var ch = _input.Read();
+                    if (ch < 0) ip.Delta = ip.Delta.Reflect();
+                    else ip.StackStack.Push(ch);
+                    break;
+                }
 
             // ── Control flow ─────────────────────────────────────────────────
             case '@': // Stop this IP
@@ -327,157 +327,157 @@ public sealed class FungeProcessor
                 break;
 
             case 'k': // Iterate: execute next instruction n times
-            {
-                var n = ip.StackStack.Pop();
-
-                // Advance to find next non-space instruction
-                var instrPos = _space.Advance(ip.Position, ip.Delta);
-                while (_space[instrPos] == ' ')
-                    instrPos = _space.Advance(instrPos, ip.Delta);
-
-                if (n == 0)
                 {
-                    // Skip the instruction; IP ends at instrPos, normal advance moves past
-                    ip.Position = instrPos;
-                }
-                else
-                {
-                    // Execute n times; reset position to instrPos before each execution
-                    for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
+                    var n = ip.StackStack.Pop();
+
+                    // Advance to find next non-space instruction
+                    var instrPos = _space.Advance(ip.Position, ip.Delta);
+                    while (_space[instrPos] == ' ')
+                        instrPos = _space.Advance(instrPos, ip.Delta);
+
+                    if (n == 0)
                     {
+                        // Skip the instruction; IP ends at instrPos, normal advance moves past
                         ip.Position = instrPos;
-                        var dummy = false;
-                        ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy);
                     }
-                    ip.Position = instrPos;
+                    else
+                    {
+                        // Execute n times; reset position to instrPos before each execution
+                        for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
+                        {
+                            ip.Position = instrPos;
+                            var dummy = false;
+                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy);
+                        }
+                        ip.Position = instrPos;
+                    }
+                    // suppressAdvance = false: normal advance moves IP past instrPos
+                    break;
                 }
-                // suppressAdvance = false: normal advance moves IP past instrPos
-                break;
-            }
 
             // ── Concurrency ──────────────────────────────────────────────────
             case 't': // Split: create child IP with reflected delta
-            {
-                var child = ip.CreateChild(_nextIpId++);
-                ips.AddAfter(ipNode, child);
-                break;
-            }
+                {
+                    var child = ip.CreateChild(_nextIpId++);
+                    ips.AddAfter(ipNode, child);
+                    break;
+                }
 
             // ── Stack Stack operations ────────────────────────────────────────
             case '{': // Begin Block
-            {
-                var n = ip.StackStack.Pop();
-
-                // Collect n items from TOSS (top item first)
-                var items = new List<int>();
-                if (n > 0)
-                    for (var i = 0; i < n; i++) items.Add(ip.StackStack.Pop());
-
-                // Push storage offset to current TOSS (will become SOSS)
-                ip.StackStack.Push(ip.Offset.X);
-                ip.StackStack.Push(ip.Offset.Y);
-
-                // Push new empty stack (old TOSS becomes SOSS)
-                ip.StackStack.PushNewStack();
-
-                if (n > 0)
                 {
-                    // Re-push items so original top is on top of new TOSS
-                    for (var i = items.Count - 1; i >= 0; i--)
-                        ip.StackStack.Push(items[i]);
-                }
-                else if (n < 0)
-                {
-                    // Push |n| zeros to SOSS
-                    var soss = ip.StackStack.SOSS!;
-                    for (var i = 0; i < -n; i++) soss.Push(0);
-                }
+                    var n = ip.StackStack.Pop();
 
-                // Set storage offset to next cell position
-                ip.Offset = _space.Advance(ip.Position, ip.Delta);
-                break;
-            }
+                    // Collect n items from TOSS (top item first)
+                    var items = new List<int>();
+                    if (n > 0)
+                        for (var i = 0; i < n; i++) items.Add(ip.StackStack.Pop());
+
+                    // Push storage offset to current TOSS (will become SOSS)
+                    ip.StackStack.Push(ip.Offset.X);
+                    ip.StackStack.Push(ip.Offset.Y);
+
+                    // Push new empty stack (old TOSS becomes SOSS)
+                    ip.StackStack.PushNewStack();
+
+                    if (n > 0)
+                    {
+                        // Re-push items so original top is on top of new TOSS
+                        for (var i = items.Count - 1; i >= 0; i--)
+                            ip.StackStack.Push(items[i]);
+                    }
+                    else if (n < 0)
+                    {
+                        // Push |n| zeros to SOSS
+                        var soss = ip.StackStack.SOSS!;
+                        for (var i = 0; i < -n; i++) soss.Push(0);
+                    }
+
+                    // Set storage offset to next cell position
+                    ip.Offset = _space.Advance(ip.Position, ip.Delta);
+                    break;
+                }
 
             case '}': // End Block
-            {
-                var n = ip.StackStack.Pop();
-                if (!ip.StackStack.HasSOSS)
                 {
-                    ip.Delta = ip.Delta.Reflect();
+                    var n = ip.StackStack.Pop();
+                    if (!ip.StackStack.HasSOSS)
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+
+                    // Collect items from TOSS
+                    var items = new List<int>();
+                    for (var i = 0; i < Math.Max(0, n); i++) items.Add(ip.StackStack.Pop());
+
+                    // Pop current TOSS (discard remaining items)
+                    ip.StackStack.PopCurrentStack();
+
+                    // Restore storage offset (Y on top, then X)
+                    var oy = ip.StackStack.Pop();
+                    var ox = ip.StackStack.Pop();
+                    ip.Offset = new FungeVector(ox, oy);
+
+                    // If n < 0, discard |n| items from (now current) TOSS
+                    if (n < 0)
+                        for (var i = 0; i < -n; i++) ip.StackStack.Pop();
+
+                    // Push collected items (original top on top)
+                    for (var i = items.Count - 1; i >= 0; i--)
+                        ip.StackStack.Push(items[i]);
                     break;
                 }
-
-                // Collect items from TOSS
-                var items = new List<int>();
-                for (var i = 0; i < Math.Max(0, n); i++) items.Add(ip.StackStack.Pop());
-
-                // Pop current TOSS (discard remaining items)
-                ip.StackStack.PopCurrentStack();
-
-                // Restore storage offset (Y on top, then X)
-                var oy = ip.StackStack.Pop();
-                var ox = ip.StackStack.Pop();
-                ip.Offset = new FungeVector(ox, oy);
-
-                // If n < 0, discard |n| items from (now current) TOSS
-                if (n < 0)
-                    for (var i = 0; i < -n; i++) ip.StackStack.Pop();
-
-                // Push collected items (original top on top)
-                for (var i = items.Count - 1; i >= 0; i--)
-                    ip.StackStack.Push(items[i]);
-                break;
-            }
 
             case 'u': // Stack Under Stack
-            {
-                var n = ip.StackStack.Pop();
-                if (!ip.StackStack.HasSOSS)
                 {
-                    ip.Delta = ip.Delta.Reflect();
+                    var n = ip.StackStack.Pop();
+                    if (!ip.StackStack.HasSOSS)
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+                    var soss = ip.StackStack.SOSS!;
+                    if (n > 0)
+                        for (var i = 0; i < n; i++) ip.StackStack.Push(soss.Count > 0 ? soss.Pop() : 0);
+                    else if (n < 0)
+                        for (var i = 0; i < -n; i++) soss.Push(ip.StackStack.Pop());
                     break;
                 }
-                var soss = ip.StackStack.SOSS!;
-                if (n > 0)
-                    for (var i = 0; i < n; i++) ip.StackStack.Push(soss.Count > 0 ? soss.Pop() : 0);
-                else if (n < 0)
-                    for (var i = 0; i < -n; i++) soss.Push(ip.StackStack.Pop());
-                break;
-            }
 
             // ── System info ──────────────────────────────────────────────────
             case 'y': // Get SysInfo
-            {
-                var c = ip.StackStack.Pop();
-                PushSysInfo(ip, ips.Count, c);
-                break;
-            }
+                {
+                    var c = ip.StackStack.Pop();
+                    PushSysInfo(ip, ips.Count, c);
+                    break;
+                }
 
             // ── Fingerprints (reflect – not implemented) ─────────────────────
             case '(': // Load Semantics
-            {
-                var n = ip.StackStack.Pop();
-                for (var i = 0; i < n; i++) ip.StackStack.Pop();
-                ip.Delta = ip.Delta.Reflect();
-                break;
-            }
+                {
+                    var n = ip.StackStack.Pop();
+                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
+                    ip.Delta = ip.Delta.Reflect();
+                    break;
+                }
 
             case ')': // Unload Semantics
-            {
-                var n = ip.StackStack.Pop();
-                for (var i = 0; i < n; i++) ip.StackStack.Pop();
-                ip.Delta = ip.Delta.Reflect();
-                break;
-            }
+                {
+                    var n = ip.StackStack.Pop();
+                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
+                    ip.Delta = ip.Delta.Reflect();
+                    break;
+                }
 
             // ── Optional / 3-D-only (reflect) ────────────────────────────────
             case '=': // Execute (system exec) – reflect
-            {
-                // Consume 0gnirts command string from stack
-                while (ip.StackStack.Pop() != 0) { }
-                ip.Delta = ip.Delta.Reflect();
-                break;
-            }
+                {
+                    // Consume 0gnirts command string from stack
+                    while (ip.StackStack.Pop() != 0) { }
+                    ip.Delta = ip.Delta.Reflect();
+                    break;
+                }
 
             case 'i': // Input File – reflect
             case 'o': // Output File – reflect
