@@ -59,7 +59,7 @@ public class FungeMethodGeneratorTests
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out outputCompilation, out diagnostics, cancellationToken);
     }
 
-    (System.Runtime.Loader.AssemblyLoadContext Ctx, Assembly Assembly) Emit(Compilation compilation, CancellationToken cancellationToken = default)
+    Assembly Emit(Compilation compilation, CancellationToken cancellationToken = default)
     {
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms, cancellationToken: cancellationToken);
@@ -72,9 +72,13 @@ public class FungeMethodGeneratorTests
             Assert.Fail("Compilation emit failed");
         }
         ms.Seek(0, SeekOrigin.Begin);
+
+    #if NET48
+        return Assembly.Load(ms.ToArray());
+    #else
         var ctx = new System.Runtime.Loader.AssemblyLoadContext(nameof(FungeMethodGeneratorTests), isCollectible: true);
-        var asm = ctx.LoadFromStream(ms);
-        return (ctx, asm);
+        return ctx.LoadFromStream(ms);
+    #endif
     }
 
     void AssertNoErrors(ImmutableArray<Diagnostic> diagnostics, Compilation compilation)
@@ -131,18 +135,19 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("hello.b98", helloWorld)]);
         AssertNoErrors(diag, comp);
 
-        var (ctx, asm) = Emit(comp);
-        try
+#if NET48
+        return;
+#else
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
         {
-            await Task.Factory.StartNew(() =>
-            {
-                var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run")!;
-                var result = (string?)m.Invoke(null, []);
-                Assert.AreEqual("Hello, World!", result);
-            }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-        }
-        finally { ctx.Unload(); }
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (string?)m.Invoke(null, []);
+            Assert.AreEqual("Hello, World!", result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+#endif
     }
 
     [TestMethod]

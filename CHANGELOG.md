@@ -12,3 +12,9 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Parser`: FungeSpace (sparse infinite 2D grid), FungeVector, FungeParser.
 - `Esolang.Funge.Processor`: FungeProcessor supporting core Funge-98 instruction set, stack stack, concurrent IPs.
 - `dotnet-funge`: Command-line interpreter for `.b98` files.
+
+### Changed
+
+- Build/package baseline: incremented `AssemblyVersion` / `FileVersion` to `1.0.0.1`.
+- `dotnet-funge`: enabled trimming/AOT analyzer-related properties and marked tool package as AOT-compatible for `net8.0+`.
+- `dotnet-funge`: package metadata now includes `PackageReadmeFile` and packs `Interpreter/README.md`.

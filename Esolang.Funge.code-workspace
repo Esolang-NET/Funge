@@ -57,5 +57,10 @@
 			"Processor.Tests": true,
 			"samples": true
 		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-dotnettools.csdevkit"
+		]
 	}
 }
