@@ -5,28 +5,29 @@ namespace Esolang.Funge.Processor.Tests;
 [TestClass]
 public class FungeProcessorTests
 {
-    private static string Run(string source, string? input = null, int timeoutMs = 5000)
+    public TestContext TestContext { get; set; } = default!;
+
+    private string Run(string source, string? input = null)
     {
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
         var proc = new FungeProcessor(space, output, reader);
-        using var cts = new CancellationTokenSource(timeoutMs);
-        proc.Run(cts.Token);
+        proc.Run(TestContext.CancellationTokenSource.Token);
         return output.ToString();
     }
 
-    private static int RunGetExitCode(string source, int timeoutMs = 5000)
+    private int RunGetExitCode(string source)
     {
         var space = Parser.FungeParser.Parse(source);
         var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
-        using var cts = new CancellationTokenSource(timeoutMs);
-        return proc.Run(cts.Token);
+        return proc.Run(TestContext.CancellationTokenSource.Token);
     }
 
     // ── Termination ────────────────────────────────────────────────────────
 
     [TestMethod]
+    [Timeout(5000)]
     public void Stop_EmptyProgram_Wraps()
     {
         // No @ → program loops but should terminate via cancellation
@@ -117,6 +118,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
+    [Timeout(5000)]
 #pragma warning disable IDE0022
     public void NorthSouthIf_NonZero_GoesNorth()
     {
@@ -130,6 +132,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
+    [Timeout(5000)]
 #pragma warning disable IDE0022
     public void EastWestIf_NonZero_GoesWest()
     {
@@ -162,6 +165,7 @@ public class FungeProcessorTests
     // ── Trampoline ────────────────────────────────────────────────────────
 
     [TestMethod]
+    [Timeout(5000)]
 #pragma warning disable IDE0022
     public void Trampoline_SkipsOne()
     {
@@ -184,6 +188,7 @@ public class FungeProcessorTests
     // ── Hello World ───────────────────────────────────────────────────────
 
     [TestMethod]
+    [Timeout(5000)]
 #pragma warning disable IDE0022
     public void HelloWorld_Classic()
     {
@@ -194,6 +199,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
+    [Timeout(5000)]
 #pragma warning disable IDE0022
     public void HelloWorld_WithExclamation()
     {
