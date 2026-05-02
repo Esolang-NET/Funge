@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <AssemblyName>dotnet-funge</AssemblyName>
+    <Title>Funge-98 console interpreter.</Title>
+    <PublishRelease>true</PublishRelease>
+    <IsPublishable>true</IsPublishable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dotnet-funge</ToolCommandName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Command-line interpreter for Funge-98 (Befunge-98) programs.</Description>
+    <PackageId>dotnet-funge</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Processor\Esolang.Funge.Processor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

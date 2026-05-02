@@ -1,0 +1,27 @@
+<Project>
+  <Target Name="GenerateFungeAdditionalFiles"
+          BeforeTargets="CoreCompile"
+          Condition="'@(FungeSource)' != ''"
+          Inputs="@(FungeSource)"
+          Outputs="@(FungeSource -> '$(IntermediateOutputPath)FungeGenerated\%(Filename)%(Extension).funge.txt')">
+
+    <MakeDir Directories="$(IntermediateOutputPath)FungeGenerated" />
+
+    <ItemGroup>
+      <_FungeGeneratedFile Include="@(FungeSource)">
+        <GeneratedPath>$(IntermediateOutputPath)FungeGenerated\%(Filename)%(Extension).funge.txt</GeneratedPath>
+        <LogicalPath Condition="'%(FungeSource.FungeLogicalPath)' == ''">%(Filename)%(Extension)</LogicalPath>
+        <LogicalPath Condition="'%(FungeSource.FungeLogicalPath)' != ''">%(FungeSource.FungeLogicalPath)</LogicalPath>
+      </_FungeGeneratedFile>
+    </ItemGroup>
+
+    <!-- Copy .b98 source as AdditionalText verbatim (text only, no encoding) -->
+    <Copy SourceFiles="%(_FungeGeneratedFile.FullPath)"
+          DestinationFiles="%(_FungeGeneratedFile.GeneratedPath)" />
+
+    <ItemGroup>
+      <AdditionalFiles Include="%(_FungeGeneratedFile.GeneratedPath)"
+                       FungeLogicalPath="%(_FungeGeneratedFile.LogicalPath)" />
+    </ItemGroup>
+  </Target>
+</Project>
