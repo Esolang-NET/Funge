@@ -12,6 +12,7 @@ on:
 
 env:
   DOTNET_VERSION: '10.0.x'
+  NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
 
 jobs:
   build-and-test:
@@ -30,7 +31,7 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore --source "${{ env.NUGET_SOURCE }}"
 
     - name: Build
       run: dotnet build --no-restore
