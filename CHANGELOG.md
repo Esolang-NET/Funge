@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-06
+
 ### Added
 
 - Initial implementation of Funge-98 (Befunge-98) parser, processor and interpreter.
@@ -18,3 +20,5 @@ The format is based on Keep a Changelog.
 - Build/package baseline: incremented `AssemblyVersion` / `FileVersion` to `1.0.0.1`.
 - `dotnet-funge`: enabled trimming/AOT analyzer-related properties and marked tool package as AOT-compatible for `net8.0+`.
 - `dotnet-funge`: package metadata now includes `PackageReadmeFile` and packs `Interpreter/README.md`.
+- `Esolang.Funge.Generator`: `FG0008` / `FG0009` severity changed from Warning to Info.
+- `Esolang.Funge.Generator`: runtime now throws when input/output instructions are executed without a declared input/output interface.

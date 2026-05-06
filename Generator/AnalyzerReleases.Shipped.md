@@ -14,3 +14,12 @@ FG0007 | Funge | Error | Return type and output parameter conflict
 FG0008 | Funge | Warning | Output interface required
 FG0009 | Funge | Warning | Input interface required
 FG0010 | Funge | Hidden | Unused input interface
+
+## Release 1.0.0.0
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|--------------------
+FG0008 | Funge | Info | Funge | Warning | Static best-effort diagnostic; runtime throws if reached without output interface
+FG0009 | Funge | Info | Funge | Warning | Static best-effort diagnostic; runtime throws if reached without input interface
