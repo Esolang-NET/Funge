@@ -11,7 +11,7 @@ dotnet tool install -g dotnet-funge
 ## Usage
 
 ```
-dotnet funge <path>
+dotnet-funge <path>
 ```
 
 | Argument | Description |
@@ -21,7 +21,7 @@ dotnet funge <path>
 ### Example
 
 ```
-dotnet funge hello.b98
+dotnet-funge hello.b98
 ```
 
 Standard input / output are connected to the running program (`~` / `&` for input, `,` / `.` for output).
@@ -31,7 +31,7 @@ The process exit code reflects the value passed to `q`; it is `0` if the program
 ## Funge-98 Compliance
 
 Delegates execution to `Esolang.Funge.Processor`, which targets **Befunge-98** (2D).  
-See [Esolang.Funge.Processor](../Processor/README.md) for the full instruction-level compliance table.
+For detailed processor-level behavior, refer to the processor package documentation.
 
 | Area | Status |
 |---|---|
