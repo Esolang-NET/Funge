@@ -1,0 +1,66 @@
+{
+	"folders": [
+		{
+			"name": "root",
+			"path": "."
+		},
+		{
+			"name": "Esolang.Funge.Generator",
+			"path": "Generator"
+		},
+		{
+			"name": "Esolang.Funge.Generator.Tests",
+			"path": "Generator.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Generator.UseConsole",
+			"path": "samples/Generator.UseConsole"
+		},
+		{
+			"name": "Esolang.Funge.Interpreter",
+			"path": "Interpreter"
+		},
+		{
+			"name": "Esolang.Funge.Interpreter.Tests",
+			"path": "Interpreter.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Parser",
+			"path": "Parser"
+		},
+		{
+			"name": "Esolang.Funge.Parser.Tests",
+			"path": "Parser.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Processor",
+			"path": "Processor"
+		},
+		{
+			"name": "Esolang.Funge.Processor.Tests",
+			"path": "Processor.Tests"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/.DS_Store": true,
+			"**/Thumbs.db": true,
+			"Generator": true,
+			"Generator.Tests": true,
+			"Interpreter": true,
+			"Parser": true,
+			"Parser.Tests": true,
+			"Processor": true,
+			"Processor.Tests": true,
+			"samples": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-dotnettools.csdevkit"
+		]
+	}
+}

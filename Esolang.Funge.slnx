@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="global.json" />
+    <File Path="CHANGELOG.md" />
+  </Folder>
+  <Project Path="Generator/Esolang.Funge.Generator.csproj" />
+  <Project Path="Generator.Tests/Esolang.Funge.Generator.Tests.csproj" />
+  <Project Path="samples/Generator.UseConsole/Esolang.Funge.Generator.UseConsole.csproj" />
+  <Project Path="Parser/Esolang.Funge.Parser.csproj" />
+  <Project Path="Parser.Tests/Esolang.Funge.Parser.Tests.csproj" />
+  <Project Path="Processor/Esolang.Funge.Processor.csproj" />
+  <Project Path="Processor.Tests/Esolang.Funge.Processor.Tests.csproj" />
+  <Project Path="Interpreter/Esolang.Funge.Interpreter.csproj" />
+  <Project Path="Interpreter.Tests/Esolang.Funge.Interpreter.Tests.csproj" />
+</Solution>
