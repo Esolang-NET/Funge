@@ -98,6 +98,39 @@ public static partial string HelloWorldInline();
 | FG0009 | Warning | Program uses input (`&`/`~`) but no input parameter is declared |
 | FG0010 | Hidden | Input parameter declared but program never reads input |
 
+## Funge-98 Compliance
+
+The generated runtime (`FungeRuntime`) implements a **single-IP, single-stack 2D subset** of Befunge-98,  
+sufficient for programs that do not rely on concurrency, stack stack operations, or fingerprints.
+
+| Category | Instructions | Status |
+|---|---|---|
+| Stack | `0`–`9` `a`–`f` `:` `$` `\` `n` | ✅ |
+| Arithmetic | `+` `-` `*` `/` `%` | ✅ |
+| Comparison | `` ` `` `!` | ✅ |
+| Direction | `>` `<` `^` `v` `?` `[` `]` `r` `x` `w` | ✅ |
+| Branching | `_` `\|` | ✅ |
+| Movement | `#` `;` `j` | ✅ |
+| String / char | `"` `'` `s` | ✅ (stringmode contiguous spaces are SGML-style) |
+| Storage (self-modifying) | `g` `p` | 🟡 storage offset not applied |
+| I/O | `.` `,` `&` `~` | ✅ |
+| Misc | `z` `@` | ✅ |
+| Exit code | `q` | 🟡 terminates normally but exit code is discarded |
+| Iteration | `k` | ✅ |
+| Concurrency | `t` | ❌ not implemented (single IP only) |
+| Stack stack | `{` `}` `u` | ❌ not implemented |
+| System info | `y` | ❌ not implemented |
+| File I/O | `i` `o` | ❌ not implemented |
+| System exec | `=` | ❌ not implemented |
+| Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
+| 3D (Trefunge) | `h` `l` `m` | ❌ not implemented (2D only) |
+
+## References
+
+- [Funge-98 Specification](https://codeberg.org/catseye/Funge-98/src/branch/master/doc/funge98.markdown) — Chris Pressey, Cat's Eye Technologies
+- [Funge-98 — Esolangs Wiki](https://esolangs.org/wiki/Funge-98)
+- [Mycology — Funge-98 compliance test suite](https://github.com/Deewiant/Mycology)
+
 ## Target Frameworks
 
 Generator: `netstandard2.0`  

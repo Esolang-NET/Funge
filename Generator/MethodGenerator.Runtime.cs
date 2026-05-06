@@ -56,14 +56,15 @@ partial class MethodGenerator
                         return (nx, ny);
                     }
 
-                    while (true)
+                    bool IsSgmlSpace(int c) => c is ' ' or '\t' or '\f' or '\v';
+
+                    bool stopped = false;
+
+                    void ExecuteInstruction(int cell, ref bool suppressAdvance)
                     {
-                        int cell = GetCell(px, py);
-                        if (stringMode) { if (cell == '"') stringMode = false; else Push(cell); (px, py) = Advance(px, py, dx, dy); continue; }
-                        bool suppressAdvance = false;
                         switch (cell)
                         {
-                            case ' ': case 'z': break;
+                            case ' ': case '\t': case '\f': case '\v': case 'z': break;
                             case '!': Push(Pop() == 0 ? 1 : 0); break;
                             case '$': Pop(); break;
                             case ':': { int v = Pop(); Push(v); Push(v); break; }
@@ -113,11 +114,86 @@ partial class MethodGenerator
                             case ',': output.Write((char)Pop()); break;
                             case '&': { var line = input.ReadLine(); if(line==null){dx=-dx;dy=-dy;}else Push(int.TryParse(line.Trim(),out int iv)?iv:0); break; }
                             case '~': { int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;}else Push(ch); break; }
-                            case '@': return;
-                            case 'q': return;
+                            case 'k':
+                            {
+                                int n = Pop();
+                                var (ix, iy) = Advance(px, py, dx, dy);
+                                while (true)
+                                {
+                                    int c = GetCell(ix, iy);
+                                    if (IsSgmlSpace(c))
+                                    {
+                                        (ix, iy) = Advance(ix, iy, dx, dy);
+                                    }
+                                    else if (c == ';')
+                                    {
+                                        (ix, iy) = Advance(ix, iy, dx, dy);
+                                        while (GetCell(ix, iy) != ';') (ix, iy) = Advance(ix, iy, dx, dy);
+                                        (ix, iy) = Advance(ix, iy, dx, dy);
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+
+                                if (n == 0)
+                                {
+                                    (px, py) = (ix, iy);
+                                }
+                                else
+                                {
+                                    int operand = GetCell(ix, iy);
+                                    for (int i = 0; i < n && !stopped; i++)
+                                    {
+                                        bool dummy = false;
+                                        ExecuteInstruction(operand, ref dummy);
+                                    }
+                                }
+                                break;
+                            }
+                            case '@': stopped = true; break;
+                            case 'q': stopped = true; break;
                             default: if (cell >= 'A' && cell <= 'Z') { dx = -dx; dy = -dy; } break;
                         }
-                        if (!suppressAdvance) (px, py) = Advance(px, py, dx, dy);
+                    }
+
+                    while (!stopped)
+                    {
+                        int cell = GetCell(px, py);
+                        if (stringMode)
+                        {
+                            if (cell == '"')
+                            {
+                                stringMode = false;
+                            }
+                            else if (IsSgmlSpace(cell))
+                            {
+                                Push(' ');
+                                while (true)
+                                {
+                                    var (nx, ny) = Advance(px, py, dx, dy);
+                                    if (IsSgmlSpace(GetCell(nx, ny)))
+                                    {
+                                        (px, py) = (nx, ny);
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Push(cell);
+                            }
+                            (px, py) = Advance(px, py, dx, dy);
+                            continue;
+                        }
+
+                        bool suppressAdvance = false;
+                        ExecuteInstruction(cell, ref suppressAdvance);
+                        if (!stopped && !suppressAdvance) (px, py) = Advance(px, py, dx, dy);
                     }
                 }
             }

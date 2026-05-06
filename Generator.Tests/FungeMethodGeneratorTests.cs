@@ -151,6 +151,70 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public async Task StringMode_SgmlStyleSpaces_StringReturn()
+    {
+        const string program = "\"   \"..@";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("sgml.b98")]
+                public static partial string Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("sgml.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+#if NET48
+        return;
+#else
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (string?)m.Invoke(null, []);
+            Assert.AreEqual("32 0 ", result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+#endif
+    }
+
+    [TestMethod]
+    public async Task Iterate_K_ExecutesOperandCorrectly_StringReturn()
+    {
+        const string program = "2k6...@";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("k.b98")]
+                public static partial string Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("k.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+#if NET48
+        return;
+#else
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (string?)m.Invoke(null, []);
+            Assert.AreEqual("6 6 6 ", result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+#endif
+    }
+
+    [TestMethod]
     public void ReturnType_Void_TextWriter()
     {
         var source = """
