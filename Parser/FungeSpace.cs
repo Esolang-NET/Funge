@@ -10,6 +10,22 @@ public sealed class FungeSpace
     private int _minX, _minY, _maxX, _maxY;
     private bool _hasAny;
 
+    private void IncludeInBounds(FungeVector pos)
+    {
+        if (!_hasAny)
+        {
+            _minX = _maxX = pos.X;
+            _minY = _maxY = pos.Y;
+            _hasAny = true;
+            return;
+        }
+
+        if (pos.X < _minX) _minX = pos.X;
+        if (pos.X > _maxX) _maxX = pos.X;
+        if (pos.Y < _minY) _minY = pos.Y;
+        if (pos.Y > _maxY) _maxY = pos.Y;
+    }
+
     /// <summary>
     /// Gets or sets the integer value at the given position.
     /// Unset positions return <c>' '</c> (32).
@@ -27,22 +43,16 @@ public sealed class FungeSpace
             else
             {
                 _cells[pos] = value;
-                if (!_hasAny)
-                {
-                    _minX = _maxX = pos.X;
-                    _minY = _maxY = pos.Y;
-                    _hasAny = true;
-                }
-                else
-                {
-                    if (pos.X < _minX) _minX = pos.X;
-                    if (pos.X > _maxX) _maxX = pos.X;
-                    if (pos.Y < _minY) _minY = pos.Y;
-                    if (pos.Y > _maxY) _maxY = pos.Y;
-                }
+                IncludeInBounds(pos);
             }
         }
     }
+
+    /// <summary>
+    /// Ensures the given position is included in the Least Significant Bounding Box
+    /// even when the cell value is a space and therefore not explicitly stored.
+    /// </summary>
+    public void EnsureBounds(FungeVector pos) => IncludeInBounds(pos);
 
     /// <summary>Minimum X coordinate of the populated bounding box.</summary>
     public int MinX => _minX;

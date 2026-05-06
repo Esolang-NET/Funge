@@ -154,6 +154,10 @@ public class FungeProcessorTests
     }
 #pragma warning restore IDE0022
 
+    [TestMethod]
+    public void StringMode_ContiguousSpaces_PushSingleSpace()
+        => Assert.AreEqual(" 1 ", Run("\"   1\".,@"));
+
     // ── Trampoline ────────────────────────────────────────────────────────
 
     [TestMethod]
@@ -165,6 +169,10 @@ public class FungeProcessorTests
         Assert.AreEqual(string.Empty, Run("#.@"));
     }
 #pragma warning restore IDE0022
+
+    [TestMethod]
+    public void SgmlSpaces_DoNotReflect()
+        => Assert.AreEqual("1 ", Run("1\t\f\v.@"));
 
     // ── FungeSpace get/put ────────────────────────────────────────────────
 

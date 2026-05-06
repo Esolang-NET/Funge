@@ -20,8 +20,17 @@ public static class FungeParser
         {
             if (ch == '\r') continue;
             if (ch == '\n') { x = 0; y++; continue; }
-            if (ch != ' ')
-                space[new FungeVector(x, y)] = ch;
+
+            var cell = ch switch
+            {
+                '\t' or '\f' or '\v' => ' ',
+                _ => ch,
+            };
+
+            var pos = new FungeVector(x, y);
+            space.EnsureBounds(pos);
+            if (cell != ' ')
+                space[pos] = cell;
             x++;
         }
         return space;

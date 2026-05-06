@@ -76,17 +76,41 @@ public sealed class FungeProcessor
         LinkedListNode<InstructionPointer> ipNode,
         ref int exitCode,
         ref bool quit,
-        ref bool suppressAdvance)
+        ref bool suppressAdvance,
+        int? overrideCell = null)
     {
-        var cell = _space[ip.Position];
+        var cell = overrideCell ?? _space[ip.Position];
 
         // String mode: push each character until closing "
         if (ip.StringMode)
         {
             if (cell == '"')
+            {
                 ip.StringMode = false;
+            }
+            else if (cell is ' ' or '\t' or '\f' or '\v')
+            {
+                // Funge-98 stringmode treats contiguous spaces SGML-style:
+                // one pushed space, one tick.
+                ip.StackStack.Push(' ');
+                while (true)
+                {
+                    var next = _space.Advance(ip.Position, ip.Delta);
+                    var nextCell = _space[next];
+                    if (nextCell is ' ' or '\t' or '\f' or '\v')
+                    {
+                        ip.Position = next;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
             else
+            {
                 ip.StackStack.Push(cell);
+            }
             return;
         }
 
@@ -94,6 +118,9 @@ public sealed class FungeProcessor
         {
             // ── No-ops ──────────────────────────────────────────────────────
             case ' ': // Space: no-op (IP passes through)
+            case '\t': // SGML space: tab
+            case '\f': // SGML space: form feed
+            case '\v': // SGML space: vertical tab
             case 'z': // z: explicit no-op
                 break;
 
@@ -330,28 +357,48 @@ public sealed class FungeProcessor
                 {
                     var n = ip.StackStack.Pop();
 
-                    // Advance to find next non-space instruction
+                    // Advance past spaces AND semicolon-delimited sections to find the operand.
+                    // Per spec, k skips spaces and ';'-enclosed regions just as normal execution would.
                     var instrPos = _space.Advance(ip.Position, ip.Delta);
-                    while (_space[instrPos] == ' ')
-                        instrPos = _space.Advance(instrPos, ip.Delta);
+                    while (true)
+                    {
+                        var c = _space[instrPos];
+                        if (c is ' ' or '\t' or '\f' or '\v')
+                        {
+                            instrPos = _space.Advance(instrPos, ip.Delta);
+                        }
+                        else if (c == ';')
+                        {
+                            // skip the semicolon section entirely (same as the ';' instruction)
+                            instrPos = _space.Advance(instrPos, ip.Delta);
+                            while (_space[instrPos] != ';')
+                                instrPos = _space.Advance(instrPos, ip.Delta);
+                            instrPos = _space.Advance(instrPos, ip.Delta);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
 
                     if (n == 0)
                     {
-                        // Skip the instruction; IP ends at instrPos, normal advance moves past
+                        // n=0: skip the operand. IP moves to instrPos, then normal advance passes it.
                         ip.Position = instrPos;
                     }
                     else
                     {
-                        // Execute n times; reset position to instrPos before each execution
+                        // n>0: execute the discovered operand n times, but execute it AT k.
+                        // The operand is only searched for; its semantics apply at the current IP position.
+                        // After k finishes, normal advancement continues from the IP's current position,
+                        // so position-changing operands such as [ and # behave "from k".
+                        var operand = _space[instrPos];
                         for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
                         {
-                            ip.Position = instrPos;
                             var dummy = false;
-                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy);
+                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy, operand);
                         }
-                        ip.Position = instrPos;
                     }
-                    // suppressAdvance = false: normal advance moves IP past instrPos
                     break;
                 }
 

@@ -55,6 +55,27 @@ public class FungeParserTests
         Assert.AreEqual(1, space.MaxX);
         Assert.AreEqual(1, space.MaxY);
     }
+
+    [TestMethod]
+    public void BoundingBox_IncludesSpacesInSource()
+    {
+        var space = FungeParser.Parse("A  ");
+        Assert.AreEqual(0, space.MinX);
+        Assert.AreEqual(2, space.MaxX);
+        Assert.AreEqual(0, space.MinY);
+        Assert.AreEqual(0, space.MaxY);
+    }
+
+    [TestMethod]
+    public void Parse_SgmlSpaces_AreTreatedAsSpaceCells()
+    {
+        var space = FungeParser.Parse("A\t\f\vB");
+        Assert.AreEqual('A', space[new FungeVector(0, 0)]);
+        Assert.AreEqual(' ', space[new FungeVector(1, 0)]);
+        Assert.AreEqual(' ', space[new FungeVector(2, 0)]);
+        Assert.AreEqual(' ', space[new FungeVector(3, 0)]);
+        Assert.AreEqual('B', space[new FungeVector(4, 0)]);
+    }
 }
 
 [TestClass]
