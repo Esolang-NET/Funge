@@ -6,9 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-07
+
 ### Changed
 
 - `Esolang.Funge.Generator`, `Esolang.Funge.Parser`, `Esolang.Funge.Processor`: package metadata now includes `PackageReadmeFile` and packs each project `README.md`.
+- Build/package baseline: incremented `AssemblyVersion` / `FileVersion` to `1.0.1.2` and `Version` to `1.0.1`.
 
 ## [1.0.0] - 2026-05-06
 
