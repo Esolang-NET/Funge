@@ -94,8 +94,8 @@ public static partial string HelloWorldInline();
 | FG0005 | Warning | C# language version is too low (requires ≥ C# 8) |
 | FG0006 | Error | Duplicate input/output parameter |
 | FG0007 | Error | Return type conflicts with explicit output parameter |
-| FG0008 | Warning | Program uses output (`.`/`,`) but no output parameter or output return type is declared |
-| FG0009 | Warning | Program uses input (`&`/`~`) but no input parameter is declared |
+| FG0008 | Info | Program appears to use output (`.`/`,`) but no output parameter or output return type is declared (static best-effort scan; runtime throws if reached) |
+| FG0009 | Info | Program appears to use input (`&`/`~`) but no input parameter is declared (static best-effort scan; runtime throws if reached) |
 | FG0010 | Hidden | Input parameter declared but program never reads input |
 
 ## Funge-98 Compliance

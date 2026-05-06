@@ -494,7 +494,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             case ReturnKind.EnumerableByte:
             case ReturnKind.AsyncEnumerableByte:
                 sb.AppendLine("        var __fungeOutput = new global::System.IO.StringWriter();");
-                EmitRuntimeRunCall(sb, inputExpr, "__fungeOutput");
+                EmitRuntimeRunCall(sb, inputExpr, "__fungeOutput", binding.HasExplicitInput, binding.HasExplicitOutput);
                 break;
             case ReturnKind.Void:
             case ReturnKind.Task:
@@ -503,14 +503,14 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     if (binding.OutputKind == OutputKind.PipeWriter)
                     {
                         sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
-                        EmitRuntimeRunCall(sb, inputExpr, "__fungeOutput");
+                        EmitRuntimeRunCall(sb, inputExpr, "__fungeOutput", binding.HasExplicitInput, binding.HasExplicitOutput);
                     }
                     else
                     {
                         var outExpr = binding.OutputKind == OutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
-                        EmitRuntimeRunCall(sb, inputExpr, outExpr);
+                        EmitRuntimeRunCall(sb, inputExpr, outExpr, binding.HasExplicitInput, binding.HasExplicitOutput);
                     }
                     break;
                 }
@@ -541,10 +541,10 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         }
     }
 
-    static void EmitRuntimeRunCall(StringBuilder sb, string inputExpr, string outputExpr)
+    static void EmitRuntimeRunCall(StringBuilder sb, string inputExpr, string outputExpr, bool hasInput, bool hasOutput)
     {
         sb.AppendLine("        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
-        sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, {outputExpr});");
+        sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, {outputExpr}, {(hasInput ? "true" : "false")}, {(hasOutput ? "true" : "false")});");
     }
 
     static void EmitSpaceData(StringBuilder sb, FungeSpace space)

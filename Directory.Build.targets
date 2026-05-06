@@ -5,7 +5,9 @@
     <PackageReference Update="Basic.Reference.Assemblies.Net100" Version="1.8.5" />
     <PackageReference Update="Basic.Reference.Assemblies.Net90" Version="1.8.5" />
     <PackageReference Update="Basic.Reference.Assemblies.Net80" Version="1.8.5" />
+    <PackageReference Update="Basic.Reference.Assemblies.Net472" Version="1.8.5" />
     <PackageReference Update="System.IO.Pipelines" Version="10.0.6" />
+    <PackageReference Update="System.Threading.Tasks.Extensions" Version="4.6.3" />
     <PackageReference Update="System.Linq.AsyncEnumerable" Version="10.0.6" />
     <PackageReference Update="MSTest.TestAdapter" Version="4.2.1" />
     <PackageReference Update="MSTest.TestFramework" Version="4.2.1" />

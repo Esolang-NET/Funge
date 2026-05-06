@@ -28,7 +28,9 @@ partial class MethodGenerator
                     Dictionary<(int, int), int> cells,
                     int minX, int minY, int maxX, int maxY,
                     TextReader input,
-                    TextWriter output)
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput)
                 {
                     int px = 0, py = 0, dx = 1, dy = 0;
                     bool stringMode = false;
@@ -110,10 +112,22 @@ partial class MethodGenerator
                             case '"': stringMode = true; break;
                             case 'g': { int gy = Pop(), gx = Pop(); Push(GetCell(gx, gy)); break; }
                             case 'p': { int gy = Pop(), gx = Pop(), pv = Pop(); SetCell(gx, gy, pv); break; }
-                            case '.': output.Write(Pop()); output.Write(' '); break;
-                            case ',': output.Write((char)Pop()); break;
-                            case '&': { var line = input.ReadLine(); if(line==null){dx=-dx;dy=-dy;}else Push(int.TryParse(line.Trim(),out int iv)?iv:0); break; }
-                            case '~': { int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;}else Push(ch); break; }
+                            case '.':
+                                if (!hasOutput) throw new InvalidOperationException("Funge output instruction '.' executed without an output interface.");
+                                output.Write(Pop()); output.Write(' '); break;
+                            case ',':
+                                if (!hasOutput) throw new InvalidOperationException("Funge output instruction ',' executed without an output interface.");
+                                output.Write((char)Pop()); break;
+                            case '&':
+                            {
+                                if (!hasInput) throw new InvalidOperationException("Funge input instruction '&' executed without an input interface.");
+                                var line = input.ReadLine(); if(line==null){dx=-dx;dy=-dy;}else Push(int.TryParse(line.Trim(),out int iv)?iv:0); break;
+                            }
+                            case '~':
+                            {
+                                if (!hasInput) throw new InvalidOperationException("Funge input instruction '~' executed without an input interface.");
+                                int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;}else Push(ch); break;
+                            }
                             case 'k':
                             {
                                 int n = Pop();

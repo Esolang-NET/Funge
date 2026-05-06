@@ -94,7 +94,7 @@ public static class DiagnosticDescriptors
         title: "Output interface required",
         messageFormat: "Method '{0}' uses Funge output instructions but has no output (return string/IEnumerable&lt;byte&gt; or a TextWriter/PipeWriter parameter)",
         category: Category,
-        defaultSeverity: DiagnosticSeverity.Warning,
+        defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
     /// <summary>
@@ -105,7 +105,7 @@ public static class DiagnosticDescriptors
         title: "Input interface required",
         messageFormat: "Method '{0}' uses Funge input instructions but has no input (string, TextReader, or PipeReader parameter)",
         category: Category,
-        defaultSeverity: DiagnosticSeverity.Warning,
+        defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
     /// <summary>

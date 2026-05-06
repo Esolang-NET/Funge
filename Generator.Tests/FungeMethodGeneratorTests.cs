@@ -23,11 +23,47 @@ public class FungeMethodGeneratorTests
             Net100.References.All;
 #elif NET9_0_OR_GREATER
             Net90.References.All;
-#else
+#elif NET8_0_OR_GREATER
             Net80.References.All;
+#elif NET472_OR_GREATER
+            Net472.References.All;
+#else
+            throw new InvalidOperationException("Unsupported target framework for generator tests.");
 #endif
+
+        var referenceList = references.ToList();
+        {
+            var hasPipelinesReference = referenceList.Any(static r =>
+                string.Equals(Path.GetFileNameWithoutExtension(r.FilePath), "System.IO.Pipelines", StringComparison.OrdinalIgnoreCase));
+            if (!hasPipelinesReference)
+            {
+                var pipelinesAssemblyLocation = typeof(System.IO.Pipelines.PipeReader).Assembly.Location;
+                if (!string.IsNullOrWhiteSpace(pipelinesAssemblyLocation))
+                {
+                    referenceList.Add(MetadataReference.CreateFromFile(pipelinesAssemblyLocation));
+                }
+            }
+        }
+#if !NET
+        {
+            var memoryAssemblyLocation = typeof(Memory<>).Assembly.Location;
+            if (!string.IsNullOrWhiteSpace(memoryAssemblyLocation))
+            {
+                referenceList.Add(MetadataReference.CreateFromFile(memoryAssemblyLocation));
+            }
+        }
+        {
+            var asm = typeof(ValueTask).Assembly.Location;
+            referenceList.Add(MetadataReference.CreateFromFile(asm));
+        }
+        {
+            var asm = typeof(IAsyncEnumerable<>).Assembly.Location;
+            referenceList.Add(MetadataReference.CreateFromFile(asm));
+        }
+#endif
+
         baseCompilation = CSharpCompilation.Create("generatortest",
-            references: references,
+            references: referenceList,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
@@ -135,10 +171,6 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("hello.b98", helloWorld)]);
         AssertNoErrors(diag, comp);
 
-#if NET48
-        return;
-#else
-
         var asm = Emit(comp);
         await Task.Factory.StartNew(() =>
         {
@@ -147,7 +179,6 @@ public class FungeMethodGeneratorTests
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("Hello, World!", result);
         }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-#endif
     }
 
     [TestMethod]
@@ -168,9 +199,6 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("sgml.b98", program)]);
         AssertNoErrors(diag, comp);
 
-#if NET48
-        return;
-#else
         var asm = Emit(comp);
         await Task.Factory.StartNew(() =>
         {
@@ -179,7 +207,6 @@ public class FungeMethodGeneratorTests
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("32 0 ", result);
         }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-#endif
     }
 
     [TestMethod]
@@ -200,9 +227,6 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("k.b98", program)]);
         AssertNoErrors(diag, comp);
 
-#if NET48
-        return;
-#else
         var asm = Emit(comp);
         await Task.Factory.StartNew(() =>
         {
@@ -211,7 +235,6 @@ public class FungeMethodGeneratorTests
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("6 6 6 ", result);
         }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-#endif
     }
 
     [TestMethod]
@@ -447,6 +470,66 @@ public class FungeMethodGeneratorTests
         RunGenerators(source, out _, out var diag,
             additionalFiles: [("test.b98", "@")]);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0007"), "Expected FG0007");
+    }
+
+    [TestMethod]
+    public void Runtime_SelfModifiedOutputWithoutOutputInterface_Throws()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial void Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "68*2-s<<@")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        var t = asm.GetType("TestProject.TestClass")
+            ?? asm.GetType("TestClass");
+        Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
+        var m = t.GetMethod("Run", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
+        Assert.IsNotNull(m, "Failed to find generated method Run.");
+
+        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, []));
+        Assert.IsNotNull(ex);
+        Assert.IsNotNull(ex.InnerException);
+        Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
+        StringAssert.Contains(ex.InnerException!.Message, "without an output interface");
+    }
+
+    [TestMethod]
+    public void Runtime_SelfModifiedInputWithoutInputInterface_Throws()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial void Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "66*2+s<<@")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        var t = asm.GetType("TestProject.TestClass")
+            ?? asm.GetType("TestClass");
+        Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
+        var m = t.GetMethod("Run", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
+        Assert.IsNotNull(m, "Failed to find generated method Run.");
+
+        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, []));
+        Assert.IsNotNull(ex);
+        Assert.IsNotNull(ex.InnerException);
+        Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
+        StringAssert.Contains(ex.InnerException!.Message, "without an input interface");
     }
 }
 
