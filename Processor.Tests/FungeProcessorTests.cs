@@ -156,7 +156,7 @@ public class FungeProcessorTests
 
     [TestMethod]
     public void StringMode_ContiguousSpaces_PushSingleSpace()
-        => Assert.AreEqual(" 1 ", Run("\"   1\".,@"));
+        => Assert.AreEqual("49  ", Run("\"   1\".,@"));
 
     // ── Trampoline ────────────────────────────────────────────────────────
 
