@@ -51,6 +51,7 @@
 			"Generator": true,
 			"Generator.Tests": true,
 			"Interpreter": true,
+			"Interpreter.Tests": true,
 			"Parser": true,
 			"Parser.Tests": true,
 			"Processor": true,
