@@ -24,12 +24,12 @@ public static class FungeInterpreterExtensions
             pathArgument,
         };
 
-        rootCommand.SetAction(parseResult =>
+        rootCommand.SetAction((parseResult, cancellationToken) =>
         {
             var path = parseResult.GetValue(pathArgument)!;
             var space = FungeParser.ParseFile(path);
             var proc = new FungeProcessor(space, Console.Out, Console.In);
-            return proc.Run();
+            return Task.FromResult(proc.Run(cancellationToken));
         });
 
         return rootCommand;

@@ -32,4 +32,25 @@ public class ProgramTests
                 File.Delete(path);
         }
     }
+
+    [TestMethod]
+    public async Task RunAsync_CancelledToken_StopsInfiniteProgram()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
+        try
+        {
+            await File.WriteAllTextAsync(path, ">");
+
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            var exitCode = await Program.RunAsync([path], cancellation.Token);
+            Assert.AreEqual(0, exitCode);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
 }
