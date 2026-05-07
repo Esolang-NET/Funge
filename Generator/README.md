@@ -12,10 +12,13 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 | Return type | Description |
 |---|---|
 | `void` | Run to completion; discard output |
+| `int` | Return program exit code (`q` pops stack top, otherwise `0`) |
 | `string` | Collect all output and return as a string |
 | `Task` | Async run; discard output |
+| `Task<int>` | Async run; return program exit code |
 | `Task<string>` | Async run; return output string |
 | `ValueTask` | Async run; discard output |
+| `ValueTask<int>` | Async run; return program exit code |
 | `ValueTask<string>` | Async run; return output string |
 | `IEnumerable<byte>` | Yield output bytes synchronously |
 | `IAsyncEnumerable<byte>` | Yield output bytes asynchronously |
@@ -115,7 +118,7 @@ sufficient for programs that do not rely on concurrency, stack stack operations,
 | Storage (self-modifying) | `g` `p` | 🟡 storage offset not applied |
 | I/O | `.` `,` `&` `~` | ✅ |
 | Misc | `z` `@` | ✅ |
-| Exit code | `q` | 🟡 terminates normally but exit code is discarded |
+| Exit code | `q` | ✅ pops stack top and returns it as method exit code (`@` returns `0`) |
 | Iteration | `k` | ✅ |
 | Concurrency | `t` | ❌ not implemented (single IP only) |
 | Stack stack | `{` `}` `u` | ❌ not implemented |

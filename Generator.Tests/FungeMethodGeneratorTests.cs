@@ -287,6 +287,59 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public void ReturnType_Int_NoErrors()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_TaskInt_NoErrors()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial Task<int> Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_ValueTaskInt_NoErrors()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial ValueTask<int> Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
     public void ReturnType_TaskString_NoErrors()
     {
         var source = """
@@ -425,12 +478,68 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial int Run();
+                public static partial double Run();
             }
             """;
         RunGenerators(source, out _, out var diag,
             additionalFiles: [("test.b98", "@")]);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0002"), "Expected FG0002");
+    }
+
+    [TestMethod]
+    public async Task Runtime_ExitCode_IntReturn_QReturnsStackTop()
+    {
+        const string program = "5q@";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("exit-code.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("exit-code.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(5, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_ExitCode_IntReturn_AtReturnsZero()
+    {
+        const string program = "@";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("exit-code-zero.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("exit-code-zero.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(0, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]

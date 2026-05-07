@@ -40,10 +40,13 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     enum ReturnKind
     {
         Void,
+        Int,
         String,
         Task,
+        TaskInt,
         TaskString,
         ValueTask,
+        ValueTaskInt,
         ValueTaskString,
         EnumerableByte,
         AsyncEnumerableByte,
@@ -285,14 +288,21 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var returnKind = method.ReturnType switch
         {
             { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
+            { SpecialType: SpecialType.System_Int32 } => ReturnKind.Int,
             { Name: "String", ContainingNamespace.Name: "System" } => ReturnKind.String,
             INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 0
                 => ReturnKind.Task,
+            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 1
+                && t.TypeArguments[0].SpecialType == SpecialType.System_Int32
+                => ReturnKind.TaskInt,
             INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 1
                 && t.TypeArguments[0].SpecialType == SpecialType.System_String
                 => ReturnKind.TaskString,
             INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 0
                 => ReturnKind.ValueTask,
+            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 1
+                && t.TypeArguments[0].SpecialType == SpecialType.System_Int32
+                => ReturnKind.ValueTaskInt,
             INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 1
                 && t.TypeArguments[0].SpecialType == SpecialType.System_String
                 => ReturnKind.ValueTaskString,
@@ -488,13 +498,24 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
         switch (binding.ReturnKind)
         {
+            case ReturnKind.Int:
             case ReturnKind.String:
+            case ReturnKind.TaskInt:
             case ReturnKind.TaskString:
+            case ReturnKind.ValueTaskInt:
             case ReturnKind.ValueTaskString:
             case ReturnKind.EnumerableByte:
             case ReturnKind.AsyncEnumerableByte:
                 sb.AppendLine("        var __fungeOutput = new global::System.IO.StringWriter();");
-                EmitRuntimeRunCall(sb, inputExpr, "__fungeOutput", binding.HasExplicitInput, binding.HasExplicitOutput);
+                if (binding.ReturnKind is ReturnKind.Int or ReturnKind.TaskInt or ReturnKind.ValueTaskInt)
+                {
+                    sb.AppendLine("        var __fungeExitCode = global::Esolang.Funge.__Generated.FungeRuntime.Run(");
+                    sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")});");
+                }
+                else
+                {
+                    EmitRuntimeRunCall(sb, inputExpr, "__fungeOutput", binding.HasExplicitInput, binding.HasExplicitOutput);
+                }
                 break;
             case ReturnKind.Void:
             case ReturnKind.Task:
@@ -518,17 +539,26 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
         switch (binding.ReturnKind)
         {
+            case ReturnKind.Int:
+                sb.AppendLine("        return __fungeExitCode;");
+                break;
             case ReturnKind.String:
                 sb.AppendLine("        return __fungeOutput.ToString();");
                 break;
             case ReturnKind.Task:
                 sb.AppendLine("        return global::System.Threading.Tasks.Task.CompletedTask;");
                 break;
+            case ReturnKind.TaskInt:
+                sb.AppendLine("        return global::System.Threading.Tasks.Task.FromResult(__fungeExitCode);");
+                break;
             case ReturnKind.TaskString:
                 sb.AppendLine("        return global::System.Threading.Tasks.Task.FromResult(__fungeOutput.ToString());");
                 break;
             case ReturnKind.ValueTask:
                 sb.AppendLine("        return default(global::System.Threading.Tasks.ValueTask);");
+                break;
+            case ReturnKind.ValueTaskInt:
+                sb.AppendLine("        return new global::System.Threading.Tasks.ValueTask<int>(__fungeExitCode);");
                 break;
             case ReturnKind.ValueTaskString:
                 sb.AppendLine("        return new global::System.Threading.Tasks.ValueTask<string>(__fungeOutput.ToString());");

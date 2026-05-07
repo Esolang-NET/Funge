@@ -24,7 +24,7 @@ partial class MethodGenerator
         {
             internal static class FungeRuntime
             {
-                internal static void Run(
+                internal static int Run(
                     Dictionary<(int, int), int> cells,
                     int minX, int minY, int maxX, int maxY,
                     TextReader input,
@@ -36,6 +36,7 @@ partial class MethodGenerator
                     bool stringMode = false;
                     var stack = new List<int>();
                     var rng = new Random();
+                    int exitCode = 0;
 
                     int GetCell(int x, int y) => cells.TryGetValue((x, y), out var v) ? v : ' ';
                     void SetCell(int x, int y, int val)
@@ -167,7 +168,7 @@ partial class MethodGenerator
                                 break;
                             }
                             case '@': stopped = true; break;
-                            case 'q': stopped = true; break;
+                            case 'q': exitCode = Pop(); stopped = true; break;
                             default: if (cell >= 'A' && cell <= 'Z') { dx = -dx; dy = -dy; } break;
                         }
                     }
@@ -209,6 +210,8 @@ partial class MethodGenerator
                         ExecuteInstruction(cell, ref suppressAdvance);
                         if (!stopped && !suppressAdvance) (px, py) = Advance(px, py, dx, dy);
                     }
+
+                    return exitCode;
                 }
             }
         }

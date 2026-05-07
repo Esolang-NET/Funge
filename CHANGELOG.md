@@ -15,6 +15,7 @@ The format is based on Keep a Changelog.
 
 - `Esolang.Funge.Processor`: `FungeProcessor` now implements `ITextProcessor<FungeSpace>` and exposes `RunToEnd(...)` / `RunToEndAsync(...)` while preserving existing `Run(...)` behavior.
 - `dotnet-funge` (`Esolang.Funge.Interpreter`): command execution path now calls `RunToEnd(...)`.
+- `Esolang.Funge.Generator`: added return-type support for `int`, `Task<int>`, and `ValueTask<int>`, and aligned `q` handling to return the popped exit code (`@` returns `0`).
 
 ## [1.0.1] - 2026-05-07
 
