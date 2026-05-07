@@ -9,7 +9,8 @@
 ```
 samples/Generator.UseConsole/
 ├── Programs/
-│   └── hello.b98                          # Funge-98 ソースファイル
+│   ├── hello.b98                          # 2D Hello World
+│   └── hello3d.b98                        # 3D (Trefunge) Hello World
 ├── Esolang.Funge.Generator.UseConsole.cs  # サンプルコード（top-level statements）
 └── Esolang.Funge.Generator.UseConsole.csproj
 ```
@@ -79,6 +80,7 @@ namespace Esolang.Funge
 | `HelloWorldBytes` | `partial IEnumerable<byte> HelloWorldBytes()` | 出力バイトを同期で列挙する |
 | `HelloWorldBytesAsync` | `partial IAsyncEnumerable<byte> HelloWorldBytesAsync()` | 出力バイトを非同期で列挙する |
 | `HelloWorldInline` | `partial string HelloWorldInline()` | インラインソース（後述） |
+| `HelloWorld3D` | `partial string HelloWorld3D()` | 3Dソース（`\f`でZレイヤー分割） |
 
 ## インラインソース
 
@@ -111,4 +113,5 @@ HelloWorldWriter: Hello, World!
 HelloWorldBytes: Hello, World!
 HelloWorldBytesAsync: Hello, World!
 HelloWorldInline: Hello, World!
+HelloWorld3D: Hello, World!
 ```

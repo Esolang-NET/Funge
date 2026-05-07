@@ -37,6 +37,26 @@ For runnable examples covering all return types and inline source, see:
 
 - [UseConsole sample](./samples/Generator.UseConsole/README.md)
 
+## Funge-98 Support Status
+
+Current implementation status across packages:
+
+| Area | Status |
+|---|---|
+| Core Funge-98 instructions | ✅ Implemented |
+| Trefunge 3D navigation (`h` `l` `m`) | ✅ Implemented |
+| Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
+| Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
+| File I/O (`i` `o`) | ❌ Not implemented (reflect) |
+| System exec (`=`) | ❌ Not implemented (reflect) |
+
+Details:
+
+- Parser behavior and space model: [Parser README](./Parser/README.md)
+- Runtime execution and instruction compliance: [Processor README](./Processor/README.md)
+- Generated runtime subset and limitations: [Generator README](./Generator/README.md)
+- CLI behavior and scope: [Interpreter README](./Interpreter/README.md)
+
 ## Install
 
 ```bash

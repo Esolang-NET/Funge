@@ -510,7 +510,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 if (binding.ReturnKind is ReturnKind.Int or ReturnKind.TaskInt or ReturnKind.ValueTaskInt)
                 {
                     sb.AppendLine("        var __fungeExitCode = global::Esolang.Funge.__Generated.FungeRuntime.Run(");
-                    sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")});");
+                    sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")});");
                 }
                 else
                 {
@@ -574,20 +574,21 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     static void EmitRuntimeRunCall(StringBuilder sb, string inputExpr, string outputExpr, bool hasInput, bool hasOutput)
     {
         sb.AppendLine("        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
-        sb.AppendLine($"            __cells, __minX, __minY, __maxX, __maxY, {inputExpr}, {outputExpr}, {(hasInput ? "true" : "false")}, {(hasOutput ? "true" : "false")});");
+        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outputExpr}, {(hasInput ? "true" : "false")}, {(hasOutput ? "true" : "false")});");
     }
 
     static void EmitSpaceData(StringBuilder sb, FungeSpace space)
     {
-        sb.AppendLine($"        int __minX = {space.MinX}, __minY = {space.MinY}, __maxX = {space.MaxX}, __maxY = {space.MaxY};");
-        sb.AppendLine("        var __cells = new global::System.Collections.Generic.Dictionary<(int, int), int>();");
-        for (var y = space.MinY; y <= space.MaxY; y++)
-            for (var x = space.MinX; x <= space.MaxX; x++)
-            {
-                var val = space[new FungeVector(x, y)];
-                if (val != ' ')
-                    sb.AppendLine($"        __cells[({x}, {y})] = {val};");
-            }
+        sb.AppendLine($"        int __minX = {space.MinX}, __minY = {space.MinY}, __minZ = {space.MinZ}, __maxX = {space.MaxX}, __maxY = {space.MaxY}, __maxZ = {space.MaxZ};");
+        sb.AppendLine("        var __cells = new global::System.Collections.Generic.Dictionary<(int, int, int), int>();");
+        for (var z = space.MinZ; z <= space.MaxZ; z++)
+            for (var y = space.MinY; y <= space.MaxY; y++)
+                for (var x = space.MinX; x <= space.MaxX; x++)
+                {
+                    var val = space[new FungeVector(x, y, z)];
+                    if (val != ' ')
+                        sb.AppendLine($"        __cells[({x}, {y}, {z})] = {val};");
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -597,14 +598,15 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     static (bool usesOutput, bool usesInput) ScanFungeIo(FungeSpace space)
     {
         bool usesOutput = false, usesInput = false;
-        for (var y = space.MinY; y <= space.MaxY; y++)
-            for (var x = space.MinX; x <= space.MaxX; x++)
-            {
-                var c = space[new FungeVector(x, y)];
-                if (c is '.' or ',') usesOutput = true;
-                if (c is '&' or '~') usesInput = true;
-                if (usesOutput && usesInput) return (true, true);
-            }
+        for (var z = space.MinZ; z <= space.MaxZ; z++)
+            for (var y = space.MinY; y <= space.MaxY; y++)
+                for (var x = space.MinX; x <= space.MaxX; x++)
+                {
+                    var c = space[new FungeVector(x, y, z)];
+                    if (c is '.' or ',') usesOutput = true;
+                    if (c is '&' or '~') usesInput = true;
+                    if (usesOutput && usesInput) return (true, true);
+                }
         return (usesOutput, usesInput);
     }
 

@@ -114,7 +114,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000)]
+    [Timeout(5000, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void NorthSouthIf_NonZero_GoesNorth()
     {
@@ -124,7 +124,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000)]
+    [Timeout(5000, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void EastWestIf_NonZero_GoesWest()
     {
@@ -171,8 +171,9 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
+    [Timeout(5000, CooperativeCancellation = true)]
     public void SgmlSpaces_DoNotReflect()
-        => Assert.AreEqual("1 ", Run("1\t\f\v.@"));
+        => Assert.AreEqual("1 ", Run("1\t\v.@"));
 
     // ── FungeSpace get/put ────────────────────────────────────────────────
 
@@ -180,15 +181,35 @@ public class FungeProcessorTests
 #pragma warning disable IDE0022
     public void GetPut_ReadWrite()
     {
-        // p pops y,x,v. Build v=65 via 8*8+1, then store at (5,0) and read back.
-        Assert.AreEqual("65 ", Run("88*1+50p50g.@"));
+        // p pops z,y,x,v. Build v=65 via 8*8+1, then store at (5,0,0) and read back.
+        Assert.AreEqual("65 ", Run("88*1+500p500g.@"));
     }
 #pragma warning restore IDE0022
+
+    [TestMethod]
+    [Timeout(5000, CooperativeCancellation = true)]
+    public void GoHigh_ChangesDeltaToNegativeZ()
+        => Assert.AreEqual(7, RunGetExitCode("h\f\f>7q"));
+
+    [TestMethod]
+    [Timeout(5000, CooperativeCancellation = true)]
+    public void GoLow_ChangesDeltaToPositiveZ()
+        => Assert.AreEqual(7, RunGetExitCode("l\f>7q"));
+
+    [TestMethod]
+    [Timeout(5000, CooperativeCancellation = true)]
+    public void HighLowIf_Zero_GoesLow()
+        => Assert.AreEqual(1, RunGetExitCode("0m\f >1q\f >2q"));
+
+    [TestMethod]
+    [Timeout(5000, CooperativeCancellation = true)]
+    public void HighLowIf_NonZero_GoesHigh()
+        => Assert.AreEqual(2, RunGetExitCode("1m\f >1q\f >2q"));
 
     // ── Hello World ───────────────────────────────────────────────────────
 
     [TestMethod]
-    [Timeout(5000)]
+    [Timeout(5000, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void HelloWorld_Classic()
     {
@@ -199,7 +220,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000)]
+    [Timeout(5000, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void HelloWorld_WithExclamation()
     {

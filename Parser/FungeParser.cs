@@ -15,19 +15,20 @@ public static class FungeParser
     public static FungeSpace Parse(string source)
     {
         var space = new FungeSpace();
-        int x = 0, y = 0;
+        int x = 0, y = 0, z = 0;
         foreach (var ch in source)
         {
             if (ch == '\r') continue;
             if (ch == '\n') { x = 0; y++; continue; }
+            if (ch == '\f') { x = 0; y = 0; z++; continue; }
 
             var cell = ch switch
             {
-                '\t' or '\f' or '\v' => ' ',
+                '\t' or '\v' => ' ',
                 _ => ch,
             };
 
-            var pos = new FungeVector(x, y);
+            var pos = new FungeVector(x, y, z);
             space.EnsureBounds(pos);
             if (cell != ' ')
                 space[pos] = cell;

@@ -86,6 +86,33 @@ Funge-98 code can be embedded directly as a string literal using `InlineSource`�
 public static partial string HelloWorldInline();
 ```
 
+## 3D (Trefunge) support
+
+The generator fully supports 3D Funge-98 (Trefunge) programs.  
+Within a source file, the form-feed character (`\f`, U+000C) separates Z-layers.
+
+```
+# Layer Z=0 — jump into layer Z=1
+l
+```
+
+*(form-feed character here separates layers)*
+
+```
+# Layer Z=1 — runs the Hello World program
+>64+"!dlroW ,olleH">:#,_@
+```
+
+**3D direction instructions:**
+
+| Instruction | Description |
+|---|---|
+| `h` | Set delta to High `(0, 0, −1)` |
+| `l` | Set delta to Low `(0, 0, +1)` |
+| `m` | Pop value; zero → Low, non-zero → High |
+
+The generated runtime automatically handles XYZ coordinates, Z-axis wrapping, and 3D `g`/`p`/`x` operands.
+
 ## Diagnostics
 
 | ID | Severity | Description |
@@ -103,15 +130,15 @@ public static partial string HelloWorldInline();
 
 ## Funge-98 Compliance
 
-The generated runtime (`FungeRuntime`) implements a **single-IP, single-stack 2D subset** of Befunge-98,  
-sufficient for programs that do not rely on concurrency, stack stack operations, or fingerprints.
+The generated runtime (`FungeRuntime`) implements a **single-IP, single-stack subset** of Funge-98,  
+including Trefunge 3D navigation (`h` / `l` / `m`) but excluding concurrency, stack stack operations, and fingerprints.
 
 | Category | Instructions | Status |
 |---|---|---|
 | Stack | `0`–`9` `a`–`f` `:` `$` `\` `n` | ✅ |
 | Arithmetic | `+` `-` `*` `/` `%` | ✅ |
 | Comparison | `` ` `` `!` | ✅ |
-| Direction | `>` `<` `^` `v` `?` `[` `]` `r` `x` `w` | ✅ |
+| Direction | `>` `<` `^` `v` `h` `l` `?` `[` `]` `r` `x` `m` `w` | ✅ |
 | Branching | `_` `\|` | ✅ |
 | Movement | `#` `;` `j` | ✅ |
 | String / char | `"` `'` `s` | ✅ (stringmode contiguous spaces are SGML-style) |
@@ -126,7 +153,8 @@ sufficient for programs that do not rely on concurrency, stack stack operations,
 | File I/O | `i` `o` | ❌ not implemented |
 | System exec | `=` | ❌ not implemented |
 | Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
-| 3D (Trefunge) | `h` `l` `m` | ❌ not implemented (2D only) |
+| 3D (Trefunge) | `h` `l` `m` | ✅ |
+| ND-generalized space | dimensions > 3 | ❌ not implemented |
 
 ## References
 

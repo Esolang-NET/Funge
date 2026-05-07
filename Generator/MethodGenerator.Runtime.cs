@@ -25,38 +25,40 @@ partial class MethodGenerator
             internal static class FungeRuntime
             {
                 internal static int Run(
-                    Dictionary<(int, int), int> cells,
-                    int minX, int minY, int maxX, int maxY,
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
                     TextReader input,
                     TextWriter output,
                     bool hasInput,
                     bool hasOutput)
                 {
-                    int px = 0, py = 0, dx = 1, dy = 0;
+                    int px = 0, py = 0, pz = 0, dx = 1, dy = 0, dz = 0;
                     bool stringMode = false;
                     var stack = new List<int>();
                     var rng = new Random();
                     int exitCode = 0;
 
-                    int GetCell(int x, int y) => cells.TryGetValue((x, y), out var v) ? v : ' ';
-                    void SetCell(int x, int y, int val)
+                    int GetCell(int x, int y, int z) => cells.TryGetValue((x, y, z), out var v) ? v : ' ';
+                    void SetCell(int x, int y, int z, int val)
                     {
-                        if (val == ' ') cells.Remove((x, y));
-                        else cells[(x, y)] = val;
+                        if (val == ' ') cells.Remove((x, y, z));
+                        else cells[(x, y, z)] = val;
                     }
                     int Pop() { if (stack.Count == 0) return 0; var v = stack[stack.Count - 1]; stack.RemoveAt(stack.Count - 1); return v; }
                     void Push(int v) => stack.Add(v);
 
-                    (int nx, int ny) Advance(int x, int y, int ddx, int ddy)
+                    (int nx, int ny, int nz) Advance(int x, int y, int z, int ddx, int ddy, int ddz)
                     {
-                        if (maxX < minX) return (x, y);
-                        int nx = x + ddx, ny = y + ddy;
-                        int w = maxX - minX + 1, h = maxY - minY + 1;
+                        if (maxX < minX) return (x, y, z);
+                        int nx = x + ddx, ny = y + ddy, nz = z + ddz;
+                        int w = maxX - minX + 1, h = maxY - minY + 1, d = maxZ - minZ + 1;
                         if (nx < minX) nx = maxX - ((minX - nx - 1) % w);
                         else if (nx > maxX) nx = minX + ((nx - maxX - 1) % w);
                         if (ny < minY) ny = maxY - ((minY - ny - 1) % h);
                         else if (ny > maxY) ny = minY + ((ny - maxY - 1) % h);
-                        return (nx, ny);
+                        if (nz < minZ) nz = maxZ - ((minZ - nz - 1) % d);
+                        else if (nz > maxZ) nz = minZ + ((nz - maxZ - 1) % d);
+                        return (nx, ny, nz);
                     }
 
                     bool IsSgmlSpace(int c) => c is ' ' or '\t' or '\f' or '\v';
@@ -83,36 +85,47 @@ partial class MethodGenerator
                             case '5': case '6': case '7': case '8': case '9': Push(cell - '0'); break;
                             case 'a': Push(10); break; case 'b': Push(11); break; case 'c': Push(12); break;
                             case 'd': Push(13); break; case 'e': Push(14); break; case 'f': Push(15); break;
-                            case '>': dx = 1; dy = 0; break;
-                            case '<': dx = -1; dy = 0; break;
-                            case '^': dx = 0; dy = -1; break;
-                            case 'v': dx = 0; dy = 1; break;
+                            case '>': dx = 1; dy = 0; dz = 0; break;
+                            case '<': dx = -1; dy = 0; dz = 0; break;
+                            case '^': dx = 0; dy = -1; dz = 0; break;
+                            case 'v': dx = 0; dy = 1; dz = 0; break;
+                            case 'h': dx = 0; dy = 0; dz = -1; break;
+                            case 'l': dx = 0; dy = 0; dz = 1; break;
                             case '?':
-                                switch (rng.Next(4)) { case 0: dx=1;dy=0;break; case 1:dx=-1;dy=0;break; case 2:dx=0;dy=-1;break; default:dx=0;dy=1;break; }
+                                switch (rng.Next(6))
+                                {
+                                    case 0: dx=1;dy=0;dz=0;break;
+                                    case 1: dx=-1;dy=0;dz=0;break;
+                                    case 2: dx=0;dy=-1;dz=0;break;
+                                    case 3: dx=0;dy=1;dz=0;break;
+                                    case 4: dx=0;dy=0;dz=-1;break;
+                                    default: dx=0;dy=0;dz=1;break;
+                                }
                                 break;
-                            case '_': { int v = Pop(); dx = v == 0 ? 1 : -1; dy = 0; break; }
-                            case '|': { int v = Pop(); dy = v == 0 ? 1 : -1; dx = 0; break; }
-                            case '[': { int ndx = dy, ndy = -dx; dx = ndx; dy = ndy; break; }
-                            case ']': { int ndx = -dy, ndy = dx; dx = ndx; dy = ndy; break; }
-                            case 'r': dx = -dx; dy = -dy; break;
-                            case 'x': { int ndy = Pop(), ndx = Pop(); dx = ndx; dy = ndy; break; }
-                            case 'w': { int b = Pop(), a = Pop(); if(a>b){int ndx=-dy,ndy=dx;dx=ndx;dy=ndy;}else if(a<b){int ndx=dy,ndy=-dx;dx=ndx;dy=ndy;} break; }
-                            case '#': (px, py) = Advance(px, py, dx, dy); break;
+                            case 'm': { int v = Pop(); dx = 0; dy = 0; dz = v == 0 ? 1 : -1; break; }
+                            case '_': { int v = Pop(); dx = v == 0 ? 1 : -1; dy = 0; dz = 0; break; }
+                            case '|': { int v = Pop(); dy = v == 0 ? 1 : -1; dx = 0; dz = 0; break; }
+                            case '[': { int ndx = dy, ndy = -dx; dx = ndx; dy = ndy; dz = 0; break; }
+                            case ']': { int ndx = -dy, ndy = dx; dx = ndx; dy = ndy; dz = 0; break; }
+                            case 'r': dx = -dx; dy = -dy; dz = -dz; break;
+                            case 'x': { int ndz = Pop(), ndy = Pop(), ndx = Pop(); dx = ndx; dy = ndy; dz = ndz; break; }
+                            case 'w': { int b = Pop(), a = Pop(); if(a>b){int ndx=-dy,ndy=dx;dx=ndx;dy=ndy;dz=0;}else if(a<b){int ndx=dy,ndy=-dx;dx=ndx;dy=ndy;dz=0;} break; }
+                            case '#': (px, py, pz) = Advance(px, py, pz, dx, dy, dz); break;
                             case 'j':
                             {
-                                int s = Pop(); int jdx = s >= 0 ? dx : -dx, jdy = s >= 0 ? dy : -dy, abs = s < 0 ? -s : s;
-                                for (int i = 0; i < abs; i++) (px, py) = Advance(px, py, jdx, jdy);
+                                int s = Pop(); int jdx = s >= 0 ? dx : -dx, jdy = s >= 0 ? dy : -dy, jdz = s >= 0 ? dz : -dz, abs = s < 0 ? -s : s;
+                                for (int i = 0; i < abs; i++) (px, py, pz) = Advance(px, py, pz, jdx, jdy, jdz);
                                 suppressAdvance = true; break;
                             }
                             case ';':
-                                (px, py) = Advance(px, py, dx, dy);
-                                while (GetCell(px, py) != ';') (px, py) = Advance(px, py, dx, dy);
+                                (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
+                                while (GetCell(px, py, pz) != ';') (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
                                 break;
-                            case '\'': (px, py) = Advance(px, py, dx, dy); Push(GetCell(px, py)); break;
-                            case 's': { int sv = Pop(); (px, py) = Advance(px, py, dx, dy); SetCell(px, py, sv); break; }
+                            case '\'': (px, py, pz) = Advance(px, py, pz, dx, dy, dz); Push(GetCell(px, py, pz)); break;
+                            case 's': { int sv = Pop(); (px, py, pz) = Advance(px, py, pz, dx, dy, dz); SetCell(px, py, pz, sv); break; }
                             case '"': stringMode = true; break;
-                            case 'g': { int gy = Pop(), gx = Pop(); Push(GetCell(gx, gy)); break; }
-                            case 'p': { int gy = Pop(), gx = Pop(), pv = Pop(); SetCell(gx, gy, pv); break; }
+                            case 'g': { int gz = Pop(), gy = Pop(), gx = Pop(); Push(GetCell(gx, gy, gz)); break; }
+                            case 'p': { int gz = Pop(), gy = Pop(), gx = Pop(), pv = Pop(); SetCell(gx, gy, gz, pv); break; }
                             case '.':
                                 if (!hasOutput) throw new InvalidOperationException("Funge output instruction '.' executed without an output interface.");
                                 output.Write(Pop()); output.Write(' '); break;
@@ -122,29 +135,29 @@ partial class MethodGenerator
                             case '&':
                             {
                                 if (!hasInput) throw new InvalidOperationException("Funge input instruction '&' executed without an input interface.");
-                                var line = input.ReadLine(); if(line==null){dx=-dx;dy=-dy;}else Push(int.TryParse(line.Trim(),out int iv)?iv:0); break;
+                                var line = input.ReadLine(); if(line==null){dx=-dx;dy=-dy;dz=-dz;}else Push(int.TryParse(line.Trim(),out int iv)?iv:0); break;
                             }
                             case '~':
                             {
                                 if (!hasInput) throw new InvalidOperationException("Funge input instruction '~' executed without an input interface.");
-                                int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;}else Push(ch); break;
+                                int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;dz=-dz;}else Push(ch); break;
                             }
                             case 'k':
                             {
                                 int n = Pop();
-                                var (ix, iy) = Advance(px, py, dx, dy);
+                                var (ix, iy, iz) = Advance(px, py, pz, dx, dy, dz);
                                 while (true)
                                 {
-                                    int c = GetCell(ix, iy);
+                                    int c = GetCell(ix, iy, iz);
                                     if (IsSgmlSpace(c))
                                     {
-                                        (ix, iy) = Advance(ix, iy, dx, dy);
+                                        (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
                                     }
                                     else if (c == ';')
                                     {
-                                        (ix, iy) = Advance(ix, iy, dx, dy);
-                                        while (GetCell(ix, iy) != ';') (ix, iy) = Advance(ix, iy, dx, dy);
-                                        (ix, iy) = Advance(ix, iy, dx, dy);
+                                        (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
+                                        while (GetCell(ix, iy, iz) != ';') (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
+                                        (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
                                     }
                                     else
                                     {
@@ -154,11 +167,11 @@ partial class MethodGenerator
 
                                 if (n == 0)
                                 {
-                                    (px, py) = (ix, iy);
+                                    (px, py, pz) = (ix, iy, iz);
                                 }
                                 else
                                 {
-                                    int operand = GetCell(ix, iy);
+                                    int operand = GetCell(ix, iy, iz);
                                     for (int i = 0; i < n && !stopped; i++)
                                     {
                                         bool dummy = false;
@@ -169,13 +182,13 @@ partial class MethodGenerator
                             }
                             case '@': stopped = true; break;
                             case 'q': exitCode = Pop(); stopped = true; break;
-                            default: if (cell >= 'A' && cell <= 'Z') { dx = -dx; dy = -dy; } break;
+                            default: if (cell >= 'A' && cell <= 'Z') { dx = -dx; dy = -dy; dz = -dz; } break;
                         }
                     }
 
                     while (!stopped)
                     {
-                        int cell = GetCell(px, py);
+                        int cell = GetCell(px, py, pz);
                         if (stringMode)
                         {
                             if (cell == '"')
@@ -187,10 +200,10 @@ partial class MethodGenerator
                                 Push(' ');
                                 while (true)
                                 {
-                                    var (nx, ny) = Advance(px, py, dx, dy);
-                                    if (IsSgmlSpace(GetCell(nx, ny)))
+                                    var (nx, ny, nz) = Advance(px, py, pz, dx, dy, dz);
+                                    if (IsSgmlSpace(GetCell(nx, ny, nz)))
                                     {
-                                        (px, py) = (nx, ny);
+                                        (px, py, pz) = (nx, ny, nz);
                                     }
                                     else
                                     {
@@ -202,13 +215,13 @@ partial class MethodGenerator
                             {
                                 Push(cell);
                             }
-                            (px, py) = Advance(px, py, dx, dy);
+                            (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
                             continue;
                         }
 
                         bool suppressAdvance = false;
                         ExecuteInstruction(cell, ref suppressAdvance);
-                        if (!stopped && !suppressAdvance) (px, py) = Advance(px, py, dx, dy);
+                        if (!stopped && !suppressAdvance) (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
                     }
 
                     return exitCode;

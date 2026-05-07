@@ -1,13 +1,13 @@
 namespace Esolang.Funge.Parser;
 
 /// <summary>
-/// Represents the Funge-98 program space: a sparse, conceptually infinite 2D grid of integer cells.
+/// Represents the Funge-98 program space: a sparse, conceptually infinite 3D grid of integer cells.
 /// Unset cells default to the space character (ASCII 32).
 /// </summary>
 public sealed class FungeSpace
 {
     private readonly Dictionary<FungeVector, int> _cells = new();
-    private int _minX, _minY, _maxX, _maxY;
+    private int _minX, _minY, _minZ, _maxX, _maxY, _maxZ;
     private bool _hasAny;
 
     private void IncludeInBounds(FungeVector pos)
@@ -16,6 +16,7 @@ public sealed class FungeSpace
         {
             _minX = _maxX = pos.X;
             _minY = _maxY = pos.Y;
+            _minZ = _maxZ = pos.Z;
             _hasAny = true;
             return;
         }
@@ -24,6 +25,8 @@ public sealed class FungeSpace
         if (pos.X > _maxX) _maxX = pos.X;
         if (pos.Y < _minY) _minY = pos.Y;
         if (pos.Y > _maxY) _maxY = pos.Y;
+        if (pos.Z < _minZ) _minZ = pos.Z;
+        if (pos.Z > _maxZ) _maxZ = pos.Z;
     }
 
     /// <summary>
@@ -66,6 +69,12 @@ public sealed class FungeSpace
     /// <summary>Maximum Y coordinate of the populated bounding box.</summary>
     public int MaxY => _maxY;
 
+    /// <summary>Minimum Z coordinate of the populated bounding box.</summary>
+    public int MinZ => _minZ;
+
+    /// <summary>Maximum Z coordinate of the populated bounding box.</summary>
+    public int MaxZ => _maxZ;
+
     /// <summary>
     /// Advances a position by <paramref name="delta"/>, wrapping around the Least Significant
     /// Bounding Box (LSAB) when the result would leave it.
@@ -80,9 +89,11 @@ public sealed class FungeSpace
 
         var nextX = pos.X + delta.X;
         var nextY = pos.Y + delta.Y;
+        var nextZ = pos.Z + delta.Z;
 
         var width = _maxX - _minX + 1;
         var height = _maxY - _minY + 1;
+        var depth = _maxZ - _minZ + 1;
 
         if (nextX < _minX)
             nextX = _maxX - ((_minX - nextX - 1) % width);
@@ -94,6 +105,11 @@ public sealed class FungeSpace
         else if (nextY > _maxY)
             nextY = _minY + ((nextY - _maxY - 1) % height);
 
-        return new FungeVector(nextX, nextY);
+        if (nextZ < _minZ)
+            nextZ = _maxZ - ((_minZ - nextZ - 1) % depth);
+        else if (nextZ > _maxZ)
+            nextZ = _minZ + ((nextZ - _maxZ - 1) % depth);
+
+        return new FungeVector(nextX, nextY, nextZ);
     }
 }

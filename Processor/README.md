@@ -14,7 +14,7 @@ It implements the full Funge-98 core instruction set including concurrent Instru
 | Stack | `0`–`9` `a`–`f` (push), `:` (dup), `$` (pop), `\` (swap), `n` (clear) |
 | Arithmetic | `+` `-` `*` `/` `%` |
 | Comparison | `` ` `` `!` |
-| Direction | `>` `<` `^` `v` `?` `[` `]` `r` `x` |
+| Direction | `>` `<` `^` `v` `h` `l` `?` `[` `]` `r` `x` `m` |
 | Movement | `#` (trampoline), `;` (jump over), `j` (jump forward) |
 | String mode | `"` |
 | Branching | `_` `|` `w` |
@@ -24,11 +24,11 @@ It implements the full Funge-98 core instruction set including concurrent Instru
 | Concurrency | `t` (split IP) |
 | Stack stack | `{` `}` `u` |
 | Misc | `z` (no-op), `q` (quit) |
-| Reflected | `(` `)` `i` `o` `h` `l` `m` (fingerprints / 3-D / file I/O not implemented) |
+| Reflected | `(` `)` `i` `o` (fingerprints / file I/O not implemented) |
 
 ## Funge-98 Compliance
 
-Targets **Befunge-98** (2D). Trefunge-98 and fingerprint extensions are intentionally out of scope.
+Targets **Funge-98** with 3D navigation (`h`/`l`/`m`). Fingerprint extensions are intentionally out of scope.
 
 | Category | Instructions | Status |
 |---|---|---|
@@ -50,7 +50,7 @@ Targets **Befunge-98** (2D). Trefunge-98 and fingerprint extensions are intentio
 | File I/O | `i` `o` | ❌ reflects (not implemented) |
 | System exec | `=` | ❌ reflects (not implemented) |
 | Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
-| 3D (Trefunge) | `h` `l` `m` | ❌ reflects (2D only) |
+| 3D (Trefunge) | `h` `l` `m` | ✅ |
 
 ## Installation
 

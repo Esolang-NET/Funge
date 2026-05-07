@@ -8,7 +8,7 @@ namespace Esolang.Funge.Processor;
 /// Supports the full core instruction set including concurrent IPs (<c>t</c>) and
 /// the stack stack (<c>{</c>/<c>}</c>/<c>u</c>).
 /// Fingerprints (<c>(</c>/<c>)</c>) and file I/O (<c>i</c>/<c>o</c>) reflect (not implemented).
-/// 3-D instructions (<c>h</c>/<c>l</c>/<c>m</c>) reflect in 2-D mode.
+/// Includes Trefunge 3-D direction instructions (<c>h</c>/<c>l</c>/<c>m</c>).
 /// </summary>
 public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
 {
@@ -233,13 +233,27 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
             case 'v': ip.Delta = FungeVector.South; break;
 
             case '?': // Go Away: random cardinal direction
-                ip.Delta = _random.Next(4) switch
+                ip.Delta = _random.Next(6) switch
                 {
                     0 => FungeVector.East,
                     1 => FungeVector.West,
                     2 => FungeVector.North,
-                    _ => FungeVector.South,
+                    3 => FungeVector.South,
+                    4 => FungeVector.High,
+                    _ => FungeVector.Low,
                 };
+                break;
+
+            case 'h': // Go High (3-D)
+                ip.Delta = FungeVector.High;
+                break;
+
+            case 'l': // Go Low (3-D)
+                ip.Delta = FungeVector.Low;
+                break;
+
+            case 'm': // High-Low If (3-D)
+                ip.Delta = ip.StackStack.Pop() == 0 ? FungeVector.Low : FungeVector.High;
                 break;
 
             case '_': // East-West If
@@ -264,8 +278,8 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
 
             case 'x': // Absolute Delta
                 {
-                    int dy = ip.StackStack.Pop(), dx = ip.StackStack.Pop();
-                    ip.Delta = new FungeVector(dx, dy);
+                    int dz = ip.StackStack.Pop(), dy = ip.StackStack.Pop(), dx = ip.StackStack.Pop();
+                    ip.Delta = new FungeVector(dx, dy, dz);
                     break;
                 }
 
@@ -319,18 +333,18 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                 break;
 
             // ── FungeSpace get/put ───────────────────────────────────────────
-            case 'g': // Get: read cell at (x+offset, y+offset)
+            case 'g': // Get: read cell at (x+offset, y+offset, z+offset)
                 {
-                    int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
-                    ip.StackStack.Push(_space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)]);
+                    int z = ip.StackStack.Pop(), y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
+                    ip.StackStack.Push(_space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z)]);
                     break;
                 }
 
-            case 'p': // Put: write cell at (x+offset, y+offset)
+            case 'p': // Put: write cell at (x+offset, y+offset, z+offset)
                 {
-                    int y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
+                    int z = ip.StackStack.Pop(), y = ip.StackStack.Pop(), x = ip.StackStack.Pop();
                     var val = ip.StackStack.Pop();
-                    _space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y)] = val;
+                    _space[new FungeVector(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z)] = val;
                     break;
                 }
 
@@ -440,6 +454,7 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                     // Push storage offset to current TOSS (will become SOSS)
                     ip.StackStack.Push(ip.Offset.X);
                     ip.StackStack.Push(ip.Offset.Y);
+                    ip.StackStack.Push(ip.Offset.Z);
 
                     // Push new empty stack (old TOSS becomes SOSS)
                     ip.StackStack.PushNewStack();
@@ -478,10 +493,11 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                     // Pop current TOSS (discard remaining items)
                     ip.StackStack.PopCurrentStack();
 
-                    // Restore storage offset (Y on top, then X)
+                    // Restore storage offset (Z on top, then Y, then X)
+                    var oz = ip.StackStack.Pop();
                     var oy = ip.StackStack.Pop();
                     var ox = ip.StackStack.Pop();
-                    ip.Offset = new FungeVector(ox, oy);
+                    ip.Offset = new FungeVector(ox, oy, oz);
 
                     // If n < 0, discard |n| items from (now current) TOSS
                     if (n < 0)
@@ -534,7 +550,7 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                     break;
                 }
 
-            // ── Optional / 3-D-only (reflect) ────────────────────────────────
+            // ── Optional (reflect) ────────────────────────────────────────────
             case '=': // Execute (system exec) – reflect
                 {
                     // Consume 0gnirts command string from stack
@@ -545,9 +561,6 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
 
             case 'i': // Input File – reflect
             case 'o': // Output File – reflect
-            case 'h': // Go High (3-D) – reflect
-            case 'l': // Go Low (3-D) – reflect
-            case 'm': // High-Low If (3-D) – reflect
                 ip.Delta = ip.Delta.Reflect();
                 break;
 
@@ -582,27 +595,32 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
         items.Add(0);
         // 6. Path separator
         items.Add(Path.DirectorySeparatorChar);
-        // 7. Number of dimensions (2 = Befunge)
-        items.Add(2);
+        // 7. Number of dimensions (3 = Trefunge)
+        items.Add(3);
         // 8. IP unique ID
         items.Add(ip.Id);
         // 9. IP team number
         items.Add(0);
-        // 10-11. IP position (X, Y; Y on top)
+        // 10-12. IP position (X, Y, Z; Z on top)
         items.Add(ip.Position.X);
         items.Add(ip.Position.Y);
-        // 12-13. IP delta (dX, dY; dY on top)
+        items.Add(ip.Position.Z);
+        // 13-15. IP delta (dX, dY, dZ; dZ on top)
         items.Add(ip.Delta.X);
         items.Add(ip.Delta.Y);
-        // 14-15. Storage offset (oX, oY; oY on top)
+        items.Add(ip.Delta.Z);
+        // 16-18. Storage offset (oX, oY, oZ; oZ on top)
         items.Add(ip.Offset.X);
         items.Add(ip.Offset.Y);
-        // 16-17. Least point of LSAB (minX, minY; minY on top)
+        items.Add(ip.Offset.Z);
+        // 19-21. Least point of LSAB (minX, minY, minZ; minZ on top)
         items.Add(_space.MinX);
         items.Add(_space.MinY);
-        // 18-19. Greatest point of LSAB (maxX, maxY; maxY on top)
+        items.Add(_space.MinZ);
+        // 22-24. Greatest point of LSAB (maxX, maxY, maxZ; maxZ on top)
         items.Add(_space.MaxX);
         items.Add(_space.MaxY);
+        items.Add(_space.MaxZ);
 
         var now = DateTime.Now;
         // 20. Current date: (year-1900)*10000 + month*100 + day

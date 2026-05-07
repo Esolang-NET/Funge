@@ -8,8 +8,8 @@ This library provides the fundamental data structures for representing and manip
 
 | Type | Description |
 |---|---|
-| `FungeVector` | Immutable 2D coordinate `(X, Y)` |
-| `FungeSpace` | Sparse infinite 2D grid of integer cells (space = 32) |
+| `FungeVector` | Immutable 3D coordinate `(X, Y, Z)` |
+| `FungeSpace` | Sparse infinite 3D grid of integer cells (space = 32) |
 | `FungeParser` | Parses Funge-98 source text into a `FungeSpace` |
 
 ## Installation

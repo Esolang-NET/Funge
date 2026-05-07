@@ -1,6 +1,6 @@
 # dotnet-funge
 
-Command-line interpreter for [Funge-98](https://github.com/catseye/Funge-98/blob/master/doc/funge98.markdown) (Befunge-98) programs.
+Command-line interpreter for [Funge-98](https://github.com/catseye/Funge-98/blob/master/doc/funge98.markdown) programs.
 
 ## Installation
 
@@ -30,7 +30,7 @@ The process exit code reflects the value passed to `q`; it is `0` if the program
 
 ## Funge-98 Compliance
 
-Delegates execution to `Esolang.Funge.Processor`, which targets **Befunge-98** (2D).  
+Delegates execution to `Esolang.Funge.Processor`, including Trefunge 3D directions (`h`/`l`/`m`).  
 For detailed processor-level behavior, refer to the processor package documentation.
 
 | Area | Status |
@@ -43,7 +43,7 @@ For detailed processor-level behavior, refer to the processor package documentat
 | Fingerprints (`(` `)` `A`–`Z`) | ❌ reflects (not implemented) |
 | File I/O (`i` `o`) | ❌ reflects (not implemented) |
 | System exec (`=`) | ❌ reflects (not implemented) |
-| 3D / Trefunge (`h` `l` `m`) | ❌ reflects (2D only) |
+| 3D / Trefunge (`h` `l` `m`) | ✅ |
 
 ## References
 

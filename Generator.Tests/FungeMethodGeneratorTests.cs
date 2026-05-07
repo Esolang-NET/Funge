@@ -543,6 +543,125 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public async Task Runtime_3D_GoLow_ExitCode()
+    {
+        const string program = "l\f>7q";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("go-low.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("go-low.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(7, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_3D_GoHigh_ExitCode()
+    {
+        const string program = "h\f\f>7q";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("go-high.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("go-high.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(7, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_3D_HighLowIf_SelectsDirection()
+    {
+        const string programLow = "0m\f >1q\f >2q";
+        const string programHigh = "1m\f >1q\f >2q";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("select-low.b98")]
+                public static partial int RunLow();
+
+                [GenerateFungeMethod("select-high.b98")]
+                public static partial int RunHigh();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("select-low.b98", programLow), ("select-high.b98", programHigh)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var mLow = t.GetMethod("RunLow")!;
+            var mHigh = t.GetMethod("RunHigh")!;
+            var low = (int?)mLow.Invoke(null, []);
+            var high = (int?)mHigh.Invoke(null, []);
+            Assert.AreEqual(1, low);
+            Assert.AreEqual(2, high);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_3D_GetPut_UsesXYZ()
+    {
+        const string program = "88*1+500p500gq";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("getput-3d.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("getput-3d.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(65, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
     public void Diagnostic_SourceFileNotFound_FG0004()
     {
         var source = """
@@ -680,7 +799,7 @@ public class FungeMethodGeneratorTests
         var generated = comp.SyntaxTrees
             .Select(static t => t.ToString())
             .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
-        Assert.Contains("__cells[(0, 0)] = 64;", generated);
+        Assert.Contains("__cells[(0, 0, 0)] = 64;", generated);
         
         // Output all generated syntax trees for inspection
         TestContext.WriteLine("=== Generated Syntax Trees ===");
@@ -694,7 +813,7 @@ public class FungeMethodGeneratorTests
     [TestMethod]
     public void InlineSource_MultiLine_BasicProgram()
     {
-        // Verify multiline raw string is mapped to 2D coordinates as expected.
+        // Verify multiline raw string is mapped to X/Y at Z=0 as expected.
         var source = """"
             using Esolang.Funge;
             namespace TestProject;
@@ -713,10 +832,10 @@ public class FungeMethodGeneratorTests
         var generated = comp.SyntaxTrees
             .Select(static t => t.ToString())
             .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
-        Assert.Contains("__cells[(0, 0)] = 62;", generated); // '>'
-        Assert.Contains("__cells[(1, 0)] = 118;", generated); // 'v'
-        Assert.Contains("__cells[(0, 1)] = 94;", generated); // '^'
-        Assert.Contains("__cells[(1, 1)] = 64;", generated); // '@'
+        Assert.Contains("__cells[(0, 0, 0)] = 62;", generated); // '>'
+        Assert.Contains("__cells[(1, 0, 0)] = 118;", generated); // 'v'
+        Assert.Contains("__cells[(0, 1, 0)] = 94;", generated); // '^'
+        Assert.Contains("__cells[(1, 1, 0)] = 64;", generated); // '@'
     }
 
     [TestMethod]

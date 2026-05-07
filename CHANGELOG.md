@@ -10,6 +10,8 @@ The format is based on Keep a Changelog.
 
 - `Esolang.Processor.Abstractions` (`Esolang.Processor` namespace): shared execution abstractions package (`IProcessor<TProgram>`, `ITextProcessor<TProgram>`, `IPipeProcessor<TProgram>`).
 - `Esolang.Funge.Processor.Tests`: coverage for `RunToEnd(...)` and `RunToEndAsync(...)` on `FungeProcessor`.
+- `Esolang.Funge.Generator.Tests`: 3D runtime coverage for `h` / `l` / `m` and 3D `g` / `p` behavior.
+- `samples/Generator.UseConsole/Programs/hello3d.b98`: minimal Trefunge sample using form-feed (`\f`) layer separation.
 
 ### Changed
 
@@ -17,6 +19,10 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Processor`: switched abstraction source from local `Processor/IProcessor.cs` to `Esolang.Processor.Abstractions` package.
 - `dotnet-funge` (`Esolang.Funge.Interpreter`): command execution path now calls `RunToEnd(...)`.
 - `Esolang.Funge.Generator`: added return-type support for `int`, `Task<int>`, and `ValueTask<int>`, and aligned `q` handling to return the popped exit code (`@` returns `0`).
+- `Esolang.Funge.Parser`: parser and space model now support 3D coordinates (`X`, `Y`, `Z`), with form-feed (`\f`) treated as a Z-layer separator.
+- `Esolang.Funge.Processor`: enabled Trefunge 3D navigation instructions `h` / `l` / `m`, extended `?` to 6 directions, and upgraded `g` / `p` / `x` to 3D operands.
+- `Esolang.Funge.Generator`: generated runtime now uses 3D execution space (XYZ bounds/cells), supports `h` / `l` / `m`, and handles 3D `g` / `p` / `x` semantics.
+- Docs: updated package README compliance tables and added 3D notes/examples (including `\f` layer separator guidance).
 
 ## [1.0.1] - 2026-05-07
 
