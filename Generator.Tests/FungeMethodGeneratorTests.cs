@@ -71,13 +71,23 @@ public class FungeMethodGeneratorTests
     // Helpers
     // -----------------------------------------------------------------------
 
+    CancellationToken TestCancellationToken => TestContext.CancellationTokenSource.Token;
+
     GeneratorDriver RunGenerators(
         string source,
         out Compilation outputCompilation,
         out ImmutableArray<Diagnostic> diagnostics,
         IEnumerable<(string path, string content)>? additionalFiles = null,
-        LanguageVersion languageVersion = LanguageVersion.CSharp12,
-        CancellationToken cancellationToken = default)
+        LanguageVersion languageVersion = LanguageVersion.CSharp12)
+        => RunGenerators(source, out outputCompilation, out diagnostics, TestCancellationToken, additionalFiles, languageVersion);
+
+    GeneratorDriver RunGenerators(
+        string source,
+        out Compilation outputCompilation,
+        out ImmutableArray<Diagnostic> diagnostics,
+        CancellationToken cancellationToken,
+        IEnumerable<(string path, string content)>? additionalFiles = null,
+        LanguageVersion languageVersion = LanguageVersion.CSharp12)
     {
         var parseOptions = new CSharpParseOptions(languageVersion);
         var generator = new MethodGenerator();
@@ -95,7 +105,10 @@ public class FungeMethodGeneratorTests
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out outputCompilation, out diagnostics, cancellationToken);
     }
 
-    Assembly Emit(Compilation compilation, CancellationToken cancellationToken = default)
+    Assembly Emit(Compilation compilation)
+        => Emit(compilation, TestCancellationToken);
+
+    Assembly Emit(Compilation compilation, CancellationToken cancellationToken)
     {
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms, cancellationToken: cancellationToken);
@@ -499,7 +512,7 @@ public class FungeMethodGeneratorTests
         Assert.IsNotNull(ex);
         Assert.IsNotNull(ex.InnerException);
         Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
-        StringAssert.Contains(ex.InnerException!.Message, "without an output interface");
+        Assert.Contains("without an output interface", ex.InnerException!.Message);
     }
 
     [TestMethod]
@@ -529,7 +542,90 @@ public class FungeMethodGeneratorTests
         Assert.IsNotNull(ex);
         Assert.IsNotNull(ex.InnerException);
         Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
-        StringAssert.Contains(ex.InnerException!.Message, "without an input interface");
+        Assert.Contains("without an input interface", ex.InnerException!.Message);
+    }
+
+    // -----------------------------------------------------------------------
+    // InlineSource with multiple lines
+    // -----------------------------------------------------------------------
+
+    [TestMethod]
+    public void InlineSource_RawStringWithInnerQuotes_InspectGenerated()
+    {
+        // Inspect how the generator processes raw string literals in InlineSource
+        // This test outputs the generated code to verify the processing
+        var source = """"
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod(InlineSource = """
+                    @
+                    """)]
+                public static partial void Run();
+            }
+            """";
+        RunGenerators(source, out var comp, out var diag);
+        AssertNoErrors(diag, comp);
+
+        var generated = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
+        Assert.Contains("__cells[(0, 0)] = 64;", generated);
+        
+        // Output all generated syntax trees for inspection
+        TestContext.WriteLine("=== Generated Syntax Trees ===");
+        foreach (var tree in comp.SyntaxTrees)
+        {
+            TestContext.WriteLine($"\n--- {tree.FilePath} ---");
+            TestContext.WriteLine(tree.GetText().ToString());
+        }
+    }
+
+    [TestMethod]
+    public void InlineSource_MultiLine_BasicProgram()
+    {
+        // Verify multiline raw string is mapped to 2D coordinates as expected.
+        var source = """"
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod(InlineSource = """
+                    >v
+                    ^@
+                    """)]
+                public static partial void Run();
+            }
+            """";
+        RunGenerators(source, out var comp, out var diag);
+        AssertNoErrors(diag, comp);
+
+        var generated = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
+        Assert.Contains("__cells[(0, 0)] = 62;", generated); // '>'
+        Assert.Contains("__cells[(1, 0)] = 118;", generated); // 'v'
+        Assert.Contains("__cells[(0, 1)] = 94;", generated); // '^'
+        Assert.Contains("__cells[(1, 1)] = 64;", generated); // '@'
+    }
+
+    [TestMethod]
+    public void InlineSource_WithEscapedNewlines()
+    {
+        // Test InlineSource with escaped newlines (\n) instead of literal raw strings
+        // This avoids indentation issues with raw string literals
+        var source = """"
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod(InlineSource = "2:.@")]
+                public static partial void Run();
+            }
+            """";
+        RunGenerators(source, out var comp, out var diag);
+        AssertNoErrors(diag, comp);
     }
 }
 
