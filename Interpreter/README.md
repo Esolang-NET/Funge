@@ -41,7 +41,7 @@ For detailed processor-level behavior, refer to the processor package documentat
 | Standard I/O (`&` `~` `,` `.`) connected to stdin / stdout | ✅ |
 | Exit code via `q` | ✅ |
 | Fingerprints (`(` `)` `A`–`Z`) | ❌ reflects (not implemented) |
-| File I/O (`i` `o`) | ❌ reflects (not implemented) |
+| File I/O (`i` `o`) | ✅ |
 | System exec (`=`) | ❌ reflects (not implemented) |
 | 3D / Trefunge (`h` `l` `m`) | ✅ |
 

@@ -239,6 +239,57 @@ public class FungeProcessorTests
     public void InputInt_EchoBack()
         => Assert.AreEqual("42 ", Run("&.@", "42\n"));
 
+    [TestMethod]
+    public void InputFile_LoadsFileIntoSpace()
+    {
+        var originalDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"funge-io-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            Directory.SetCurrentDirectory(tempDir);
+            File.WriteAllText("input.txt", "A");
+
+            // Va=(0,0,0), flags=0 (text mode), STR=0"input.txt" (0gnirts)
+            var output = Run("00000\"txt.tupni\"in000g.@");
+            Assert.AreEqual("65 ", output);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void OutputFile_WritesSpaceRegion()
+    {
+        var originalDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"funge-io-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            Directory.SetCurrentDirectory(tempDir);
+
+            // store 'A' at (0,0,0), then output Va=(0,0,0), Vb=(0,0,0), flags=0, STR=0"output.txt"
+            _ = Run("88*1+000p00000000\"txt.tuptuo\"o@");
+
+            var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
+            CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void SysInfo_ReportsFileIoSupportFlags()
+        => Assert.AreEqual("7 ", Run("1y.@"));
+
     // ── Quit exit code ────────────────────────────────────────────────────
 
     [TestMethod]

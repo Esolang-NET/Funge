@@ -150,7 +150,7 @@ including Trefunge 3D navigation (`h` / `l` / `m`) but excluding concurrency, st
 | Concurrency | `t` | ❌ not implemented (single IP only) |
 | Stack stack | `{` `}` `u` | ❌ not implemented |
 | System info | `y` | ❌ not implemented |
-| File I/O | `i` `o` | ❌ not implemented |
+| File I/O | `i` `o` | ✅ |
 | System exec | `=` | ❌ not implemented |
 | Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
 | 3D (Trefunge) | `h` `l` `m` | ✅ |

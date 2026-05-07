@@ -662,6 +662,95 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public async Task Runtime_FileInput_LoadsIntoSpace()
+    {
+        var originalDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"funge-gen-io-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            Directory.SetCurrentDirectory(tempDir);
+            File.WriteAllText("input.txt", "A");
+
+            var reversed = new string("input.txt".Reverse().ToArray());
+            var program = $"00000\"{reversed}\"in000gq";
+
+            var source = """
+                using Esolang.Funge;
+                namespace TestProject;
+                partial class TestClass
+                {
+                    [GenerateFungeMethod("file-in.b98")]
+                    public static partial int Run();
+                }
+                """;
+            RunGenerators(source, out var comp, out var diag,
+                additionalFiles: [("file-in.b98", program)]);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (int?)m.Invoke(null, []);
+                Assert.AreEqual(65, result);
+            }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public async Task Runtime_FileOutput_WritesRegion()
+    {
+        var originalDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"funge-gen-io-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            Directory.SetCurrentDirectory(tempDir);
+
+            var reversed = new string("output.txt".Reverse().ToArray());
+            var program = $"88*1+000p00000000\"{reversed}\"o@";
+
+            var source = """
+                using Esolang.Funge;
+                namespace TestProject;
+                partial class TestClass
+                {
+                    [GenerateFungeMethod("file-out.b98")]
+                    public static partial void Run();
+                }
+                """;
+            RunGenerators(source, out var comp, out var diag,
+                additionalFiles: [("file-out.b98", program)]);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                _ = m.Invoke(null, []);
+            }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+
+            var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
+            CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void Diagnostic_SourceFileNotFound_FG0004()
     {
         var source = """

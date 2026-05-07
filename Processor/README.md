@@ -24,7 +24,7 @@ It implements the full Funge-98 core instruction set including concurrent Instru
 | Concurrency | `t` (split IP) |
 | Stack stack | `{` `}` `u` |
 | Misc | `z` (no-op), `q` (quit) |
-| Reflected | `(` `)` `i` `o` (fingerprints / file I/O not implemented) |
+| Reflected | `(` `)` (fingerprints not implemented) |
 
 ## Funge-98 Compliance
 
@@ -47,7 +47,7 @@ Targets **Funge-98** with 3D navigation (`h`/`l`/`m`). Fingerprint extensions ar
 | Stack stack | `{` `}` `u` | ✅ |
 | System info | `y` | 🟡 env vars / command-line args are empty |
 | Misc | `z` `@` `q` | ✅ |
-| File I/O | `i` `o` | ❌ reflects (not implemented) |
+| File I/O | `i` `o` | ✅ |
 | System exec | `=` | ❌ reflects (not implemented) |
 | Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
 | 3D (Trefunge) | `h` `l` `m` | ✅ |

@@ -21,7 +21,9 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: added return-type support for `int`, `Task<int>`, and `ValueTask<int>`, and aligned `q` handling to return the popped exit code (`@` returns `0`).
 - `Esolang.Funge.Parser`: parser and space model now support 3D coordinates (`X`, `Y`, `Z`), with form-feed (`\f`) treated as a Z-layer separator.
 - `Esolang.Funge.Processor`: enabled Trefunge 3D navigation instructions `h` / `l` / `m`, extended `?` to 6 directions, and upgraded `g` / `p` / `x` to 3D operands.
+- `Esolang.Funge.Processor`: implemented filesystem instructions `i` / `o` (file input/output).
 - `Esolang.Funge.Generator`: generated runtime now uses 3D execution space (XYZ bounds/cells), supports `h` / `l` / `m`, and handles 3D `g` / `p` / `x` semantics.
+- `Esolang.Funge.Generator`: generated runtime now supports filesystem instructions `i` / `o`.
 - Docs: updated package README compliance tables and added 3D notes/examples (including `\f` layer separator guidance).
 
 ## [1.0.1] - 2026-05-07

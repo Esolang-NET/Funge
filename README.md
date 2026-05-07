@@ -47,7 +47,7 @@ Current implementation status across packages:
 | Trefunge 3D navigation (`h` `l` `m`) | ✅ Implemented |
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
 | Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
-| File I/O (`i` `o`) | ❌ Not implemented (reflect) |
+| File I/O (`i` `o`) | ✅ Implemented |
 | System exec (`=`) | ❌ Not implemented (reflect) |
 
 Details:

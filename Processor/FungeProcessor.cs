@@ -7,7 +7,7 @@ namespace Esolang.Funge.Processor;
 /// Executes a Funge-98 program loaded into a <see cref="FungeSpace"/>.
 /// Supports the full core instruction set including concurrent IPs (<c>t</c>) and
 /// the stack stack (<c>{</c>/<c>}</c>/<c>u</c>).
-/// Fingerprints (<c>(</c>/<c>)</c>) and file I/O (<c>i</c>/<c>o</c>) reflect (not implemented).
+/// Fingerprints (<c>(</c>/<c>)</c>) reflect (not implemented).
 /// Includes Trefunge 3-D direction instructions (<c>h</c>/<c>l</c>/<c>m</c>).
 /// </summary>
 public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
@@ -374,6 +374,47 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                     break;
                 }
 
+            case 'i': // Input File
+                {
+                    if (!TryPopZeroTerminatedString(ip.StackStack, out var fileName))
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+
+                    var flags = ip.StackStack.Pop();
+                    var va = PopVector(ip.StackStack) + ip.Offset;
+                    var binaryMode = (flags & 1) != 0;
+
+                    if (!TryInputFile(va, fileName, binaryMode, out var vb))
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+
+                    PushVector(ip.StackStack, va - ip.Offset);
+                    PushVector(ip.StackStack, vb);
+                    break;
+                }
+
+            case 'o': // Output File
+                {
+                    if (!TryPopZeroTerminatedString(ip.StackStack, out var fileName))
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+
+                    var flags = ip.StackStack.Pop();
+                    var vb = PopVector(ip.StackStack);
+                    var va = PopVector(ip.StackStack) + ip.Offset;
+                    var linearText = (flags & 1) != 0;
+
+                    if (!TryOutputFile(va, vb, fileName, linearText))
+                        ip.Delta = ip.Delta.Reflect();
+                    break;
+                }
+
             // ── Control flow ─────────────────────────────────────────────────
             case '@': // Stop this IP
                 ip.IsStopped = true;
@@ -559,17 +600,159 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                     break;
                 }
 
-            case 'i': // Input File – reflect
-            case 'o': // Output File – reflect
-                ip.Delta = ip.Delta.Reflect();
-                break;
-
             default:
                 // A-Z: fingerprint-defined; reflect if not loaded
                 if (cell is >= 'A' and <= 'Z')
                     ip.Delta = ip.Delta.Reflect();
                 // All other characters: no-op
                 break;
+        }
+    }
+
+    private static FungeVector PopVector(StackStack stack)
+    {
+        var z = stack.Pop();
+        var y = stack.Pop();
+        var x = stack.Pop();
+        return new FungeVector(x, y, z);
+    }
+
+    private static void PushVector(StackStack stack, FungeVector vector)
+    {
+        stack.Push(vector.X);
+        stack.Push(vector.Y);
+        stack.Push(vector.Z);
+    }
+
+    private static bool TryPopZeroTerminatedString(StackStack stack, out string result)
+    {
+        var chars = new List<char>();
+        while (true)
+        {
+            var value = stack.Pop();
+            if (value == 0)
+            {
+                result = new string([.. chars]);
+                return true;
+            }
+
+            if (value is < char.MinValue or > char.MaxValue)
+            {
+                result = string.Empty;
+                return false;
+            }
+
+            chars.Add((char)value);
+        }
+    }
+
+    private bool TryInputFile(FungeVector leastPoint, string fileName, bool binaryMode, out FungeVector size)
+    {
+        size = new FungeVector(0, 0, 0);
+
+        byte[] bytes;
+        try
+        {
+            bytes = File.ReadAllBytes(fileName);
+        }
+        catch
+        {
+            return false;
+        }
+
+        var x = 0;
+        var y = 0;
+        var z = 0;
+        var wroteAny = false;
+        var maxX = 0;
+        var maxY = 0;
+        var maxZ = 0;
+
+        foreach (var raw in bytes)
+        {
+            var cell = (int)raw;
+
+            if (!binaryMode)
+            {
+                if (cell == '\r')
+                    continue;
+                if (cell == '\n')
+                {
+                    x = 0;
+                    y++;
+                    continue;
+                }
+                if (cell == '\f')
+                {
+                    x = 0;
+                    y = 0;
+                    z++;
+                    continue;
+                }
+                if (cell is '\t' or '\v')
+                    cell = ' ';
+            }
+
+            var pos = new FungeVector(leastPoint.X + x, leastPoint.Y + y, leastPoint.Z + z);
+            _space.EnsureBounds(pos);
+
+            if (binaryMode || cell != ' ')
+                _space[pos] = cell;
+
+            wroteAny = true;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+            if (z > maxZ) maxZ = z;
+            x++;
+        }
+
+        size = wroteAny ? new FungeVector(maxX, maxY, maxZ) : new FungeVector(0, 0, 0);
+        return true;
+    }
+
+    private bool TryOutputFile(FungeVector leastPoint, FungeVector size, string fileName, bool linearText)
+    {
+        var sx = Math.Max(0, size.X);
+        var sy = Math.Max(0, size.Y);
+        var sz = Math.Max(0, size.Z);
+
+        var rows = new List<string>();
+        for (var z = 0; z <= sz; z++)
+        {
+            for (var y = 0; y <= sy; y++)
+            {
+                var chars = new char[sx + 1];
+                for (var x = 0; x <= sx; x++)
+                {
+                    var c = _space[new FungeVector(leastPoint.X + x, leastPoint.Y + y, leastPoint.Z + z)];
+                    chars[x] = c is >= char.MinValue and <= char.MaxValue ? (char)c : ' ';
+                }
+
+                var row = new string(chars);
+                rows.Add(linearText ? row.TrimEnd(' ') : row);
+            }
+
+            if (z != sz)
+                rows.Add("\f");
+        }
+
+        if (linearText)
+        {
+            while (rows.Count > 0 && rows[^1].Length == 0)
+                rows.RemoveAt(rows.Count - 1);
+        }
+
+        var text = string.Join("\n", rows);
+        var bytes = text.Select(static ch => (byte)(ch & 0xFF)).ToArray();
+
+        try
+        {
+            File.WriteAllBytes(fileName, bytes);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -583,8 +766,8 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
         // Build list of items in order: items[0] will be last-pushed (item 1 from top)
         List<int> items = [];
 
-        // 1. Flags: bit 0 = /t (concurrency supported)
-        items.Add(1);
+        // 1. Flags: /t + /i + /o supported
+        items.Add(0x01 | 0x02 | 0x04);
         // 2. Cell size in bytes
         items.Add(4);
         // 3. Interpreter handprint ("Fung" as big-endian int)

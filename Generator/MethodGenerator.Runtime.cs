@@ -47,6 +47,146 @@ partial class MethodGenerator
                     int Pop() { if (stack.Count == 0) return 0; var v = stack[stack.Count - 1]; stack.RemoveAt(stack.Count - 1); return v; }
                     void Push(int v) => stack.Add(v);
 
+                    (int x, int y, int z) PopVector()
+                    {
+                        int z = Pop(), y = Pop(), x = Pop();
+                        return (x, y, z);
+                    }
+
+                    void PushVector(int x, int y, int z)
+                    {
+                        Push(x);
+                        Push(y);
+                        Push(z);
+                    }
+
+                    bool TryPopZeroTerminatedString(out string result)
+                    {
+                        var chars = new List<char>();
+                        while (true)
+                        {
+                            int value = Pop();
+                            if (value == 0)
+                            {
+                                result = new string(chars.ToArray());
+                                return true;
+                            }
+
+                            if (value < char.MinValue || value > char.MaxValue)
+                            {
+                                result = string.Empty;
+                                return false;
+                            }
+
+                            chars.Add((char)value);
+                        }
+                    }
+
+                    bool TryInputFile(int baseX, int baseY, int baseZ, string fileName, bool binaryMode, out (int x, int y, int z) size)
+                    {
+                        size = (0, 0, 0);
+
+                        byte[] bytes;
+                        try
+                        {
+                            bytes = File.ReadAllBytes(fileName);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+
+                        int x = 0, y = 0, z = 0;
+                        int maxX = 0, maxY = 0, maxZ = 0;
+                        bool wroteAny = false;
+
+                        foreach (byte raw in bytes)
+                        {
+                            int cell = raw;
+
+                            if (!binaryMode)
+                            {
+                                if (cell == '\r')
+                                    continue;
+                                if (cell == '\n')
+                                {
+                                    x = 0;
+                                    y++;
+                                    continue;
+                                }
+                                if (cell == '\f')
+                                {
+                                    x = 0;
+                                    y = 0;
+                                    z++;
+                                    continue;
+                                }
+                                if (cell is '\t' or '\v')
+                                    cell = ' ';
+                            }
+
+                            if (binaryMode || cell != ' ')
+                                SetCell(baseX + x, baseY + y, baseZ + z, cell);
+
+                            wroteAny = true;
+                            if (x > maxX) maxX = x;
+                            if (y > maxY) maxY = y;
+                            if (z > maxZ) maxZ = z;
+                            x++;
+                        }
+
+                        size = wroteAny ? (maxX, maxY, maxZ) : (0, 0, 0);
+                        return true;
+                    }
+
+                    bool TryOutputFile(int baseX, int baseY, int baseZ, int sx, int sy, int sz, string fileName, bool linearText)
+                    {
+                        sx = Math.Max(0, sx);
+                        sy = Math.Max(0, sy);
+                        sz = Math.Max(0, sz);
+
+                        var rows = new List<string>();
+                        for (int z = 0; z <= sz; z++)
+                        {
+                            for (int y = 0; y <= sy; y++)
+                            {
+                                var chars = new char[sx + 1];
+                                for (int x = 0; x <= sx; x++)
+                                {
+                                    int c = GetCell(baseX + x, baseY + y, baseZ + z);
+                                    chars[x] = c is >= char.MinValue and <= char.MaxValue ? (char)c : ' ';
+                                }
+
+                                var row = new string(chars);
+                                rows.Add(linearText ? row.TrimEnd(' ') : row);
+                            }
+
+                            if (z != sz)
+                                rows.Add("\f");
+                        }
+
+                        if (linearText)
+                        {
+                            while (rows.Count > 0 && rows[rows.Count - 1].Length == 0)
+                                rows.RemoveAt(rows.Count - 1);
+                        }
+
+                        var text = string.Join("\n", rows);
+                        var bytes = new byte[text.Length];
+                        for (int i = 0; i < text.Length; i++)
+                            bytes[i] = (byte)(text[i] & 0xFF);
+
+                        try
+                        {
+                            File.WriteAllBytes(fileName, bytes);
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    }
+
                     (int nx, int ny, int nz) Advance(int x, int y, int z, int ddx, int ddy, int ddz)
                     {
                         if (maxX < minX) return (x, y, z);
@@ -141,6 +281,28 @@ partial class MethodGenerator
                             {
                                 if (!hasInput) throw new InvalidOperationException("Funge input instruction '~' executed without an input interface.");
                                 int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;dz=-dz;}else Push(ch); break;
+                            }
+                            case 'i':
+                            {
+                                if (!TryPopZeroTerminatedString(out string fileName)) { dx = -dx; dy = -dy; dz = -dz; break; }
+                                int flags = Pop();
+                                var (vx, vy, vz) = PopVector();
+                                int baseX = vx, baseY = vy, baseZ = vz;
+                                bool binaryMode = (flags & 1) != 0;
+                                if (!TryInputFile(baseX, baseY, baseZ, fileName, binaryMode, out var vb)) { dx = -dx; dy = -dy; dz = -dz; break; }
+                                PushVector(vx, vy, vz);
+                                PushVector(vb.x, vb.y, vb.z);
+                                break;
+                            }
+                            case 'o':
+                            {
+                                if (!TryPopZeroTerminatedString(out string fileName)) { dx = -dx; dy = -dy; dz = -dz; break; }
+                                int flags = Pop();
+                                var (sbx, sby, sbz) = PopVector();
+                                var (vax, vay, vaz) = PopVector();
+                                bool linearText = (flags & 1) != 0;
+                                if (!TryOutputFile(vax, vay, vaz, sbx, sby, sbz, fileName, linearText)) { dx = -dx; dy = -dy; dz = -dz; }
+                                break;
                             }
                             case 'k':
                             {
