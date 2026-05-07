@@ -8,12 +8,13 @@ The format is based on Keep a Changelog.
 
 ### Added
 
-- `Esolang.Funge.Processor/Processor/IProcessor.cs`: provisional execution abstractions under `Esolang.Processor` (`IProcessor<TProgram>`, `ITextProcessor<TProgram>`, `IPipeProcessor<TProgram>`) for later extraction to a shared package.
+- `Esolang.Processor.Abstractions` (`Esolang.Processor` namespace): shared execution abstractions package (`IProcessor<TProgram>`, `ITextProcessor<TProgram>`, `IPipeProcessor<TProgram>`).
 - `Esolang.Funge.Processor.Tests`: coverage for `RunToEnd(...)` and `RunToEndAsync(...)` on `FungeProcessor`.
 
 ### Changed
 
 - `Esolang.Funge.Processor`: `FungeProcessor` now implements `ITextProcessor<FungeSpace>` and exposes `RunToEnd(...)` / `RunToEndAsync(...)` while preserving existing `Run(...)` behavior.
+- `Esolang.Funge.Processor`: switched abstraction source from local `Processor/IProcessor.cs` to `Esolang.Processor.Abstractions` package.
 - `dotnet-funge` (`Esolang.Funge.Interpreter`): command execution path now calls `RunToEnd(...)`.
 - `Esolang.Funge.Generator`: added return-type support for `int`, `Task<int>`, and `ValueTask<int>`, and aligned `q` handling to return the popped exit code (`@` returns `0`).
 
