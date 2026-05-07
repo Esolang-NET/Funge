@@ -4,23 +4,23 @@ Command-line interpreter for [Funge-98](https://github.com/catseye/Funge-98/blob
 
 ## Installation
 
-```
+```bash
 dotnet tool install -g dotnet-funge
 ```
 
 ## Usage
 
-```
+```bash
 dotnet-funge <path>
 ```
 
 | Argument | Description |
-|---|---|
+| --- | --- |
 | `<path>` | Path to a Funge-98 source file (`.b98`) |
 
 ### Example
 
-```
+```bash
 dotnet-funge hello.b98
 ```
 
@@ -34,7 +34,7 @@ Delegates execution to `Esolang.Funge.Processor`, including Trefunge 3D directio
 For detailed processor-level behavior, refer to the processor package documentation.
 
 | Area | Status |
-|---|---|
+| --- | --- |
 | Core instruction set (stack, arithmetic, comparison, direction, I/O, storage, movement) | ✅ |
 | Funge-98 extensions (`k` iterate, `t` concurrency, `{`/`}`/`u` stack stack) | ✅ |
 | System info (`y`) | 🟡 env vars / command-line args are empty |

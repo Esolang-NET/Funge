@@ -6,7 +6,7 @@
 
 ## プロジェクト構成
 
-```
+```text
 samples/Generator.UseConsole/
 ├── Programs/
 │   ├── hello.b98                          # 2D Hello World
@@ -17,7 +17,7 @@ samples/Generator.UseConsole/
 
 ### hello.b98
 
-```
+```.b98
 64+"!dlroW ,olleH">:#,_@
 ```
 
@@ -73,7 +73,7 @@ namespace Esolang.Funge
 このサンプルでは以下のすべての戻り型を示しています。
 
 | メソッド | 宣言 | 説明 |
-|---|---|---|
+| --- | --- | --- |
 | `HelloWorld` | `partial string HelloWorld()` | 出力を文字列として返す |
 | `HelloWorldAsync` | `partial Task<string> HelloWorldAsync()` | 非同期で出力を文字列として返す |
 | `HelloWorldWriter` | `partial void HelloWorldWriter(TextWriter output)` | `TextWriter` に出力を書き込む |
@@ -100,13 +100,13 @@ public static partial string HelloWorldInline();
 
 ## 実行
 
-```
+```bash
 dotnet run --framework net10.0
 ```
 
 期待される出力:
 
-```
+```text
 HelloWorld: Hello, World!
 HelloWorldAsync: Hello, World!
 HelloWorldWriter: Hello, World!

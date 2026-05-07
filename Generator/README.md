@@ -10,7 +10,7 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 ### Supported return types
 
 | Return type | Description |
-|---|---|
+| --- | --- |
 | `void` | Run to completion; discard output |
 | `int` | Return program exit code (`q` pops stack top, otherwise `0`) |
 | `string` | Collect all output and return as a string |
@@ -26,7 +26,7 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 ### Supported parameter types
 
 | Parameter type | Role |
-|---|---|
+| --- | --- |
 | `string` | Input fed to the program (`&` / `~`) |
 | `System.IO.TextReader` | Input reader |
 | `System.IO.Pipelines.PipeReader` | Input as pipe |
@@ -36,7 +36,7 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 
 ## Installation
 
-```
+```bash
 dotnet add package Esolang.Funge.Generator
 ```
 
@@ -91,14 +91,14 @@ public static partial string HelloWorldInline();
 The generator fully supports 3D Funge-98 (Trefunge) programs.  
 Within a source file, the form-feed character (`\f`, U+000C) separates Z-layers.
 
-```
+```.b98
 # Layer Z=0 — jump into layer Z=1
 l
 ```
 
-*(form-feed character here separates layers)*
+### (form-feed character here separates layers)
 
-```
+```.b98
 # Layer Z=1 — runs the Hello World program
 >64+"!dlroW ,olleH">:#,_@
 ```
@@ -106,7 +106,7 @@ l
 **3D direction instructions:**
 
 | Instruction | Description |
-|---|---|
+| --- | --- |
 | `h` | Set delta to High `(0, 0, −1)` |
 | `l` | Set delta to Low `(0, 0, +1)` |
 | `m` | Pop value; zero → Low, non-zero → High |
@@ -116,7 +116,7 @@ The generated runtime automatically handles XYZ coordinates, Z-axis wrapping, an
 ## Diagnostics
 
 | ID | Severity | Description |
-|---|---|---|
+| --- | --- | --- |
 | FG0001 | Error | `sourcePath` is empty and `InlineSource` is not set |
 | FG0002 | Error | Unsupported return type |
 | FG0003 | Error | Unsupported parameter type |
@@ -134,7 +134,7 @@ The generated runtime (`FungeRuntime`) implements a **single-IP, single-stack su
 including Trefunge 3D navigation (`h` / `l` / `m`) but excluding concurrency, stack stack operations, and fingerprints.
 
 | Category | Instructions | Status |
-|---|---|---|
+| --- | --- | --- |
 | Stack | `0`–`9` `a`–`f` `:` `$` `\` `n` | ✅ |
 | Arithmetic | `+` `-` `*` `/` `%` | ✅ |
 | Comparison | `` ` `` `!` | ✅ |
