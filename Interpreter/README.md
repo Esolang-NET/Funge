@@ -42,7 +42,7 @@ For detailed processor-level behavior, refer to the processor package documentat
 | Exit code via `q` | ✅ |
 | Fingerprints (`(` `)` `A`–`Z`) | ❌ reflects (not implemented) |
 | File I/O (`i` `o`) | ✅ |
-| System exec (`=`) | ❌ reflects (not implemented) |
+| System exec (`=`) | ✅ |
 | 3D / Trefunge (`h` `l` `m`) | ✅ |
 
 ## References

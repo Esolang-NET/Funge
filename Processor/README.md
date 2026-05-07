@@ -48,7 +48,7 @@ Targets **Funge-98** with 3D navigation (`h`/`l`/`m`). Fingerprint extensions ar
 | System info | `y` | 🟡 env vars / command-line args are empty |
 | Misc | `z` `@` `q` | ✅ |
 | File I/O | `i` `o` | ✅ |
-| System exec | `=` | ❌ reflects (not implemented) |
+| System exec | `=` | ✅ |
 | Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
 | 3D (Trefunge) | `h` `l` `m` | ✅ |
 

@@ -1,5 +1,6 @@
 using Esolang.Funge.Parser;
 using Esolang.Processor;
+using System.Diagnostics;
 
 namespace Esolang.Funge.Processor;
 
@@ -592,11 +593,15 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
                 }
 
             // ── Optional (reflect) ────────────────────────────────────────────
-            case '=': // Execute (system exec) – reflect
+            case '=': // Execute (system exec)
                 {
-                    // Consume 0gnirts command string from stack
-                    while (ip.StackStack.Pop() != 0) { }
-                    ip.Delta = ip.Delta.Reflect();
+                    if (!TryPopZeroTerminatedString(ip.StackStack, out var command))
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+
+                    ip.StackStack.Push(ExecuteSystemCommand(command));
                     break;
                 }
 
@@ -756,6 +761,44 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
         }
     }
 
+    private static int ExecuteSystemCommand(string command)
+    {
+        try
+        {
+            var processStartInfo = new ProcessStartInfo
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false,
+                CreateNoWindow = true,
+            };
+
+            if (OperatingSystem.IsWindows())
+            {
+                processStartInfo.FileName = "cmd.exe";
+                processStartInfo.ArgumentList.Add("/c");
+                processStartInfo.ArgumentList.Add(command);
+            }
+            else
+            {
+                processStartInfo.FileName = "/bin/sh";
+                processStartInfo.ArgumentList.Add("-c");
+                processStartInfo.ArgumentList.Add(command);
+            }
+
+            using var process = Process.Start(processStartInfo);
+            if (process is null)
+                return -1;
+
+            process.WaitForExit();
+            return process.ExitCode;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
     /// <summary>
     /// Pushes system information onto the TOSS of the given IP.
     /// If <paramref name="c"/> is greater than zero, only item <paramref name="c"/>
@@ -766,16 +809,16 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
         // Build list of items in order: items[0] will be last-pushed (item 1 from top)
         List<int> items = [];
 
-        // 1. Flags: /t + /i + /o supported
-        items.Add(0x01 | 0x02 | 0x04);
+        // 1. Flags: /t + /i + /o + /= supported
+        items.Add(0x01 | 0x02 | 0x04 | 0x08);
         // 2. Cell size in bytes
         items.Add(4);
         // 3. Interpreter handprint ("Fung" as big-endian int)
         items.Add(unchecked((int)0x46756E67u));
         // 4. Version (Funge-98 = 9800)
         items.Add(9800);
-        // 5. Operating paradigm (0 = system() unavailable)
-        items.Add(0);
+        // 5. Operating paradigm (1 = equivalent to C system() behavior)
+        items.Add(1);
         // 6. Path separator
         items.Add(Path.DirectorySeparatorChar);
         // 7. Number of dimensions (3 = Trefunge)

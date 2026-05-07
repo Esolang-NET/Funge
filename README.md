@@ -48,7 +48,7 @@ Current implementation status across packages:
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
 | Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
 | File I/O (`i` `o`) | ✅ Implemented |
-| System exec (`=`) | ❌ Not implemented (reflect) |
+| System exec (`=`) | ✅ Implemented |
 
 Details:
 

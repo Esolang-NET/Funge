@@ -751,6 +751,66 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public async Task Runtime_SystemExec_ReturnsExitCode()
+    {
+        const string command = "exit 7";
+        var reversed = new string(command.Reverse().ToArray());
+        var program = $"0\"{reversed}\"=q";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("system-exec.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("system-exec.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(7, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_SystemExec_FailureIsNonZero()
+    {
+        const string command = "this_command_should_not_exist_12345";
+        var reversed = new string(command.Reverse().ToArray());
+        var program = $"0\"{reversed}\"=q";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("system-exec-fail.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("system-exec-fail.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreNotEqual(0, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
     public void Diagnostic_SourceFileNotFound_FG0004()
     {
         var source = """

@@ -18,6 +18,7 @@ partial class MethodGenerator
         #pragma warning disable CS1591
         using System;
         using System.Collections.Generic;
+        using System.Diagnostics;
         using System.IO;
 
         namespace Esolang.Funge.__Generated
@@ -187,6 +188,50 @@ partial class MethodGenerator
                         }
                     }
 
+                    int ExecuteSystemCommand(string command)
+                    {
+                        try
+                        {
+                            bool isWindows =
+                                Environment.OSVersion.Platform == PlatformID.Win32NT ||
+                                Environment.OSVersion.Platform == PlatformID.Win32S ||
+                                Environment.OSVersion.Platform == PlatformID.Win32Windows ||
+                                Environment.OSVersion.Platform == PlatformID.WinCE;
+
+                            string fileName;
+                            string arguments;
+                            if (isWindows)
+                            {
+                                fileName = "cmd.exe";
+                                arguments = "/c " + command;
+                            }
+                            else
+                            {
+                                fileName = "/bin/sh";
+                                arguments = "-c \"" + command.Replace("\"", "\\\"") + "\"";
+                            }
+
+                            var processStartInfo = new ProcessStartInfo(fileName, arguments)
+                            {
+                                UseShellExecute = false,
+                                RedirectStandardOutput = false,
+                                RedirectStandardError = false,
+                                CreateNoWindow = true,
+                            };
+
+                            using var process = Process.Start(processStartInfo);
+                            if (process is null)
+                                return -1;
+
+                            process.WaitForExit();
+                            return process.ExitCode;
+                        }
+                        catch
+                        {
+                            return -1;
+                        }
+                    }
+
                     (int nx, int ny, int nz) Advance(int x, int y, int z, int ddx, int ddy, int ddz)
                     {
                         if (maxX < minX) return (x, y, z);
@@ -302,6 +347,12 @@ partial class MethodGenerator
                                 var (vax, vay, vaz) = PopVector();
                                 bool linearText = (flags & 1) != 0;
                                 if (!TryOutputFile(vax, vay, vaz, sbx, sby, sbz, fileName, linearText)) { dx = -dx; dy = -dy; dz = -dz; }
+                                break;
+                            }
+                            case '=':
+                            {
+                                if (!TryPopZeroTerminatedString(out string command)) { dx = -dx; dy = -dy; dz = -dz; break; }
+                                Push(ExecuteSystemCommand(command));
                                 break;
                             }
                             case 'k':

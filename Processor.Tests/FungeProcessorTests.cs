@@ -24,6 +24,9 @@ public class FungeProcessorTests
         return proc.Run(TestContext.CancellationTokenSource.Token);
     }
 
+    private static string EncodeZeroGnirts(string value)
+        => $"0\"{new string(value.Reverse().ToArray())}\"";
+
     // ── Termination ────────────────────────────────────────────────────────
 
     [TestMethod]
@@ -288,7 +291,23 @@ public class FungeProcessorTests
 
     [TestMethod]
     public void SysInfo_ReportsFileIoSupportFlags()
-        => Assert.AreEqual("7 ", Run("1y.@"));
+        => Assert.AreEqual("15 ", Run("1y.@"));
+
+    [TestMethod]
+    public void SystemExec_ReturnsExitCode()
+    {
+        const string command = "exit 7";
+        var program = $"{EncodeZeroGnirts(command)}=.@";
+        Assert.AreEqual("7 ", Run(program));
+    }
+
+    [TestMethod]
+    public void SystemExec_SetsNonZeroOnCommandFailure()
+    {
+        const string command = "this_command_should_not_exist_12345";
+        var program = $"{EncodeZeroGnirts(command)}=q";
+        Assert.AreNotEqual(0, RunGetExitCode(program));
+    }
 
     // ── Quit exit code ────────────────────────────────────────────────────
 
