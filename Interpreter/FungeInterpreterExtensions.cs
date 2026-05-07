@@ -29,7 +29,7 @@ public static class FungeInterpreterExtensions
             var path = parseResult.GetValue(pathArgument)!;
             var space = FungeParser.ParseFile(path);
             var proc = new FungeProcessor(space, Console.Out, Console.In);
-            return Task.FromResult(proc.Run(cancellationToken));
+            return Task.FromResult(proc.RunToEnd(cancellationToken: cancellationToken));
         });
 
         return rootCommand;

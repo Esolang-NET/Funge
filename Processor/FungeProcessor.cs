@@ -1,4 +1,5 @@
 using Esolang.Funge.Parser;
+using Esolang.Processor;
 
 namespace Esolang.Funge.Processor;
 
@@ -9,13 +10,16 @@ namespace Esolang.Funge.Processor;
 /// Fingerprints (<c>(</c>/<c>)</c>) and file I/O (<c>i</c>/<c>o</c>) reflect (not implemented).
 /// 3-D instructions (<c>h</c>/<c>l</c>/<c>m</c>) reflect in 2-D mode.
 /// </summary>
-public sealed class FungeProcessor
+public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
 {
     private readonly FungeSpace _space;
     private readonly TextWriter _output;
     private readonly TextReader _input;
     private readonly Random _random = new();
     private int _nextIpId;
+
+    /// <inheritdoc/>
+    public FungeSpace Program => _space;
 
     /// <summary>
     /// Initializes a new <see cref="FungeProcessor"/> with the given program space and optional I/O.
@@ -37,7 +41,14 @@ public sealed class FungeProcessor
     /// <param name="cancellationToken">Token to cancel execution.</param>
     /// <returns>Exit code: 0 unless the program used <c>q</c>.</returns>
     public int Run(CancellationToken cancellationToken = default)
+        => RunToEnd(null, null, cancellationToken);
+
+    /// <inheritdoc/>
+    public int RunToEnd(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
     {
+        var resolvedInput = input ?? _input;
+        var resolvedOutput = output ?? _output;
+
         var ips = new LinkedList<InstructionPointer>();
         ips.AddFirst(new InstructionPointer(_nextIpId++));
         var exitCode = 0;
@@ -52,7 +63,7 @@ public sealed class FungeProcessor
                 var ip = node.Value;
 
                 var suppressAdvance = false;
-                ExecuteInstruction(ip, ips, node, ref exitCode, ref quit, ref suppressAdvance);
+                ExecuteInstruction(ip, ips, node, ref exitCode, ref quit, ref suppressAdvance, resolvedInput, resolvedOutput);
 
                 if (ip.IsStopped || quit)
                 {
@@ -70,6 +81,10 @@ public sealed class FungeProcessor
         return exitCode;
     }
 
+    /// <inheritdoc/>
+    public ValueTask<int> RunToEndAsync(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(RunToEnd(input, output, cancellationToken));
+
     private void ExecuteInstruction(
         InstructionPointer ip,
         LinkedList<InstructionPointer> ips,
@@ -77,6 +92,8 @@ public sealed class FungeProcessor
         ref int exitCode,
         ref bool quit,
         ref bool suppressAdvance,
+        TextReader input,
+        TextWriter output,
         int? overrideCell = null)
     {
         var cell = overrideCell ?? _space[ip.Position];
@@ -319,17 +336,17 @@ public sealed class FungeProcessor
 
             // ── I/O ──────────────────────────────────────────────────────────
             case '.': // Output Integer
-                _output.Write(ip.StackStack.Pop());
-                _output.Write(' ');
+                output.Write(ip.StackStack.Pop());
+                output.Write(' ');
                 break;
 
             case ',': // Output Character
-                _output.Write((char)ip.StackStack.Pop());
+                output.Write((char)ip.StackStack.Pop());
                 break;
 
             case '&': // Input Integer
                 {
-                    var line = _input.ReadLine();
+                    var line = input.ReadLine();
                     if (line is null) { ip.Delta = ip.Delta.Reflect(); break; }
                     ip.StackStack.Push(int.TryParse(line.Trim(), out var v) ? v : 0);
                     break;
@@ -337,7 +354,7 @@ public sealed class FungeProcessor
 
             case '~': // Input Character
                 {
-                    var ch = _input.Read();
+                    var ch = input.Read();
                     if (ch < 0) ip.Delta = ip.Delta.Reflect();
                     else ip.StackStack.Push(ch);
                     break;
@@ -396,7 +413,7 @@ public sealed class FungeProcessor
                         for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
                         {
                             var dummy = false;
-                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy, operand);
+                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy, input, output, operand);
                         }
                     }
                     break;

@@ -223,4 +223,29 @@ public class FungeProcessorTests
     [TestMethod]
     public void Quit_ExitCode7()
         => Assert.AreEqual(7, RunGetExitCode("7q"));
+
+    [TestMethod]
+    public void RunToEnd_UsesProvidedTextIo()
+    {
+        var space = Parser.FungeParser.Parse("&.@");
+        var output = new StringWriter();
+        var input = new StringReader("42\n");
+        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
+
+        var exitCode = proc.RunToEnd(input, output, TestContext.CancellationTokenSource.Token);
+
+        Assert.AreEqual(0, exitCode);
+        Assert.AreEqual("42 ", output.ToString());
+    }
+
+    [TestMethod]
+    public async Task RunToEndAsync_ReturnsExitCode()
+    {
+        var space = Parser.FungeParser.Parse("7q");
+        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
+
+        var exitCode = await proc.RunToEndAsync(cancellationToken: TestContext.CancellationTokenSource.Token);
+
+        Assert.AreEqual(7, exitCode);
+    }
 }
