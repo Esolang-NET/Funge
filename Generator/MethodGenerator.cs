@@ -147,6 +147,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
             var methodSb = new StringBuilder(GeneratedMethodsFileHeader);
             var emittedCount = 0;
+            var runtimeFeatures = RuntimeFacadeFeatures.None;
 
             foreach (var syntaxCtx in sources)
             {
@@ -270,14 +271,30 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 var emitted = EmitMethod(symbol, method, space, binding, projDir, displayPath);
                 methodSb.AppendLine(emitted);
                 emittedCount++;
+                runtimeFeatures |= GetRuntimeFacadeFeatures(binding.ReturnKind);
             }
 
             if (emittedCount > 0)
                 ctx.AddSource(GeneratedMethodsFileName, methodSb.ToString());
 
-            EmitRuntimeIfNeeded(ctx, emittedCount > 0);
+            EmitRuntimeIfNeeded(ctx, runtimeFeatures);
         });
     }
+
+    static RuntimeFacadeFeatures GetRuntimeFacadeFeatures(ReturnKind returnKind) => returnKind switch
+    {
+        ReturnKind.Void or ReturnKind.Int => RuntimeFacadeFeatures.RunSync,
+        ReturnKind.String => RuntimeFacadeFeatures.RunString,
+        ReturnKind.Task => RuntimeFacadeFeatures.RunTask,
+        ReturnKind.TaskInt => RuntimeFacadeFeatures.RunTaskInt,
+        ReturnKind.TaskString => RuntimeFacadeFeatures.RunTaskString,
+        ReturnKind.ValueTask => RuntimeFacadeFeatures.RunValueTask,
+        ReturnKind.ValueTaskInt => RuntimeFacadeFeatures.RunValueTaskInt,
+        ReturnKind.ValueTaskString => RuntimeFacadeFeatures.RunValueTaskString,
+        ReturnKind.EnumerableByte => RuntimeFacadeFeatures.RunEnumerable,
+        ReturnKind.AsyncEnumerableByte => RuntimeFacadeFeatures.RunAsyncEnumerable,
+        _ => RuntimeFacadeFeatures.None,
+    };
 
     // -----------------------------------------------------------------------
     // Signature binding

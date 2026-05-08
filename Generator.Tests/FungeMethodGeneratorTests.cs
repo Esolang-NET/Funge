@@ -1044,6 +1044,59 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public void Generated_Runtime_EmitsOnlyRequiredFacades_ForIntReturn()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("minimal-int.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("minimal-int.b98", "@")]);
+        AssertNoErrors(diag, comp);
+
+        var runtime = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
+
+        Assert.Contains("internal static int RunSync(", runtime);
+        Assert.IsFalse(runtime.Contains("internal static Task RunTask(", StringComparison.Ordinal));
+        Assert.IsFalse(runtime.Contains("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal));
+        Assert.IsFalse(runtime.Contains("internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void Generated_Runtime_EmitsOnlyRequiredFacades_ForValueTaskString()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("minimal-vts.b98")]
+                public static partial ValueTask<string> Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("minimal-vts.b98", "@")]);
+        AssertNoErrors(diag, comp);
+
+        var runtime = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
+
+        Assert.Contains("internal static ValueTask<string> RunValueTaskString(", runtime);
+        Assert.IsFalse(runtime.Contains("internal static int RunSync(", StringComparison.Ordinal));
+        Assert.IsFalse(runtime.Contains("internal static Task<int> RunTaskInt(", StringComparison.Ordinal));
+        Assert.IsFalse(runtime.Contains("internal static IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void Runtime_SyncCancellationToken_CancelsInfiniteLoop()
     {
         var source = """

@@ -6,13 +6,257 @@ partial class MethodGenerator
 {
     const string FungeRuntimeFileName = "FungeRuntime.g.cs";
 
-    static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, bool needed)
+    [System.Flags]
+    enum RuntimeFacadeFeatures
     {
-        if (!needed) return;
-        ctx.AddSource(FungeRuntimeFileName, BuildRuntimeSource());
+        None = 0,
+        RunSync = 1 << 0,
+        RunString = 1 << 1,
+        RunEnumerable = 1 << 2,
+        RunAsyncEnumerable = 1 << 3,
+        RunTask = 1 << 4,
+        RunTaskInt = 1 << 5,
+        RunTaskString = 1 << 6,
+        RunValueTask = 1 << 7,
+        RunValueTaskInt = 1 << 8,
+        RunValueTaskString = 1 << 9,
     }
 
-    static string BuildRuntimeSource() => """
+    static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features)
+    {
+        if (features == RuntimeFacadeFeatures.None) return;
+        ctx.AddSource(FungeRuntimeFileName, BuildRuntimeSource(features));
+    }
+
+    static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
+    {
+        var sb = new StringBuilder();
+
+        if ((features & RuntimeFacadeFeatures.RunSync) != 0)
+        {
+            sb.Append("""
+
+                internal static int RunSync(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunString) != 0)
+        {
+            sb.Append("""
+
+                internal static string RunString(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    using var output = new StringWriter();
+                    Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    return output.ToString();
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunEnumerable) != 0)
+        {
+            sb.Append("""
+
+                internal static IEnumerable<byte> RunEnumerable(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    using var output = new StringWriter();
+                    Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(output.ToString());
+                    foreach (var b in bytes)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return b;
+                    }
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunAsyncEnumerable) != 0)
+        {
+            sb.Append("""
+
+                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+                {
+                    using var output = new StringWriter();
+                    Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(output.ToString());
+
+                    foreach (var b in bytes)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return b;
+                        await Task.Yield();
+                    }
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunTask) != 0)
+        {
+            sb.Append("""
+
+                internal static Task RunTask(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Task.Run(() =>
+                    {
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    }, cancellationToken);
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunTaskInt) != 0)
+        {
+            sb.Append("""
+
+                internal static Task<int> RunTaskInt(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Task.Run(() =>
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, TextWriter.Null, hasInput, hasOutput, cancellationToken),
+                        cancellationToken);
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunTaskString) != 0)
+        {
+            sb.Append("""
+
+                internal static Task<string> RunTaskString(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Task.Run(() =>
+                    {
+                        using var output = new StringWriter();
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                        return output.ToString();
+                    }, cancellationToken);
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunValueTask) != 0)
+        {
+            sb.Append("""
+
+                internal static ValueTask RunValueTask(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return new ValueTask(Task.Run(() =>
+                    {
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    }, cancellationToken));
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunValueTaskInt) != 0)
+        {
+            sb.Append("""
+
+                internal static ValueTask<int> RunValueTaskInt(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return new ValueTask<int>(Task.Run(() =>
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, TextWriter.Null, hasInput, hasOutput, cancellationToken),
+                        cancellationToken));
+                }
+
+        """);
+        }
+
+        if ((features & RuntimeFacadeFeatures.RunValueTaskString) != 0)
+        {
+            sb.Append("""
+
+                internal static ValueTask<string> RunValueTaskString(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return new ValueTask<string>(Task.Run(() =>
+                    {
+                        using var output = new StringWriter();
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                        return output.ToString();
+                    }, cancellationToken));
+                }
+
+        """);
+        }
+
+        return sb.ToString();
+    }
+
+    static string BuildRuntimeSource(RuntimeFacadeFeatures features) => string.Concat("""
         // <auto-generated/>
         #nullable enable
         #pragma warning disable CS1591
@@ -30,141 +274,9 @@ partial class MethodGenerator
         {
             internal static class FungeRuntime
             {
-                internal static int RunSync(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    TextWriter output,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
-                }
 
-                internal static string RunString(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    using var output = new StringWriter();
-                    Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
-                    return output.ToString();
-                }
-
-                internal static IEnumerable<byte> RunEnumerable(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    var bytes = System.Text.Encoding.UTF8.GetBytes(
-                        RunString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
-                    foreach (var b in bytes)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        yield return b;
-                    }
-                }
-
-                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    [EnumeratorCancellation] CancellationToken cancellationToken = default)
-                {
-                    var bytes = System.Text.Encoding.UTF8.GetBytes(
-                        RunString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
-
-                    foreach (var b in bytes)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        yield return b;
-                        await Task.Yield();
-                    }
-                }
-
-                internal static Task RunTask(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    TextWriter output,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return Task.Run(() =>
-                    {
-                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
-                    }, cancellationToken);
-                }
-
-                internal static Task<int> RunTaskInt(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return Task.Run(() =>
-                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, TextWriter.Null, hasInput, hasOutput, cancellationToken),
-                        cancellationToken);
-                }
-
-                internal static Task<string> RunTaskString(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return Task.Run(() =>
-                        RunString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken),
-                        cancellationToken);
-                }
-
-                internal static ValueTask RunValueTask(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    TextWriter output,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return new ValueTask(RunTask(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken));
-                }
-
-                internal static ValueTask<int> RunValueTaskInt(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return new ValueTask<int>(RunTaskInt(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
-                }
-
-                internal static ValueTask<string> RunValueTaskString(
-                    Dictionary<(int, int, int), int> cells,
-                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                    TextReader input,
-                    bool hasInput,
-                    bool hasOutput,
-                    CancellationToken cancellationToken = default)
-                {
-                    return new ValueTask<string>(RunTaskString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
-                }
+        """,
+        BuildRuntimeFacadeMethods(features),"""
 
                 private sealed class RuntimeStackStack
                 {
@@ -1096,5 +1208,5 @@ partial class MethodGenerator
                 }
             }
         }
-        """;
+        """);
 }
