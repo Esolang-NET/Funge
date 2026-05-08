@@ -70,3 +70,8 @@ The format is based on Keep a Changelog.
 - `dotnet-funge`: package metadata now includes `PackageReadmeFile` and packs `Interpreter/README.md`.
 - `Esolang.Funge.Generator`: `FG0008` / `FG0009` severity changed from Warning to Info.
 - `Esolang.Funge.Generator`: runtime now throws when input/output instructions are executed without a declared input/output interface.
+
+[Unreleased]: https://github.com/Esolang-NET/Funge/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Esolang-NET/Funge/tree/v1.1.0
+[1.0.1]: https://github.com/Esolang-NET/Funge/tree/v1.0.1
+[1.0.0]: https://github.com/Esolang-NET/Funge/tree/v1.0.0
