@@ -6,6 +6,7 @@
     <Description>Core parsing primitives for Funge-98 programs.</Description>
     <PackageId>Esolang.Funge.Parser</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>esolang;funge;funge-98;befunge;parser</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">

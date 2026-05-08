@@ -13,6 +13,7 @@ The format is based on Keep a Changelog.
 ### Changed
 
 - `Esolang.Funge.Generator`: explicit `TextWriter` / `PipeWriter` output parameters now compose with exit-code returns (`int`, `Task<int>`, `ValueTask<int>`), while `FG0007` remains reserved for return-based output conflicts (`string` / byte-sequence returns).
+- Package metadata: added/expanded NuGet `PackageTags` for packable Funge packages (`Generator`, `Parser`, `Processor`, `dotnet-funge`) including `funge`, `funge-98`, and `befunge` tags for better discoverability.
 
 ## [1.1.0] - 2026-05-08
 

@@ -13,6 +13,7 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>esolang;funge;funge-98;befunge;generator;source-generator;roslyn-analyzer</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

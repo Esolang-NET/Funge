@@ -6,6 +6,7 @@
     <Description>Execution engine for Funge-98 programs.</Description>
     <PackageId>Esolang.Funge.Processor</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>esolang;funge;funge-98;befunge;processor</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
