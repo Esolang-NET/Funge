@@ -32,6 +32,7 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: generated runtime now supports concurrency (`t`), stack stack operations (`{` / `}` / `u`), `y` system-info, and applies storage offset semantics to `g` / `p` and file I/O least-point handling.
 - `Esolang.Funge.Generator`: method return handling now dispatches via runtime facade APIs (`RunSync` / `RunTask*` / `RunValueTask*` / `RunEnumerable` / `RunAsyncEnumerable`), and synchronous signatures can cooperatively cancel infinite execution via `CancellationToken`.
 - `Esolang.Funge.Generator`: runtime source emission now includes only the facade methods required by generated signatures (Piet-style minimal runtime emission), and facade source blocks are generated with raw string literals for cleaner output layout.
+- `Esolang.Funge.Generator`: generated runtime class and internal runtime entry methods are now annotated with `EditorBrowsable(EditorBrowsableState.Never)` to reduce IntelliSense surface for internal-use APIs.
 - Docs: updated package README compliance tables and added 3D notes/examples (including `\f` layer separator guidance).
 - Repository hygiene: ignore `*.csproj.lscache` (C# Dev Kit cache) to avoid generated noise in working trees.
 

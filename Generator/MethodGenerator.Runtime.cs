@@ -36,6 +36,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static int RunSync(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -55,6 +56,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static string RunString(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -75,6 +77,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static IEnumerable<byte> RunEnumerable(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -100,6 +103,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -127,6 +131,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static Task RunTask(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -149,6 +154,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static Task<int> RunTaskInt(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -169,6 +175,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static Task<string> RunTaskString(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -192,6 +199,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static ValueTask RunValueTask(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -214,6 +222,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static ValueTask<int> RunValueTaskInt(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -234,6 +243,7 @@ partial class MethodGenerator
         {
             sb.Append("""
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static ValueTask<string> RunValueTaskString(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -272,6 +282,7 @@ partial class MethodGenerator
 
         namespace Esolang.Funge.__Generated
         {
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             internal static class FungeRuntime
             {
 
@@ -350,6 +361,7 @@ partial class MethodGenerator
                     }
                 }
 
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static int Run(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
