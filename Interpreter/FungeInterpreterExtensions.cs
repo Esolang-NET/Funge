@@ -1,7 +1,7 @@
 using Esolang.Funge.Parser;
 using Esolang.Funge.Processor;
-using System.CommandLine;
 using System.Collections;
+using System.CommandLine;
 
 namespace Esolang.Funge.Interpreter;
 

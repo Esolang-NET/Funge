@@ -1071,7 +1071,7 @@ public class FungeMethodGeneratorTests
             .Select(static t => t.ToString())
             .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
         Assert.Contains("__cells[(0, 0, 0)] = 64;", generated);
-        
+
         // Output all generated syntax trees for inspection
         TestContext.WriteLine("=== Generated Syntax Trees ===");
         foreach (var tree in comp.SyntaxTrees)

@@ -1,7 +1,7 @@
 using Esolang.Funge.Parser;
 using Esolang.Processor;
-using System.Diagnostics;
 using System.Collections;
+using System.Diagnostics;
 
 namespace Esolang.Funge.Processor;
 
