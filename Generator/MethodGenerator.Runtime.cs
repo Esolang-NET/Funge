@@ -159,12 +159,13 @@ partial class MethodGenerator
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
                     TextReader input,
+                    TextWriter output,
                     bool hasInput,
                     bool hasOutput,
                     CancellationToken cancellationToken = default)
                 {
                     return Task.Run(() =>
-                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, TextWriter.Null, hasInput, hasOutput, cancellationToken),
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken),
                         cancellationToken);
                 }
 
@@ -227,12 +228,13 @@ partial class MethodGenerator
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
                     TextReader input,
+                    TextWriter output,
                     bool hasInput,
                     bool hasOutput,
                     CancellationToken cancellationToken = default)
                 {
                     return new ValueTask<int>(Task.Run(() =>
-                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, TextWriter.Null, hasInput, hasOutput, cancellationToken),
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken),
                         cancellationToken));
                 }
 

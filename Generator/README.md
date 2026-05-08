@@ -30,8 +30,8 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 | `string` | Input fed to the program (`&` / `~`) |
 | `System.IO.TextReader` | Input reader |
 | `System.IO.Pipelines.PipeReader` | Input as pipe |
-| `System.IO.TextWriter` | Output writer (`void` return only) |
-| `System.IO.Pipelines.PipeWriter` | Output as pipe (`void` return only) |
+| `System.IO.TextWriter` | Explicit output sink for methods that do not return output text/bytes (including `void`, `int`, `Task`, `Task<int>`, `ValueTask`, `ValueTask<int>`) |
+| `System.IO.Pipelines.PipeWriter` | Explicit pipe output sink for methods that do not return output text/bytes (including `void`, `int`, `Task`, `Task<int>`, `ValueTask`, `ValueTask<int>`) |
 | `CancellationToken` | Cancellation (async methods) |
 
 ## Installation
@@ -70,6 +70,10 @@ partial class MyPrograms
     // With explicit TextWriter output
     [GenerateFungeMethod("Programs/hello.b98")]
     public static partial void HelloWorldWriter(System.IO.TextWriter output);
+
+    // Exit code return can be combined with explicit output
+    [GenerateFungeMethod("Programs/hello.b98")]
+    public static partial Task<int> HelloWorldExitCodeAsync(System.IO.Pipelines.PipeWriter output, CancellationToken cancellationToken = default);
 
     // With string input
     [GenerateFungeMethod("Programs/echo.b98")]

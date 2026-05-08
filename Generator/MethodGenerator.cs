@@ -391,7 +391,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
             if (typeName == "System.IO.TextWriter")
             {
-                if (returnKind is not ReturnKind.Void)
+                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
                     return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name,
                         cancellationTokenName, DiagnosticDescriptors.ReturnOutputConflict.Id,
                         p.Locations.FirstOrDefault());
@@ -406,7 +406,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
             if (typeName == "System.IO.Pipelines.PipeWriter")
             {
-                if (returnKind is not ReturnKind.Void)
+                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
                     return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name,
                         cancellationTokenName, DiagnosticDescriptors.ReturnOutputConflict.Id,
                         p.Locations.FirstOrDefault());
@@ -538,8 +538,20 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
             case ReturnKind.Int:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, global::System.IO.TextWriter.Null, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                if (binding.OutputKind == OutputKind.PipeWriter)
+                {
+                    sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
+                    sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(");
+                    sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                }
+                else
+                {
+                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        ? binding.OutputExpression
+                        : "global::System.IO.TextWriter.Null";
+                    sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(");
+                    sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                }
                 break;
 
             case ReturnKind.String:
@@ -567,8 +579,25 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
             case ReturnKind.TaskInt:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                if (binding.OutputKind == OutputKind.PipeWriter)
+                {
+                    sb.AppendLine("        return __RunTaskIntWithPipeWriter();");
+                    sb.AppendLine();
+                    sb.AppendLine("        async global::System.Threading.Tasks.Task<int> __RunTaskIntWithPipeWriter()");
+                    sb.AppendLine("        {");
+                    sb.AppendLine($"            using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
+                    sb.AppendLine("            return await global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(");
+                    sb.AppendLine($"                __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                    sb.AppendLine("        }");
+                }
+                else
+                {
+                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        ? binding.OutputExpression
+                        : "global::System.IO.TextWriter.Null";
+                    sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(");
+                    sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                }
                 break;
 
             case ReturnKind.TaskString:
@@ -596,8 +625,25 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
             case ReturnKind.ValueTaskInt:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                if (binding.OutputKind == OutputKind.PipeWriter)
+                {
+                    sb.AppendLine("        return __RunValueTaskIntWithPipeWriter();");
+                    sb.AppendLine();
+                    sb.AppendLine("        async global::System.Threading.Tasks.ValueTask<int> __RunValueTaskIntWithPipeWriter()");
+                    sb.AppendLine("        {");
+                    sb.AppendLine($"            using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
+                    sb.AppendLine("            return await global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(");
+                    sb.AppendLine($"                __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                    sb.AppendLine("        }");
+                }
+                else
+                {
+                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        ? binding.OutputExpression
+                        : "global::System.IO.TextWriter.Null";
+                    sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(");
+                    sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                }
                 break;
 
             case ReturnKind.ValueTaskString:

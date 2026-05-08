@@ -2,6 +2,7 @@ using Basic.Reference.Assemblies;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
+using System.IO.Pipelines;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Text;
@@ -141,6 +142,15 @@ public class FungeMethodGeneratorTests
         }
     }
 
+    static async Task<string> ReadPipeOutputAsync(Pipe pipe)
+    {
+        await pipe.Writer.CompleteAsync();
+        using var reader = new StreamReader(pipe.Reader.AsStream());
+        var text = await reader.ReadToEndAsync();
+        await pipe.Reader.CompleteAsync();
+        return text;
+    }
+
     // -----------------------------------------------------------------------
     // Basic tests
     // -----------------------------------------------------------------------
@@ -261,6 +271,118 @@ public class FungeMethodGeneratorTests
             {
                 [GenerateFungeMethod("test.b98")]
                 public static partial void Run(TextWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_Int_TextWriter()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run(TextWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_TaskInt_TextWriter()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial Task<int> Run(TextWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_ValueTaskInt_TextWriter()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial ValueTask<int> Run(TextWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_Int_PipeWriter()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run(PipeWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_TaskInt_PipeWriter()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial Task<int> Run(PipeWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+    }
+
+    [TestMethod]
+    public void ReturnType_ValueTaskInt_PipeWriter()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial ValueTask<int> Run(PipeWriter output);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1175,6 +1297,115 @@ public class FungeMethodGeneratorTests
         RunGenerators(source, out _, out var diag,
             additionalFiles: [("test.b98", "@")]);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0007"), "Expected FG0007");
+    }
+
+    [TestMethod]
+    public async Task Runtime_Int_TextWriter_ReturnsExitCodeAndWritesOutput()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run(TextWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            using var output = new StringWriter();
+            var result = (int)m.Invoke(null, [output])!;
+            Assert.AreEqual(5, result);
+            Assert.AreEqual("30 ", output.ToString());
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_Int_PipeWriter_ReturnsExitCodeAndWritesOutput()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run(PipeWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        var t = asm.GetType("TestProject.TestClass")!;
+        var m = t.GetMethod("Run")!;
+        var pipe = new Pipe();
+        var result = (int)m.Invoke(null, [pipe.Writer])!;
+        Assert.AreEqual(5, result);
+        Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+    }
+
+    [TestMethod]
+    public async Task Runtime_TaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial Task<int> Run(PipeWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        var t = asm.GetType("TestProject.TestClass")!;
+        var m = t.GetMethod("Run")!;
+        var pipe = new Pipe();
+        var result = await (Task<int>)m.Invoke(null, [pipe.Writer])!;
+        Assert.AreEqual(5, result);
+        Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+    }
+
+    [TestMethod]
+    public async Task Runtime_ValueTaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial ValueTask<int> Run(PipeWriter output);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        var t = asm.GetType("TestProject.TestClass")!;
+        var m = t.GetMethod("Run")!;
+        var pipe = new Pipe();
+        var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer])!;
+        Assert.AreEqual(5, result);
+        Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
     }
 
     [TestMethod]

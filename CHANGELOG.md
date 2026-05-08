@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+
+- `Esolang.Funge.Generator.Tests`: coverage for `int` / `Task<int>` / `ValueTask<int>` signatures with explicit `TextWriter` and `PipeWriter` output, including runtime validation of exit-code returns plus pipe output.
+
+### Changed
+
+- `Esolang.Funge.Generator`: explicit `TextWriter` / `PipeWriter` output parameters now compose with exit-code returns (`int`, `Task<int>`, `ValueTask<int>`), while `FG0007` remains reserved for return-based output conflicts (`string` / byte-sequence returns).
+
 ## [1.1.0] - 2026-05-08
 
 ### Added
