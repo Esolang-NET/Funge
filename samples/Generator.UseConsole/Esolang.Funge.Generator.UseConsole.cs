@@ -43,7 +43,7 @@ namespace Esolang.Funge
         public static partial Task<string> HelloWorldAsync();
 
         [GenerateFungeMethod("Programs/hello.b98")]
-        public static partial void HelloWorldWriter(System.IO.TextWriter output);
+        public static partial void HelloWorldWriter(TextWriter output);
 
         [GenerateFungeMethod("Programs/hello.b98")]
         public static partial IEnumerable<byte> HelloWorldBytes();
