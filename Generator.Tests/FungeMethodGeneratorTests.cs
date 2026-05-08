@@ -933,6 +933,146 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public void Generated_TaskReturn_UsesTaskRuntimeFacade()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("task-facade.b98")]
+                public static partial Task Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("task-facade.b98", "@")]);
+        AssertNoErrors(diag, comp);
+
+        var generated = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("Generated from: task-facade.b98", StringComparison.Ordinal));
+        Assert.Contains("FungeRuntime.RunTask(", generated);
+    }
+
+    [TestMethod]
+    public void Generated_ValueTaskStringReturn_UsesValueTaskRuntimeFacade()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("valuetask-facade.b98")]
+                public static partial ValueTask<string> Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("valuetask-facade.b98", "@")]);
+        AssertNoErrors(diag, comp);
+
+        var generated = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("Generated from: valuetask-facade.b98", StringComparison.Ordinal));
+        Assert.Contains("FungeRuntime.RunValueTaskString(", generated);
+    }
+
+    [TestMethod]
+    public async Task Runtime_AsyncEnumerableByte_ReturnsOutputBytes()
+    {
+        const string program = "\"A\",@";
+
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            using System.Threading;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("async-enumerable.b98")]
+                public static partial IAsyncEnumerable<byte> Run(CancellationToken cancellationToken = default);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("async-enumerable.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        var t = asm.GetType("TestProject.TestClass")!;
+        var m = t.GetMethod("Run")!;
+        var stream = (IAsyncEnumerable<byte>?)m.Invoke(null, [TestCancellationToken]);
+        Assert.IsNotNull(stream);
+
+        var bytes = new List<byte>();
+        var enumerator = stream!.GetAsyncEnumerator(TestCancellationToken);
+        try
+        {
+            while (await enumerator.MoveNextAsync())
+                bytes.Add(enumerator.Current);
+        }
+        finally
+        {
+            await enumerator.DisposeAsync();
+        }
+
+        CollectionAssert.AreEqual(new byte[] { (byte)'A' }, bytes);
+    }
+
+    [TestMethod]
+    public void Generated_SyncWithCancellationToken_UsesRunSyncWithToken()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("sync-token.b98")]
+                public static partial int Run(CancellationToken cancellationToken = default);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("sync-token.b98", "@")]);
+        AssertNoErrors(diag, comp);
+
+        var generated = comp.SyntaxTrees
+            .Select(static t => t.ToString())
+            .Single(static text => text.Contains("Generated from: sync-token.b98", StringComparison.Ordinal));
+        Assert.Contains("FungeRuntime.RunSync(", generated);
+        Assert.Contains("cancellationToken", generated);
+    }
+
+    [TestMethod]
+    public void Runtime_SyncCancellationToken_CancelsInfiniteLoop()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Threading;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("infinite-loop.b98")]
+                public static partial int Run(CancellationToken cancellationToken = default);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("infinite-loop.b98", ">")]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        var t = asm.GetType("TestProject.TestClass")!;
+        var m = t.GetMethod("Run")!;
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var ex = Assert.Throws<TargetInvocationException>(() => m.Invoke(null, [cts.Token]));
+        Assert.IsNotNull(ex?.InnerException);
+        Assert.IsInstanceOfType(ex!.InnerException, typeof(OperationCanceledException));
+    }
+
+    [TestMethod]
     public void Diagnostic_SourceFileNotFound_FG0004()
     {
         var source = """

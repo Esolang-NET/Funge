@@ -22,11 +22,150 @@ partial class MethodGenerator
         using System.Diagnostics;
         using System.IO;
         using System.Linq;
+        using System.Runtime.CompilerServices;
+        using System.Threading;
+        using System.Threading.Tasks;
 
         namespace Esolang.Funge.__Generated
         {
             internal static class FungeRuntime
             {
+                internal static int RunSync(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                }
+
+                internal static string RunString(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    using var output = new StringWriter();
+                    Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    return output.ToString();
+                }
+
+                internal static IEnumerable<byte> RunEnumerable(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(
+                        RunString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
+                    foreach (var b in bytes)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return b;
+                    }
+                }
+
+                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(
+                        RunString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
+
+                    foreach (var b in bytes)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return b;
+                        await Task.Yield();
+                    }
+                }
+
+                internal static Task RunTask(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Task.Run(() =>
+                    {
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken);
+                    }, cancellationToken);
+                }
+
+                internal static Task<int> RunTaskInt(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Task.Run(() =>
+                        Run(cells, minX, minY, minZ, maxX, maxY, maxZ, input, TextWriter.Null, hasInput, hasOutput, cancellationToken),
+                        cancellationToken);
+                }
+
+                internal static Task<string> RunTaskString(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return Task.Run(() =>
+                        RunString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken),
+                        cancellationToken);
+                }
+
+                internal static ValueTask RunValueTask(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    TextWriter output,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return new ValueTask(RunTask(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, cancellationToken));
+                }
+
+                internal static ValueTask<int> RunValueTaskInt(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return new ValueTask<int>(RunTaskInt(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
+                }
+
+                internal static ValueTask<string> RunValueTaskString(
+                    Dictionary<(int, int, int), int> cells,
+                    int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+                    TextReader input,
+                    bool hasInput,
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
+                {
+                    return new ValueTask<string>(RunTaskString(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, cancellationToken));
+                }
+
                 private sealed class RuntimeStackStack
                 {
                     private readonly LinkedList<Stack<int>> _stacks = new LinkedList<Stack<int>>();
@@ -105,7 +244,8 @@ partial class MethodGenerator
                     TextReader input,
                     TextWriter output,
                     bool hasInput,
-                    bool hasOutput)
+                    bool hasOutput,
+                    CancellationToken cancellationToken = default)
                 {
                     var rng = new Random();
                     var commandLineArguments = Environment.GetCommandLineArgs();
@@ -928,9 +1068,11 @@ partial class MethodGenerator
 
                     while (ips.Count > 0 && !quit)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var node = ips.First;
                         while (node != null && !quit)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             var nextNode = node.Next;
                             var ip = node.Value;
 

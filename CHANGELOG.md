@@ -30,6 +30,7 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Processor`: `y` now includes command-line arguments and environment variables, uses Funge-98 date/time encoding (base-256), reports least-stack-area bounds as relative extents, and aligns positive-`c` pick behavior with full-stack semantics.
 - `dotnet-funge` (`Esolang.Funge.Interpreter`): processor construction now passes command-line arguments and environment variables for `y` system-info reporting.
 - `Esolang.Funge.Generator`: generated runtime now supports concurrency (`t`), stack stack operations (`{` / `}` / `u`), `y` system-info, and applies storage offset semantics to `g` / `p` and file I/O least-point handling.
+- `Esolang.Funge.Generator`: method return handling now dispatches via runtime facade APIs (`RunSync` / `RunTask*` / `RunValueTask*` / `RunEnumerable` / `RunAsyncEnumerable`), and synchronous signatures can cooperatively cancel infinite execution via `CancellationToken`.
 - Docs: updated package README compliance tables and added 3D notes/examples (including `\f` layer separator guidance).
 - Repository hygiene: ignore `*.csproj.lscache` (C# Dev Kit cache) to avoid generated noise in working trees.
 
