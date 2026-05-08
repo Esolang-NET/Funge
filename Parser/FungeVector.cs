@@ -1,26 +1,22 @@
+using System.Diagnostics;
+
 namespace Esolang.Funge.Parser;
 
 /// <summary>
 /// Represents a 3D integer vector used for positions and deltas in Funge-98.
 /// </summary>
-public readonly struct FungeVector : IEquatable<FungeVector>
+/// <remarks>Initializes a new <see cref="FungeVector"/> with the given components.</remarks>
+[DebuggerDisplay($"{{{nameof(ToString)}}}")]
+public readonly struct FungeVector(int x, int y, int z) : IEquatable<FungeVector>
 {
     /// <summary>The X component.</summary>
-    public int X { get; }
+    public int X { get; } = x;
 
     /// <summary>The Y component.</summary>
-    public int Y { get; }
+    public int Y { get; } = y;
 
     /// <summary>The Z component.</summary>
-    public int Z { get; }
-
-    /// <summary>Initializes a new <see cref="FungeVector"/> with the given components.</summary>
-    public FungeVector(int x, int y, int z)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-    }
+    public int Z { get; } = z;
 
     /// <summary>Initializes a new <see cref="FungeVector"/> in 2D (Z=0).</summary>
     public FungeVector(int x, int y) : this(x, y, 0) { }

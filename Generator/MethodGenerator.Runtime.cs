@@ -287,7 +287,7 @@ partial class MethodGenerator
             {
 
         """,
-        BuildRuntimeFacadeMethods(features),"""
+        BuildRuntimeFacadeMethods(features), """
 
                 private sealed class RuntimeStackStack
                 {

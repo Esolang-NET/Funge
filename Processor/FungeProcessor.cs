@@ -12,43 +12,37 @@ namespace Esolang.Funge.Processor;
 /// Fingerprints (<c>(</c>/<c>)</c>) reflect (not implemented).
 /// Includes Trefunge 3-D direction instructions (<c>h</c>/<c>l</c>/<c>m</c>).
 /// </summary>
-public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
+/// <remarks>
+/// Initializes a new <see cref="FungeProcessor"/> with the given program space and optional I/O.
+/// </remarks>
+/// <param name="space">The parsed Funge-98 program space.</param>
+/// <param name="output">Output writer; defaults to <see cref="Console.Out"/>.</param>
+/// <param name="input">Input reader; defaults to <see cref="Console.In"/>.</param>
+/// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
+/// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
+public sealed partial class FungeProcessor(
+    FungeSpace space,
+    TextWriter? output = null,
+    TextReader? input = null,
+    IEnumerable<string>? commandLineArguments = null,
+    IEnumerable<string>? environmentVariables = null) : ITextProcessor<FungeSpace>
 {
-    private readonly FungeSpace _space;
-    private readonly TextWriter _output;
-    private readonly TextReader _input;
-    private readonly string[] _commandLineArguments;
-    private readonly string[] _environmentVariables;
+    private readonly FungeSpace _space = space;
+    private readonly TextWriter _output = output ?? Console.Out;
+    private readonly TextReader _input = input ?? Console.In;
+    private readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
+#pragma warning disable IDE0305 // コレクションの初期化を簡略化します
+            .ToArray();
+#pragma warning restore IDE0305 // コレクションの初期化を簡略化します
+    private readonly string[] _environmentVariables = [.. environmentVariables
+             ?? Environment.GetEnvironmentVariables()
+            .Cast<DictionaryEntry>()
+            .Select(static entry => $"{entry.Key}={entry.Value}")];
     private readonly Random _random = new();
     private int _nextIpId;
 
     /// <inheritdoc/>
     public FungeSpace Program => _space;
-
-    /// <summary>
-    /// Initializes a new <see cref="FungeProcessor"/> with the given program space and optional I/O.
-    /// </summary>
-    /// <param name="space">The parsed Funge-98 program space.</param>
-    /// <param name="output">Output writer; defaults to <see cref="Console.Out"/>.</param>
-    /// <param name="input">Input reader; defaults to <see cref="Console.In"/>.</param>
-    /// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
-    /// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
-    public FungeProcessor(
-        FungeSpace space,
-        TextWriter? output = null,
-        TextReader? input = null,
-        IEnumerable<string>? commandLineArguments = null,
-        IEnumerable<string>? environmentVariables = null)
-    {
-        _space = space;
-        _output = output ?? Console.Out;
-        _input = input ?? Console.In;
-        _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs()).ToArray();
-        _environmentVariables = (environmentVariables ?? Environment.GetEnvironmentVariables()
-            .Cast<DictionaryEntry>()
-            .Select(static entry => $"{entry.Key}={entry.Value}"))
-            .ToArray();
-    }
 
     /// <summary>
     /// Runs the Funge-98 program and returns the process exit code.
