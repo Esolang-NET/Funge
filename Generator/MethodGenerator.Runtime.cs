@@ -43,8 +43,8 @@ partial class MethodGenerator
                             _stacks.AddLast(stack);
                     }
 
-                    internal Stack<int> TOSS { get { return _stacks.First.Value; } }
-                    internal Stack<int> SOSS { get { return _stacks.Count >= 2 ? _stacks.First.Next.Value : null; } }
+                    internal Stack<int> TOSS { get { return _stacks.First!.Value; } }
+                    internal Stack<int> SOSS { get { return _stacks.First!.Next!.Value; } }
                     internal bool HasSOSS { get { return _stacks.Count >= 2; } }
                     internal int StackCount { get { return _stacks.Count; } }
                     internal IEnumerable<Stack<int>> AllStacks { get { return _stacks; } }

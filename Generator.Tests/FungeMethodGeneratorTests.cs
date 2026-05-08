@@ -184,14 +184,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("hello.b98", helloWorld)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("Hello, World!", result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -212,14 +212,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("sgml.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("32 0 ", result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -240,14 +240,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("k.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("6 6 6 ", result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -465,6 +465,44 @@ public class FungeMethodGeneratorTests
         AssertNoErrors(diag, comp);
     }
 
+    [TestMethod]
+    public void RuntimeTemplate_NullabilityWarnings_NotEmitted()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial void Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")]);
+        AssertNoErrors(diag, comp);
+
+        var options = (CSharpCompilationOptions)comp.Options;
+        var strict = comp.WithOptions(options.WithSpecificDiagnosticOptions(
+            options.SpecificDiagnosticOptions
+                .SetItem("CS8602", ReportDiagnostic.Error)
+                .SetItem("CS8603", ReportDiagnostic.Error)));
+
+        var runtimeNullabilityErrors = strict
+            .GetDiagnostics(TestCancellationToken)
+            .Where(static d => d.Severity == DiagnosticSeverity.Error)
+            .Where(static d => d.Id is "CS8602" or "CS8603")
+            .Where(static d => d.Location.SourceTree?.FilePath.Contains("FungeRuntime.g.cs", StringComparison.OrdinalIgnoreCase) == true)
+            .ToArray();
+
+        if (runtimeNullabilityErrors.Length > 0)
+        {
+            foreach (var d in runtimeNullabilityErrors)
+                TestContext.WriteLine(d.ToString());
+        }
+
+        Assert.AreEqual(0, runtimeNullabilityErrors.Length, "FungeRuntime.g.cs must not produce CS8602/CS8603.");
+    }
+
     // -----------------------------------------------------------------------
     // Diagnostic tests
     // -----------------------------------------------------------------------
@@ -504,14 +542,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("exit-code.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(5, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -532,14 +570,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("exit-code-zero.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(0, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -560,14 +598,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("go-low.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(7, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -588,14 +626,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("go-high.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(7, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -620,7 +658,7 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("select-low.b98", programLow), ("select-high.b98", programHigh)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
@@ -630,7 +668,7 @@ public class FungeMethodGeneratorTests
             var high = (int?)mHigh.Invoke(null, []);
             Assert.AreEqual(1, low);
             Assert.AreEqual(2, high);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -651,14 +689,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("getput-3d.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(65, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -679,14 +717,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("offset-getput.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(65, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -707,14 +745,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("stack-u.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (string?)m.Invoke(null, []);
             Assert.AreEqual("2 ", result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -735,14 +773,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("sysinfo-flags.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(15, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -773,14 +811,14 @@ public class FungeMethodGeneratorTests
                 additionalFiles: [("file-in.b98", program)]);
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp);
+            var asm = Emit(comp, TestCancellationToken);
             await Task.Factory.StartNew(() =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, []);
                 Assert.AreEqual(65, result);
-            }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
         finally
         {
@@ -816,13 +854,13 @@ public class FungeMethodGeneratorTests
                 additionalFiles: [("file-out.b98", program)]);
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp);
+            var asm = Emit(comp, TestCancellationToken);
             await Task.Factory.StartNew(() =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 _ = m.Invoke(null, []);
-            }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
             var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
             CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
@@ -854,14 +892,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("system-exec.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreEqual(7, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -884,14 +922,14 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("system-exec-fail.b98", program)]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var result = (int?)m.Invoke(null, []);
             Assert.AreNotEqual(0, result);
-        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
@@ -962,7 +1000,7 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("test.b98", "68*2-s<<@")]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         var t = asm.GetType("TestProject.TestClass")
             ?? asm.GetType("TestClass");
         Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
@@ -992,7 +1030,7 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("test.b98", "66*2+s<<@")]);
         AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp);
+        var asm = Emit(comp, TestCancellationToken);
         var t = asm.GetType("TestProject.TestClass")
             ?? asm.GetType("TestClass");
         Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
@@ -1097,3 +1135,5 @@ file sealed class TestAdditionalText(string path, string content) : AdditionalTe
     public override SourceText? GetText(CancellationToken cancellationToken = default)
         => SourceText.From(content, Encoding.UTF8);
 }
+
+
