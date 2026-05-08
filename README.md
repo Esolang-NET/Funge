@@ -63,7 +63,7 @@ Details:
 dotnet add package Esolang.Funge.Generator
 dotnet add package Esolang.Funge.Parser
 dotnet add package Esolang.Funge.Processor
-dotnet tool install -g dotnet-funge --prerelease
+dotnet tool install -g dotnet-funge
 ```
 
 ## Choose Package

@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-08
+
 ### Added
 
 - `Esolang.Processor.Abstractions` (`Esolang.Processor` namespace): shared execution abstractions package (`IProcessor<TProgram>`, `ITextProcessor<TProgram>`, `IPipeProcessor<TProgram>`).
@@ -35,6 +37,7 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: generated runtime class and internal runtime entry methods are now annotated with `EditorBrowsable(EditorBrowsableState.Never)` to reduce IntelliSense surface for internal-use APIs.
 - Docs: updated package README compliance tables and added 3D notes/examples (including `\f` layer separator guidance).
 - Repository hygiene: ignore `*.csproj.lscache` (C# Dev Kit cache) to avoid generated noise in working trees.
+- Build/package baseline: incremented `AssemblyVersion` / `FileVersion` to `1.1.0.3` and `Version` to `1.1.0`.
 
 ## [1.0.1] - 2026-05-07
 
