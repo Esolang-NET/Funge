@@ -45,7 +45,7 @@ Targets **Funge-98** with 3D navigation (`h`/`l`/`m`). Fingerprint extensions ar
 | I/O | `.` `,` `&` `~` | ✅ |
 | Concurrency | `t` | ✅ |
 | Stack stack | `{` `}` `u` | ✅ |
-| System info | `y` | 🟡 env vars / command-line args are empty |
+| System info | `y` | ✅ |
 | Misc | `z` `@` `q` | ✅ |
 | File I/O | `i` `o` | ✅ |
 | System exec | `=` | ✅ |

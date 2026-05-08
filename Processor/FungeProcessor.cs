@@ -1,6 +1,7 @@
 using Esolang.Funge.Parser;
 using Esolang.Processor;
 using System.Diagnostics;
+using System.Collections;
 
 namespace Esolang.Funge.Processor;
 
@@ -16,6 +17,8 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
     private readonly FungeSpace _space;
     private readonly TextWriter _output;
     private readonly TextReader _input;
+    private readonly string[] _commandLineArguments;
+    private readonly string[] _environmentVariables;
     private readonly Random _random = new();
     private int _nextIpId;
 
@@ -28,11 +31,23 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
     /// <param name="space">The parsed Funge-98 program space.</param>
     /// <param name="output">Output writer; defaults to <see cref="Console.Out"/>.</param>
     /// <param name="input">Input reader; defaults to <see cref="Console.In"/>.</param>
-    public FungeProcessor(FungeSpace space, TextWriter? output = null, TextReader? input = null)
+    /// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
+    /// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
+    public FungeProcessor(
+        FungeSpace space,
+        TextWriter? output = null,
+        TextReader? input = null,
+        IEnumerable<string>? commandLineArguments = null,
+        IEnumerable<string>? environmentVariables = null)
     {
         _space = space;
         _output = output ?? Console.Out;
         _input = input ?? Console.In;
+        _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs()).ToArray();
+        _environmentVariables = (environmentVariables ?? Environment.GetEnvironmentVariables()
+            .Cast<DictionaryEntry>()
+            .Select(static entry => $"{entry.Key}={entry.Value}"))
+            .ToArray();
     }
 
     /// <summary>
@@ -843,24 +858,39 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
         items.Add(_space.MinX);
         items.Add(_space.MinY);
         items.Add(_space.MinZ);
-        // 22-24. Greatest point of LSAB (maxX, maxY, maxZ; maxZ on top)
-        items.Add(_space.MaxX);
-        items.Add(_space.MaxY);
-        items.Add(_space.MaxZ);
+        // 22-24. Greatest point relative to least point (max-min)
+        items.Add(_space.MaxX - _space.MinX);
+        items.Add(_space.MaxY - _space.MinY);
+        items.Add(_space.MaxZ - _space.MinZ);
 
         var now = DateTime.Now;
-        // 20. Current date: (year-1900)*10000 + month*100 + day
-        items.Add(((now.Year - 1900) * 10000) + (now.Month * 100) + now.Day);
-        // 21. Current time: HH*10000 + MM*100 + SS
-        items.Add((now.Hour * 10000) + (now.Minute * 100) + now.Second);
+        // 20. Current date: (year-1900)*256*256 + month*256 + day
+        items.Add(((now.Year - 1900) * 256 * 256) + (now.Month * 256) + now.Day);
+        // 21. Current time: HH*256*256 + MM*256 + SS
+        items.Add((now.Hour * 256 * 256) + (now.Minute * 256) + now.Second);
         // 22. Number of stacks in stack stack
         items.Add(ip.StackStack.StackCount);
         // 23+. Size of each stack (TOSS first)
         foreach (var stack in ip.StackStack.AllStacks)
             items.Add(stack.Count);
-        // Command-line args: empty list (single 0 terminator)
+        // Command-line args: null-terminated strings, series terminated by extra null.
+        foreach (var arg in _commandLineArguments)
+        {
+            foreach (var ch in arg)
+                items.Add(ch);
+            items.Add(0);
+        }
+        // Series terminator
         items.Add(0);
-        // Environment variables: empty list (single 0 terminator)
+
+        // Environment variables: null-terminated strings, series terminated by extra null.
+        foreach (var env in _environmentVariables)
+        {
+            foreach (var ch in env)
+                items.Add(ch);
+            items.Add(0);
+        }
+        // Series terminator
         items.Add(0);
 
         // Push in reverse order so items[0] ends up on top (= item 1)
@@ -869,11 +899,15 @@ public sealed partial class FungeProcessor : ITextProcessor<FungeSpace>
 
         if (c > 0)
         {
-            // Pick the c-th item from top of pushed items
-            var popped = new int[items.Count];
+            // y with positive c: keep only the c-th item from the top of the full stack.
+            // This naturally allows "pick" behavior when c exceeds y's own payload length.
+            var snapshot = ip.StackStack.TOSS.ToArray(); // top-first
+            var picked = c <= snapshot.Length ? snapshot[c - 1] : 0;
+
             for (var i = 0; i < items.Count; i++)
-                popped[i] = ip.StackStack.Pop();
-            ip.StackStack.Push(c <= items.Count ? popped[c - 1] : 0);
+                ip.StackStack.Pop();
+
+            ip.StackStack.Push(picked);
         }
     }
 }

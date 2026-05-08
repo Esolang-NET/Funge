@@ -37,7 +37,7 @@ For detailed processor-level behavior, refer to the processor package documentat
 | --- | --- |
 | Core instruction set (stack, arithmetic, comparison, direction, I/O, storage, movement) | ✅ |
 | Funge-98 extensions (`k` iterate, `t` concurrency, `{`/`}`/`u` stack stack) | ✅ |
-| System info (`y`) | 🟡 env vars / command-line args are empty |
+| System info (`y`) | ✅ |
 | Standard I/O (`&` `~` `,` `.`) connected to stdin / stdout | ✅ |
 | Exit code via `q` | ✅ |
 | Fingerprints (`(` `)` `A`–`Z`) | ❌ reflects (not implemented) |

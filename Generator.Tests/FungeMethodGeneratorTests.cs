@@ -662,6 +662,90 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public async Task Runtime_StorageOffset_AppliesToGetPut()
+    {
+        const string program = "0{88*1+000p000gq";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("offset-getput.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("offset-getput.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(65, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_StackStack_U_TransfersFromSoss()
+    {
+        const string program = "120{4u.@";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("stack-u.b98")]
+                public static partial string Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("stack-u.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (string?)m.Invoke(null, []);
+            Assert.AreEqual("2 ", result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
+    public async Task Runtime_SystemInfo_FlagsIncludesConcurrentFileExec()
+    {
+        const string program = "1yq";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("sysinfo-flags.b98")]
+                public static partial int Run();
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("sysinfo-flags.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var result = (int?)m.Invoke(null, []);
+            Assert.AreEqual(15, result);
+        }, TestContext.CancellationTokenSource.Token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
     public async Task Runtime_FileInput_LoadsIntoSpace()
     {
         var originalDir = Directory.GetCurrentDirectory();

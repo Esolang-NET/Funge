@@ -17,14 +17,88 @@ partial class MethodGenerator
         #nullable enable
         #pragma warning disable CS1591
         using System;
+        using System.Collections;
         using System.Collections.Generic;
         using System.Diagnostics;
         using System.IO;
+        using System.Linq;
 
         namespace Esolang.Funge.__Generated
         {
             internal static class FungeRuntime
             {
+                private sealed class RuntimeStackStack
+                {
+                    private readonly LinkedList<Stack<int>> _stacks = new LinkedList<Stack<int>>();
+
+                    internal RuntimeStackStack()
+                    {
+                        _stacks.AddFirst(new Stack<int>());
+                    }
+
+                    private RuntimeStackStack(LinkedList<Stack<int>> stacks)
+                    {
+                        _stacks.Clear();
+                        foreach (var stack in stacks)
+                            _stacks.AddLast(stack);
+                    }
+
+                    internal Stack<int> TOSS { get { return _stacks.First.Value; } }
+                    internal Stack<int> SOSS { get { return _stacks.Count >= 2 ? _stacks.First.Next.Value : null; } }
+                    internal bool HasSOSS { get { return _stacks.Count >= 2; } }
+                    internal int StackCount { get { return _stacks.Count; } }
+                    internal IEnumerable<Stack<int>> AllStacks { get { return _stacks; } }
+
+                    internal void Push(int value) { TOSS.Push(value); }
+                    internal int Pop() { return TOSS.Count > 0 ? TOSS.Pop() : 0; }
+                    internal void ClearToss() { TOSS.Clear(); }
+                    internal void PushNewStack() { _stacks.AddFirst(new Stack<int>()); }
+
+                    internal void PopCurrentStack()
+                    {
+                        if (_stacks.Count > 1)
+                            _stacks.RemoveFirst();
+                    }
+
+                    internal RuntimeStackStack Clone()
+                    {
+                        var list = new LinkedList<Stack<int>>();
+                        foreach (var stack in _stacks)
+                            list.AddLast(new Stack<int>(stack.Reverse()));
+                        return new RuntimeStackStack(list);
+                    }
+                }
+
+                private sealed class RuntimeIp
+                {
+                    internal RuntimeIp(int id)
+                    {
+                        Id = id;
+                        Delta = (1, 0, 0);
+                        StackStack = new RuntimeStackStack();
+                    }
+
+                    internal int Id { get; }
+                    internal (int X, int Y, int Z) Position;
+                    internal (int X, int Y, int Z) Delta;
+                    internal (int X, int Y, int Z) Offset;
+                    internal RuntimeStackStack StackStack;
+                    internal bool StringMode;
+                    internal bool IsStopped;
+
+                    internal RuntimeIp CreateChild(int newId)
+                    {
+                        return new RuntimeIp(newId)
+                        {
+                            Position = Position,
+                            Delta = (-Delta.X, -Delta.Y, -Delta.Z),
+                            Offset = Offset,
+                            StackStack = StackStack.Clone(),
+                            StringMode = StringMode,
+                        };
+                    }
+                }
+
                 internal static int Run(
                     Dictionary<(int, int, int), int> cells,
                     int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -33,40 +107,88 @@ partial class MethodGenerator
                     bool hasInput,
                     bool hasOutput)
                 {
-                    int px = 0, py = 0, pz = 0, dx = 1, dy = 0, dz = 0;
-                    bool stringMode = false;
-                    var stack = new List<int>();
                     var rng = new Random();
+                    var commandLineArguments = Environment.GetCommandLineArgs();
+                    var environmentVariables = Environment.GetEnvironmentVariables()
+                        .Cast<DictionaryEntry>()
+                        .Select(static entry => string.Concat(entry.Key, "=", entry.Value))
+                        .ToArray();
+
+                    int nextIpId = 1;
                     int exitCode = 0;
+                    bool quit = false;
 
-                    int GetCell(int x, int y, int z) => cells.TryGetValue((x, y, z), out var v) ? v : ' ';
-                    void SetCell(int x, int y, int z, int val)
+                    int GetCell(int x, int y, int z)
                     {
-                        if (val == ' ') cells.Remove((x, y, z));
-                        else cells[(x, y, z)] = val;
+                        int value;
+                        return cells.TryGetValue((x, y, z), out value) ? value : ' ';
                     }
-                    int Pop() { if (stack.Count == 0) return 0; var v = stack[stack.Count - 1]; stack.RemoveAt(stack.Count - 1); return v; }
-                    void Push(int v) => stack.Add(v);
 
-                    (int x, int y, int z) PopVector()
+                    void SetCell(int x, int y, int z, int value)
                     {
-                        int z = Pop(), y = Pop(), x = Pop();
+                        if (value == ' ')
+                            cells.Remove((x, y, z));
+                        else
+                            cells[(x, y, z)] = value;
+                    }
+
+                    (int X, int Y, int Z) Advance((int X, int Y, int Z) pos, (int X, int Y, int Z) delta)
+                    {
+                        if (maxX < minX)
+                            return pos;
+
+                        int nx = pos.X + delta.X;
+                        int ny = pos.Y + delta.Y;
+                        int nz = pos.Z + delta.Z;
+
+                        int width = maxX - minX + 1;
+                        int height = maxY - minY + 1;
+                        int depth = maxZ - minZ + 1;
+
+                        if (nx < minX)
+                            nx = maxX - ((minX - nx - 1) % width);
+                        else if (nx > maxX)
+                            nx = minX + ((nx - maxX - 1) % width);
+
+                        if (ny < minY)
+                            ny = maxY - ((minY - ny - 1) % height);
+                        else if (ny > maxY)
+                            ny = minY + ((ny - maxY - 1) % height);
+
+                        if (nz < minZ)
+                            nz = maxZ - ((minZ - nz - 1) % depth);
+                        else if (nz > maxZ)
+                            nz = minZ + ((nz - maxZ - 1) % depth);
+
+                        return (nx, ny, nz);
+                    }
+
+                    bool IsSgmlSpace(int c)
+                    {
+                        return c == ' ' || c == '\t' || c == '\f' || c == '\v';
+                    }
+
+                    (int X, int Y, int Z) PopVector(RuntimeStackStack stack)
+                    {
+                        int z = stack.Pop();
+                        int y = stack.Pop();
+                        int x = stack.Pop();
                         return (x, y, z);
                     }
 
-                    void PushVector(int x, int y, int z)
+                    void PushVector(RuntimeStackStack stack, (int X, int Y, int Z) vector)
                     {
-                        Push(x);
-                        Push(y);
-                        Push(z);
+                        stack.Push(vector.X);
+                        stack.Push(vector.Y);
+                        stack.Push(vector.Z);
                     }
 
-                    bool TryPopZeroTerminatedString(out string result)
+                    bool TryPopZeroTerminatedString(RuntimeStackStack stack, out string result)
                     {
                         var chars = new List<char>();
                         while (true)
                         {
-                            int value = Pop();
+                            int value = stack.Pop();
                             if (value == 0)
                             {
                                 result = new string(chars.ToArray());
@@ -83,7 +205,7 @@ partial class MethodGenerator
                         }
                     }
 
-                    bool TryInputFile(int baseX, int baseY, int baseZ, string fileName, bool binaryMode, out (int x, int y, int z) size)
+                    bool TryInputFile((int X, int Y, int Z) leastPoint, string fileName, bool binaryMode, out (int X, int Y, int Z) size)
                     {
                         size = (0, 0, 0);
 
@@ -98,8 +220,8 @@ partial class MethodGenerator
                         }
 
                         int x = 0, y = 0, z = 0;
-                        int maxX = 0, maxY = 0, maxZ = 0;
                         bool wroteAny = false;
+                        int maxVX = 0, maxVY = 0, maxVZ = 0;
 
                         foreach (byte raw in bytes)
                         {
@@ -122,29 +244,29 @@ partial class MethodGenerator
                                     z++;
                                     continue;
                                 }
-                                if (cell is '\t' or '\v')
+                                if (cell == '\t' || cell == '\v')
                                     cell = ' ';
                             }
 
                             if (binaryMode || cell != ' ')
-                                SetCell(baseX + x, baseY + y, baseZ + z, cell);
+                                SetCell(leastPoint.X + x, leastPoint.Y + y, leastPoint.Z + z, cell);
 
                             wroteAny = true;
-                            if (x > maxX) maxX = x;
-                            if (y > maxY) maxY = y;
-                            if (z > maxZ) maxZ = z;
+                            if (x > maxVX) maxVX = x;
+                            if (y > maxVY) maxVY = y;
+                            if (z > maxVZ) maxVZ = z;
                             x++;
                         }
 
-                        size = wroteAny ? (maxX, maxY, maxZ) : (0, 0, 0);
+                        size = wroteAny ? (maxVX, maxVY, maxVZ) : (0, 0, 0);
                         return true;
                     }
 
-                    bool TryOutputFile(int baseX, int baseY, int baseZ, int sx, int sy, int sz, string fileName, bool linearText)
+                    bool TryOutputFile((int X, int Y, int Z) leastPoint, (int X, int Y, int Z) size, string fileName, bool linearText)
                     {
-                        sx = Math.Max(0, sx);
-                        sy = Math.Max(0, sy);
-                        sz = Math.Max(0, sz);
+                        int sx = Math.Max(0, size.X);
+                        int sy = Math.Max(0, size.Y);
+                        int sz = Math.Max(0, size.Z);
 
                         var rows = new List<string>();
                         for (int z = 0; z <= sz; z++)
@@ -154,11 +276,11 @@ partial class MethodGenerator
                                 var chars = new char[sx + 1];
                                 for (int x = 0; x <= sx; x++)
                                 {
-                                    int c = GetCell(baseX + x, baseY + y, baseZ + z);
-                                    chars[x] = c is >= char.MinValue and <= char.MaxValue ? (char)c : ' ';
+                                    int c = GetCell(leastPoint.X + x, leastPoint.Y + y, leastPoint.Z + z);
+                                    chars[x] = c >= char.MinValue && c <= char.MaxValue ? (char)c : ' ';
                                 }
 
-                                var row = new string(chars);
+                                string row = new string(chars);
                                 rows.Add(linearText ? row.TrimEnd(' ') : row);
                             }
 
@@ -172,8 +294,8 @@ partial class MethodGenerator
                                 rows.RemoveAt(rows.Count - 1);
                         }
 
-                        var text = string.Join("\n", rows);
-                        var bytes = new byte[text.Length];
+                        string text = string.Join("\n", rows);
+                        byte[] bytes = new byte[text.Length];
                         for (int i = 0; i < text.Length; i++)
                             bytes[i] = (byte)(text[i] & 0xFF);
 
@@ -232,209 +354,600 @@ partial class MethodGenerator
                         }
                     }
 
-                    (int nx, int ny, int nz) Advance(int x, int y, int z, int ddx, int ddy, int ddz)
+                    void PushSysInfo(RuntimeIp ip, int ipCount, int c)
                     {
-                        if (maxX < minX) return (x, y, z);
-                        int nx = x + ddx, ny = y + ddy, nz = z + ddz;
-                        int w = maxX - minX + 1, h = maxY - minY + 1, d = maxZ - minZ + 1;
-                        if (nx < minX) nx = maxX - ((minX - nx - 1) % w);
-                        else if (nx > maxX) nx = minX + ((nx - maxX - 1) % w);
-                        if (ny < minY) ny = maxY - ((minY - ny - 1) % h);
-                        else if (ny > maxY) ny = minY + ((ny - maxY - 1) % h);
-                        if (nz < minZ) nz = maxZ - ((minZ - nz - 1) % d);
-                        else if (nz > maxZ) nz = minZ + ((nz - maxZ - 1) % d);
-                        return (nx, ny, nz);
-                    }
+                        var items = new List<int>();
 
-                    bool IsSgmlSpace(int c) => c is ' ' or '\t' or '\f' or '\v';
+                        items.Add(0x01 | 0x02 | 0x04 | 0x08);
+                        items.Add(4);
+                        items.Add(unchecked((int)0x46756E67u));
+                        items.Add(9800);
+                        items.Add(1);
+                        items.Add(Path.DirectorySeparatorChar);
+                        items.Add(3);
+                        items.Add(ip.Id);
+                        items.Add(0);
 
-                    bool stopped = false;
+                        items.Add(ip.Position.X);
+                        items.Add(ip.Position.Y);
+                        items.Add(ip.Position.Z);
 
-                    void ExecuteInstruction(int cell, ref bool suppressAdvance)
-                    {
-                        switch (cell)
+                        items.Add(ip.Delta.X);
+                        items.Add(ip.Delta.Y);
+                        items.Add(ip.Delta.Z);
+
+                        items.Add(ip.Offset.X);
+                        items.Add(ip.Offset.Y);
+                        items.Add(ip.Offset.Z);
+
+                        items.Add(minX);
+                        items.Add(minY);
+                        items.Add(minZ);
+
+                        items.Add(maxX - minX);
+                        items.Add(maxY - minY);
+                        items.Add(maxZ - minZ);
+
+                        var now = DateTime.Now;
+                        items.Add(((now.Year - 1900) * 256 * 256) + (now.Month * 256) + now.Day);
+                        items.Add((now.Hour * 256 * 256) + (now.Minute * 256) + now.Second);
+
+                        items.Add(ip.StackStack.StackCount);
+                        foreach (var stack in ip.StackStack.AllStacks)
+                            items.Add(stack.Count);
+
+                        foreach (var arg in commandLineArguments)
                         {
-                            case ' ': case '\t': case '\f': case '\v': case 'z': break;
-                            case '!': Push(Pop() == 0 ? 1 : 0); break;
-                            case '$': Pop(); break;
-                            case ':': { int v = Pop(); Push(v); Push(v); break; }
-                            case '\\': { int b = Pop(), a = Pop(); Push(b); Push(a); break; }
-                            case 'n': stack.Clear(); break;
-                            case '+': { int b = Pop(), a = Pop(); Push(a + b); break; }
-                            case '-': { int b = Pop(), a = Pop(); Push(a - b); break; }
-                            case '*': { int b = Pop(), a = Pop(); Push(a * b); break; }
-                            case '/': { int b = Pop(), a = Pop(); Push(b == 0 ? 0 : a / b); break; }
-                            case '%': { int b = Pop(), a = Pop(); Push(b == 0 ? 0 : a % b); break; }
-                            case '`': { int b = Pop(), a = Pop(); Push(a > b ? 1 : 0); break; }
-                            case '0': case '1': case '2': case '3': case '4':
-                            case '5': case '6': case '7': case '8': case '9': Push(cell - '0'); break;
-                            case 'a': Push(10); break; case 'b': Push(11); break; case 'c': Push(12); break;
-                            case 'd': Push(13); break; case 'e': Push(14); break; case 'f': Push(15); break;
-                            case '>': dx = 1; dy = 0; dz = 0; break;
-                            case '<': dx = -1; dy = 0; dz = 0; break;
-                            case '^': dx = 0; dy = -1; dz = 0; break;
-                            case 'v': dx = 0; dy = 1; dz = 0; break;
-                            case 'h': dx = 0; dy = 0; dz = -1; break;
-                            case 'l': dx = 0; dy = 0; dz = 1; break;
-                            case '?':
-                                switch (rng.Next(6))
-                                {
-                                    case 0: dx=1;dy=0;dz=0;break;
-                                    case 1: dx=-1;dy=0;dz=0;break;
-                                    case 2: dx=0;dy=-1;dz=0;break;
-                                    case 3: dx=0;dy=1;dz=0;break;
-                                    case 4: dx=0;dy=0;dz=-1;break;
-                                    default: dx=0;dy=0;dz=1;break;
-                                }
-                                break;
-                            case 'm': { int v = Pop(); dx = 0; dy = 0; dz = v == 0 ? 1 : -1; break; }
-                            case '_': { int v = Pop(); dx = v == 0 ? 1 : -1; dy = 0; dz = 0; break; }
-                            case '|': { int v = Pop(); dy = v == 0 ? 1 : -1; dx = 0; dz = 0; break; }
-                            case '[': { int ndx = dy, ndy = -dx; dx = ndx; dy = ndy; dz = 0; break; }
-                            case ']': { int ndx = -dy, ndy = dx; dx = ndx; dy = ndy; dz = 0; break; }
-                            case 'r': dx = -dx; dy = -dy; dz = -dz; break;
-                            case 'x': { int ndz = Pop(), ndy = Pop(), ndx = Pop(); dx = ndx; dy = ndy; dz = ndz; break; }
-                            case 'w': { int b = Pop(), a = Pop(); if(a>b){int ndx=-dy,ndy=dx;dx=ndx;dy=ndy;dz=0;}else if(a<b){int ndx=dy,ndy=-dx;dx=ndx;dy=ndy;dz=0;} break; }
-                            case '#': (px, py, pz) = Advance(px, py, pz, dx, dy, dz); break;
-                            case 'j':
-                            {
-                                int s = Pop(); int jdx = s >= 0 ? dx : -dx, jdy = s >= 0 ? dy : -dy, jdz = s >= 0 ? dz : -dz, abs = s < 0 ? -s : s;
-                                for (int i = 0; i < abs; i++) (px, py, pz) = Advance(px, py, pz, jdx, jdy, jdz);
-                                suppressAdvance = true; break;
-                            }
-                            case ';':
-                                (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
-                                while (GetCell(px, py, pz) != ';') (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
-                                break;
-                            case '\'': (px, py, pz) = Advance(px, py, pz, dx, dy, dz); Push(GetCell(px, py, pz)); break;
-                            case 's': { int sv = Pop(); (px, py, pz) = Advance(px, py, pz, dx, dy, dz); SetCell(px, py, pz, sv); break; }
-                            case '"': stringMode = true; break;
-                            case 'g': { int gz = Pop(), gy = Pop(), gx = Pop(); Push(GetCell(gx, gy, gz)); break; }
-                            case 'p': { int gz = Pop(), gy = Pop(), gx = Pop(), pv = Pop(); SetCell(gx, gy, gz, pv); break; }
-                            case '.':
-                                if (!hasOutput) throw new InvalidOperationException("Funge output instruction '.' executed without an output interface.");
-                                output.Write(Pop()); output.Write(' '); break;
-                            case ',':
-                                if (!hasOutput) throw new InvalidOperationException("Funge output instruction ',' executed without an output interface.");
-                                output.Write((char)Pop()); break;
-                            case '&':
-                            {
-                                if (!hasInput) throw new InvalidOperationException("Funge input instruction '&' executed without an input interface.");
-                                var line = input.ReadLine(); if(line==null){dx=-dx;dy=-dy;dz=-dz;}else Push(int.TryParse(line.Trim(),out int iv)?iv:0); break;
-                            }
-                            case '~':
-                            {
-                                if (!hasInput) throw new InvalidOperationException("Funge input instruction '~' executed without an input interface.");
-                                int ch = input.Read(); if(ch<0){dx=-dx;dy=-dy;dz=-dz;}else Push(ch); break;
-                            }
-                            case 'i':
-                            {
-                                if (!TryPopZeroTerminatedString(out string fileName)) { dx = -dx; dy = -dy; dz = -dz; break; }
-                                int flags = Pop();
-                                var (vx, vy, vz) = PopVector();
-                                int baseX = vx, baseY = vy, baseZ = vz;
-                                bool binaryMode = (flags & 1) != 0;
-                                if (!TryInputFile(baseX, baseY, baseZ, fileName, binaryMode, out var vb)) { dx = -dx; dy = -dy; dz = -dz; break; }
-                                PushVector(vx, vy, vz);
-                                PushVector(vb.x, vb.y, vb.z);
-                                break;
-                            }
-                            case 'o':
-                            {
-                                if (!TryPopZeroTerminatedString(out string fileName)) { dx = -dx; dy = -dy; dz = -dz; break; }
-                                int flags = Pop();
-                                var (sbx, sby, sbz) = PopVector();
-                                var (vax, vay, vaz) = PopVector();
-                                bool linearText = (flags & 1) != 0;
-                                if (!TryOutputFile(vax, vay, vaz, sbx, sby, sbz, fileName, linearText)) { dx = -dx; dy = -dy; dz = -dz; }
-                                break;
-                            }
-                            case '=':
-                            {
-                                if (!TryPopZeroTerminatedString(out string command)) { dx = -dx; dy = -dy; dz = -dz; break; }
-                                Push(ExecuteSystemCommand(command));
-                                break;
-                            }
-                            case 'k':
-                            {
-                                int n = Pop();
-                                var (ix, iy, iz) = Advance(px, py, pz, dx, dy, dz);
-                                while (true)
-                                {
-                                    int c = GetCell(ix, iy, iz);
-                                    if (IsSgmlSpace(c))
-                                    {
-                                        (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
-                                    }
-                                    else if (c == ';')
-                                    {
-                                        (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
-                                        while (GetCell(ix, iy, iz) != ';') (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
-                                        (ix, iy, iz) = Advance(ix, iy, iz, dx, dy, dz);
-                                    }
-                                    else
-                                    {
-                                        break;
-                                    }
-                                }
+                            foreach (var ch in arg)
+                                items.Add(ch);
+                            items.Add(0);
+                        }
+                        items.Add(0);
 
-                                if (n == 0)
-                                {
-                                    (px, py, pz) = (ix, iy, iz);
-                                }
-                                else
-                                {
-                                    int operand = GetCell(ix, iy, iz);
-                                    for (int i = 0; i < n && !stopped; i++)
-                                    {
-                                        bool dummy = false;
-                                        ExecuteInstruction(operand, ref dummy);
-                                    }
-                                }
-                                break;
-                            }
-                            case '@': stopped = true; break;
-                            case 'q': exitCode = Pop(); stopped = true; break;
-                            default: if (cell >= 'A' && cell <= 'Z') { dx = -dx; dy = -dy; dz = -dz; } break;
+                        foreach (var env in environmentVariables)
+                        {
+                            foreach (var ch in env)
+                                items.Add(ch);
+                            items.Add(0);
+                        }
+                        items.Add(0);
+
+                        for (int i = items.Count - 1; i >= 0; i--)
+                            ip.StackStack.Push(items[i]);
+
+                        if (c > 0)
+                        {
+                            var snapshot = ip.StackStack.TOSS.ToArray();
+                            int picked = c <= snapshot.Length ? snapshot[c - 1] : 0;
+                            for (int i = 0; i < items.Count; i++)
+                                ip.StackStack.Pop();
+                            ip.StackStack.Push(picked);
                         }
                     }
 
-                    while (!stopped)
+                    var ips = new LinkedList<RuntimeIp>();
+                    ips.AddFirst(new RuntimeIp(0));
+
+                    void ExecuteInstruction(RuntimeIp ip, LinkedListNode<RuntimeIp> ipNode, ref bool suppressAdvance, int? overrideCell)
                     {
-                        int cell = GetCell(px, py, pz);
-                        if (stringMode)
+                        int cell = overrideCell ?? GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z);
+
+                        if (ip.StringMode)
                         {
                             if (cell == '"')
                             {
-                                stringMode = false;
+                                ip.StringMode = false;
                             }
                             else if (IsSgmlSpace(cell))
                             {
-                                Push(' ');
+                                ip.StackStack.Push(' ');
                                 while (true)
                                 {
-                                    var (nx, ny, nz) = Advance(px, py, pz, dx, dy, dz);
-                                    if (IsSgmlSpace(GetCell(nx, ny, nz)))
-                                    {
-                                        (px, py, pz) = (nx, ny, nz);
-                                    }
+                                    var next = Advance(ip.Position, ip.Delta);
+                                    int nextCell = GetCell(next.X, next.Y, next.Z);
+                                    if (IsSgmlSpace(nextCell))
+                                        ip.Position = next;
                                     else
-                                    {
                                         break;
-                                    }
                                 }
                             }
                             else
                             {
-                                Push(cell);
+                                ip.StackStack.Push(cell);
                             }
-                            (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
-                            continue;
+                            return;
                         }
 
-                        bool suppressAdvance = false;
-                        ExecuteInstruction(cell, ref suppressAdvance);
-                        if (!stopped && !suppressAdvance) (px, py, pz) = Advance(px, py, pz, dx, dy, dz);
+                        switch (cell)
+                        {
+                            case ' ': case '\t': case '\f': case '\v': case 'z':
+                                break;
+
+                            case '!':
+                                ip.StackStack.Push(ip.StackStack.Pop() == 0 ? 1 : 0);
+                                break;
+
+                            case '$':
+                                ip.StackStack.Pop();
+                                break;
+
+                            case ':':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.StackStack.Push(v);
+                                    ip.StackStack.Push(v);
+                                    break;
+                                }
+
+                            case '\\':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(b);
+                                    ip.StackStack.Push(a);
+                                    break;
+                                }
+
+                            case 'n':
+                                ip.StackStack.ClearToss();
+                                break;
+
+                            case '+':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a + b);
+                                    break;
+                                }
+
+                            case '-':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a - b);
+                                    break;
+                                }
+
+                            case '*':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a * b);
+                                    break;
+                                }
+
+                            case '/':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(b == 0 ? 0 : a / b);
+                                    break;
+                                }
+
+                            case '%':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(b == 0 ? 0 : a % b);
+                                    break;
+                                }
+
+                            case '`':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a > b ? 1 : 0);
+                                    break;
+                                }
+
+                            case '0': case '1': case '2': case '3': case '4':
+                            case '5': case '6': case '7': case '8': case '9':
+                                ip.StackStack.Push(cell - '0');
+                                break;
+                            case 'a': ip.StackStack.Push(10); break;
+                            case 'b': ip.StackStack.Push(11); break;
+                            case 'c': ip.StackStack.Push(12); break;
+                            case 'd': ip.StackStack.Push(13); break;
+                            case 'e': ip.StackStack.Push(14); break;
+                            case 'f': ip.StackStack.Push(15); break;
+
+                            case '>': ip.Delta = (1, 0, 0); break;
+                            case '<': ip.Delta = (-1, 0, 0); break;
+                            case '^': ip.Delta = (0, -1, 0); break;
+                            case 'v': ip.Delta = (0, 1, 0); break;
+                            case 'h': ip.Delta = (0, 0, -1); break;
+                            case 'l': ip.Delta = (0, 0, 1); break;
+                            case '?':
+                                switch (rng.Next(6))
+                                {
+                                    case 0: ip.Delta = (1, 0, 0); break;
+                                    case 1: ip.Delta = (-1, 0, 0); break;
+                                    case 2: ip.Delta = (0, -1, 0); break;
+                                    case 3: ip.Delta = (0, 1, 0); break;
+                                    case 4: ip.Delta = (0, 0, -1); break;
+                                    default: ip.Delta = (0, 0, 1); break;
+                                }
+                                break;
+                            case 'm':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.Delta = v == 0 ? (0, 0, 1) : (0, 0, -1);
+                                    break;
+                                }
+                            case '_':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.Delta = v == 0 ? (1, 0, 0) : (-1, 0, 0);
+                                    break;
+                                }
+                            case '|':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.Delta = v == 0 ? (0, 1, 0) : (0, -1, 0);
+                                    break;
+                                }
+                            case '[':
+                                ip.Delta = (ip.Delta.Y, -ip.Delta.X, 0);
+                                break;
+                            case ']':
+                                ip.Delta = (-ip.Delta.Y, ip.Delta.X, 0);
+                                break;
+                            case 'r':
+                                ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                break;
+                            case 'x':
+                                {
+                                    var v = PopVector(ip.StackStack);
+                                    ip.Delta = v;
+                                    break;
+                                }
+                            case 'w':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    if (a > b)
+                                        ip.Delta = (-ip.Delta.Y, ip.Delta.X, 0);
+                                    else if (a < b)
+                                        ip.Delta = (ip.Delta.Y, -ip.Delta.X, 0);
+                                    break;
+                                }
+
+                            case '#':
+                                ip.Position = Advance(ip.Position, ip.Delta);
+                                break;
+                            case 'j':
+                                {
+                                    int s = ip.StackStack.Pop();
+                                    var step = s >= 0 ? ip.Delta : (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    int count = Math.Abs(s);
+                                    for (int i = 0; i < count; i++)
+                                        ip.Position = Advance(ip.Position, step);
+                                    suppressAdvance = true;
+                                    break;
+                                }
+                            case ';':
+                                ip.Position = Advance(ip.Position, ip.Delta);
+                                while (GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z) != ';')
+                                    ip.Position = Advance(ip.Position, ip.Delta);
+                                break;
+
+                            case '\'':
+                                ip.Position = Advance(ip.Position, ip.Delta);
+                                ip.StackStack.Push(GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z));
+                                break;
+                            case 's':
+                                {
+                                    int sv = ip.StackStack.Pop();
+                                    ip.Position = Advance(ip.Position, ip.Delta);
+                                    SetCell(ip.Position.X, ip.Position.Y, ip.Position.Z, sv);
+                                    break;
+                                }
+                            case '"':
+                                ip.StringMode = true;
+                                break;
+
+                            case 'g':
+                                {
+                                    int z = ip.StackStack.Pop();
+                                    int y = ip.StackStack.Pop();
+                                    int x = ip.StackStack.Pop();
+                                    ip.StackStack.Push(GetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z));
+                                    break;
+                                }
+                            case 'p':
+                                {
+                                    int z = ip.StackStack.Pop();
+                                    int y = ip.StackStack.Pop();
+                                    int x = ip.StackStack.Pop();
+                                    int v = ip.StackStack.Pop();
+                                    SetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z, v);
+                                    break;
+                                }
+
+                            case '.':
+                                if (!hasOutput)
+                                    throw new InvalidOperationException("Funge output instruction '.' executed without an output interface.");
+                                output.Write(ip.StackStack.Pop());
+                                output.Write(' ');
+                                break;
+                            case ',':
+                                if (!hasOutput)
+                                    throw new InvalidOperationException("Funge output instruction ',' executed without an output interface.");
+                                output.Write((char)ip.StackStack.Pop());
+                                break;
+                            case '&':
+                                {
+                                    if (!hasInput)
+                                        throw new InvalidOperationException("Funge input instruction '&' executed without an input interface.");
+                                    var line = input.ReadLine();
+                                    if (line == null)
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    else
+                                    {
+                                        int v;
+                                        ip.StackStack.Push(int.TryParse(line.Trim(), out v) ? v : 0);
+                                    }
+                                    break;
+                                }
+                            case '~':
+                                {
+                                    if (!hasInput)
+                                        throw new InvalidOperationException("Funge input instruction '~' executed without an input interface.");
+                                    int ch = input.Read();
+                                    if (ch < 0)
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    else
+                                        ip.StackStack.Push(ch);
+                                    break;
+                                }
+
+                            case 'i':
+                                {
+                                    string fileName;
+                                    if (!TryPopZeroTerminatedString(ip.StackStack, out fileName))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+
+                                    int flags = ip.StackStack.Pop();
+                                    var va = PopVector(ip.StackStack);
+                                    va = (va.X + ip.Offset.X, va.Y + ip.Offset.Y, va.Z + ip.Offset.Z);
+                                    bool binaryMode = (flags & 1) != 0;
+
+                                    (int X, int Y, int Z) vb;
+                                    if (!TryInputFile(va, fileName, binaryMode, out vb))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+
+                                    PushVector(ip.StackStack, (va.X - ip.Offset.X, va.Y - ip.Offset.Y, va.Z - ip.Offset.Z));
+                                    PushVector(ip.StackStack, vb);
+                                    break;
+                                }
+
+                            case 'o':
+                                {
+                                    string fileName;
+                                    if (!TryPopZeroTerminatedString(ip.StackStack, out fileName))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+
+                                    int flags = ip.StackStack.Pop();
+                                    var vb = PopVector(ip.StackStack);
+                                    var va = PopVector(ip.StackStack);
+                                    va = (va.X + ip.Offset.X, va.Y + ip.Offset.Y, va.Z + ip.Offset.Z);
+                                    bool linearText = (flags & 1) != 0;
+
+                                    if (!TryOutputFile(va, vb, fileName, linearText))
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    break;
+                                }
+
+                            case '@':
+                                ip.IsStopped = true;
+                                break;
+                            case 'q':
+                                exitCode = ip.StackStack.Pop();
+                                quit = true;
+                                break;
+
+                            case 'k':
+                                {
+                                    int n = ip.StackStack.Pop();
+                                    var instrPos = Advance(ip.Position, ip.Delta);
+                                    while (true)
+                                    {
+                                        int c = GetCell(instrPos.X, instrPos.Y, instrPos.Z);
+                                        if (IsSgmlSpace(c))
+                                        {
+                                            instrPos = Advance(instrPos, ip.Delta);
+                                        }
+                                        else if (c == ';')
+                                        {
+                                            instrPos = Advance(instrPos, ip.Delta);
+                                            while (GetCell(instrPos.X, instrPos.Y, instrPos.Z) != ';')
+                                                instrPos = Advance(instrPos, ip.Delta);
+                                            instrPos = Advance(instrPos, ip.Delta);
+                                        }
+                                        else
+                                        {
+                                            break;
+                                        }
+                                    }
+
+                                    if (n == 0)
+                                    {
+                                        ip.Position = instrPos;
+                                    }
+                                    else if (n > 0)
+                                    {
+                                        int operand = GetCell(instrPos.X, instrPos.Y, instrPos.Z);
+                                        for (int i = 0; i < n && !ip.IsStopped && !quit; i++)
+                                        {
+                                            bool dummy = false;
+                                            ExecuteInstruction(ip, ipNode, ref dummy, operand);
+                                        }
+                                    }
+                                    break;
+                                }
+
+                            case 't':
+                                {
+                                    var child = ip.CreateChild(nextIpId++);
+                                    ips.AddAfter(ipNode, child);
+                                    break;
+                                }
+
+                            case '{':
+                                {
+                                    int n = ip.StackStack.Pop();
+
+                                    var items = new List<int>();
+                                    if (n > 0)
+                                    {
+                                        for (int i = 0; i < n; i++)
+                                            items.Add(ip.StackStack.Pop());
+                                    }
+
+                                    ip.StackStack.Push(ip.Offset.X);
+                                    ip.StackStack.Push(ip.Offset.Y);
+                                    ip.StackStack.Push(ip.Offset.Z);
+
+                                    ip.StackStack.PushNewStack();
+
+                                    if (n > 0)
+                                    {
+                                        for (int i = items.Count - 1; i >= 0; i--)
+                                            ip.StackStack.Push(items[i]);
+                                    }
+                                    else if (n < 0)
+                                    {
+                                        var soss = ip.StackStack.SOSS;
+                                        for (int i = 0; i < -n; i++)
+                                            soss.Push(0);
+                                    }
+
+                                    ip.Offset = Advance(ip.Position, ip.Delta);
+                                    break;
+                                }
+
+                            case '}':
+                                {
+                                    int n = ip.StackStack.Pop();
+                                    if (!ip.StackStack.HasSOSS)
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+
+                                    var items = new List<int>();
+                                    for (int i = 0; i < Math.Max(0, n); i++)
+                                        items.Add(ip.StackStack.Pop());
+
+                                    ip.StackStack.PopCurrentStack();
+
+                                    int oz = ip.StackStack.Pop();
+                                    int oy = ip.StackStack.Pop();
+                                    int ox = ip.StackStack.Pop();
+                                    ip.Offset = (ox, oy, oz);
+
+                                    if (n < 0)
+                                    {
+                                        for (int i = 0; i < -n; i++)
+                                            ip.StackStack.Pop();
+                                    }
+
+                                    for (int i = items.Count - 1; i >= 0; i--)
+                                        ip.StackStack.Push(items[i]);
+                                    break;
+                                }
+
+                            case 'u':
+                                {
+                                    int n = ip.StackStack.Pop();
+                                    if (!ip.StackStack.HasSOSS)
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+
+                                    var soss = ip.StackStack.SOSS;
+                                    if (n > 0)
+                                    {
+                                        for (int i = 0; i < n; i++)
+                                            ip.StackStack.Push(soss.Count > 0 ? soss.Pop() : 0);
+                                    }
+                                    else if (n < 0)
+                                    {
+                                        for (int i = 0; i < -n; i++)
+                                            soss.Push(ip.StackStack.Pop());
+                                    }
+                                    break;
+                                }
+
+                            case 'y':
+                                {
+                                    int c = ip.StackStack.Pop();
+                                    PushSysInfo(ip, ips.Count, c);
+                                    break;
+                                }
+
+                            case '(':
+                            case ')':
+                                {
+                                    int n = ip.StackStack.Pop();
+                                    for (int i = 0; i < n; i++)
+                                        ip.StackStack.Pop();
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    break;
+                                }
+
+                            case '=':
+                                {
+                                    string command;
+                                    if (!TryPopZeroTerminatedString(ip.StackStack, out command))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+
+                                    ip.StackStack.Push(ExecuteSystemCommand(command));
+                                    break;
+                                }
+
+                            default:
+                                if (cell >= 'A' && cell <= 'Z')
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                break;
+                        }
+                    }
+
+                    while (ips.Count > 0 && !quit)
+                    {
+                        var node = ips.First;
+                        while (node != null && !quit)
+                        {
+                            var nextNode = node.Next;
+                            var ip = node.Value;
+
+                            bool suppressAdvance = false;
+                            ExecuteInstruction(ip, node, ref suppressAdvance, null);
+
+                            if (ip.IsStopped || quit)
+                            {
+                                ips.Remove(node);
+                            }
+                            else if (!suppressAdvance)
+                            {
+                                ip.Position = Advance(ip.Position, ip.Delta);
+                            }
+
+                            node = nextNode;
+                        }
                     }
 
                     return exitCode;

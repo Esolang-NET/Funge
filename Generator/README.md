@@ -130,8 +130,8 @@ The generated runtime automatically handles XYZ coordinates, Z-axis wrapping, an
 
 ## Funge-98 Compliance
 
-The generated runtime (`FungeRuntime`) implements a **single-IP, single-stack subset** of Funge-98,  
-including Trefunge 3D navigation (`h` / `l` / `m`) but excluding concurrency, stack stack operations, and fingerprints.
+The generated runtime (`FungeRuntime`) implements Funge-98 core execution including Trefunge 3D navigation (`h` / `l` / `m`),
+concurrency (`t`), and stack stack operations (`{` / `}` / `u`), while still excluding fingerprints.
 
 | Category | Instructions | Status |
 | --- | --- | --- |
@@ -142,14 +142,14 @@ including Trefunge 3D navigation (`h` / `l` / `m`) but excluding concurrency, st
 | Branching | `_` `\|` | ✅ |
 | Movement | `#` `;` `j` | ✅ |
 | String / char | `"` `'` `s` | ✅ (stringmode contiguous spaces are SGML-style) |
-| Storage (self-modifying) | `g` `p` | 🟡 storage offset not applied |
+| Storage (self-modifying) | `g` `p` (with storage offset) | ✅ |
 | I/O | `.` `,` `&` `~` | ✅ |
 | Misc | `z` `@` | ✅ |
 | Exit code | `q` | ✅ pops stack top and returns it as method exit code (`@` returns `0`) |
 | Iteration | `k` | ✅ |
-| Concurrency | `t` | ❌ not implemented (single IP only) |
-| Stack stack | `{` `}` `u` | ❌ not implemented |
-| System info | `y` | ❌ not implemented |
+| Concurrency | `t` | ✅ |
+| Stack stack | `{` `}` `u` | ✅ |
+| System info | `y` | ✅ |
 | File I/O | `i` `o` | ✅ |
 | System exec | `=` | ✅ |
 | Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |

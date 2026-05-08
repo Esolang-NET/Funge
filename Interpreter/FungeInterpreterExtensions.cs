@@ -1,6 +1,7 @@
 using Esolang.Funge.Parser;
 using Esolang.Funge.Processor;
 using System.CommandLine;
+using System.Collections;
 
 namespace Esolang.Funge.Interpreter;
 
@@ -28,7 +29,15 @@ public static class FungeInterpreterExtensions
         {
             var path = parseResult.GetValue(pathArgument)!;
             var space = FungeParser.ParseFile(path);
-            var proc = new FungeProcessor(space, Console.Out, Console.In);
+            var env = Environment.GetEnvironmentVariables()
+                .Cast<DictionaryEntry>()
+                .Select(static entry => $"{entry.Key}={entry.Value}");
+            var proc = new FungeProcessor(
+                space,
+                Console.Out,
+                Console.In,
+                commandLineArguments: [path],
+                environmentVariables: env);
             return Task.FromResult(proc.RunToEnd(cancellationToken: cancellationToken));
         });
 
