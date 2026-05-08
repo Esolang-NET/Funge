@@ -1,26 +1,26 @@
 # dotnet-funge
 
-Command-line interpreter for [Funge-98](https://github.com/catseye/Funge-98/blob/master/doc/funge98.markdown) (Befunge-98) programs.
+Command-line interpreter for [Funge-98](https://github.com/catseye/Funge-98/blob/master/doc/funge98.markdown) programs.
 
 ## Installation
 
-```
+```bash
 dotnet tool install -g dotnet-funge
 ```
 
 ## Usage
 
-```
+```bash
 dotnet-funge <path>
 ```
 
 | Argument | Description |
-|---|---|
+| --- | --- |
 | `<path>` | Path to a Funge-98 source file (`.b98`) |
 
 ### Example
 
-```
+```bash
 dotnet-funge hello.b98
 ```
 
@@ -30,20 +30,20 @@ The process exit code reflects the value passed to `q`; it is `0` if the program
 
 ## Funge-98 Compliance
 
-Delegates execution to `Esolang.Funge.Processor`, which targets **Befunge-98** (2D).  
+Delegates execution to `Esolang.Funge.Processor`, including Trefunge 3D directions (`h`/`l`/`m`).  
 For detailed processor-level behavior, refer to the processor package documentation.
 
 | Area | Status |
-|---|---|
+| --- | --- |
 | Core instruction set (stack, arithmetic, comparison, direction, I/O, storage, movement) | ✅ |
 | Funge-98 extensions (`k` iterate, `t` concurrency, `{`/`}`/`u` stack stack) | ✅ |
-| System info (`y`) | 🟡 env vars / command-line args are empty |
+| System info (`y`) | ✅ |
 | Standard I/O (`&` `~` `,` `.`) connected to stdin / stdout | ✅ |
 | Exit code via `q` | ✅ |
 | Fingerprints (`(` `)` `A`–`Z`) | ❌ reflects (not implemented) |
-| File I/O (`i` `o`) | ❌ reflects (not implemented) |
-| System exec (`=`) | ❌ reflects (not implemented) |
-| 3D / Trefunge (`h` `l` `m`) | ❌ reflects (2D only) |
+| File I/O (`i` `o`) | ✅ |
+| System exec (`=`) | ✅ |
+| 3D / Trefunge (`h` `l` `m`) | ✅ |
 
 ## References
 

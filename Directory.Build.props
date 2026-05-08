@@ -3,9 +3,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>14</LangVersion>
-    <AssemblyVersion>1.0.1.2</AssemblyVersion>
-    <FileVersion>1.0.1.2</FileVersion>
-    <Version>1.0.1</Version>
+    <AssemblyVersion>1.1.0.3</AssemblyVersion>
+    <FileVersion>1.1.0.3</FileVersion>
+    <Version>1.1.0</Version>
     <PackageProjectUrl>https://github.com/Esolang-NET/Funge/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Esolang-NET/Funge.git</RepositoryUrl>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

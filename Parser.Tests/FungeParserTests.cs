@@ -52,8 +52,10 @@ public class FungeParserTests
         var space = FungeParser.Parse("AB\nCD");
         Assert.AreEqual(0, space.MinX);
         Assert.AreEqual(0, space.MinY);
+        Assert.AreEqual(0, space.MinZ);
         Assert.AreEqual(1, space.MaxX);
         Assert.AreEqual(1, space.MaxY);
+        Assert.AreEqual(0, space.MaxZ);
     }
 
     [TestMethod]
@@ -64,17 +66,28 @@ public class FungeParserTests
         Assert.AreEqual(2, space.MaxX);
         Assert.AreEqual(0, space.MinY);
         Assert.AreEqual(0, space.MaxY);
+        Assert.AreEqual(0, space.MinZ);
+        Assert.AreEqual(0, space.MaxZ);
     }
 
     [TestMethod]
     public void Parse_SgmlSpaces_AreTreatedAsSpaceCells()
     {
-        var space = FungeParser.Parse("A\t\f\vB");
+        var space = FungeParser.Parse("A\t\vB");
         Assert.AreEqual('A', space[new FungeVector(0, 0)]);
         Assert.AreEqual(' ', space[new FungeVector(1, 0)]);
         Assert.AreEqual(' ', space[new FungeVector(2, 0)]);
-        Assert.AreEqual(' ', space[new FungeVector(3, 0)]);
-        Assert.AreEqual('B', space[new FungeVector(4, 0)]);
+        Assert.AreEqual('B', space[new FungeVector(3, 0)]);
+    }
+
+    [TestMethod]
+    public void Parse_FormFeed_StartsNewLayer()
+    {
+        var space = FungeParser.Parse("A\fB");
+        Assert.AreEqual('A', space[new FungeVector(0, 0, 0)]);
+        Assert.AreEqual('B', space[new FungeVector(0, 0, 1)]);
+        Assert.AreEqual(0, space.MinZ);
+        Assert.AreEqual(1, space.MaxZ);
     }
 }
 
@@ -99,7 +112,7 @@ public class FungeVectorTests
 
     [TestMethod]
     public void Addition()
-        => Assert.AreEqual(new FungeVector(3, 5), new FungeVector(1, 2) + new FungeVector(2, 3));
+        => Assert.AreEqual(new FungeVector(3, 5, 7), new FungeVector(1, 2, 3) + new FungeVector(2, 3, 4));
 }
 
 [TestClass]
@@ -135,10 +148,20 @@ public class FungeSpaceTests
     public void SetCell_UpdatesBoundingBox()
     {
         var space = new FungeSpace();
-        space[new FungeVector(5, 10)] = 'X';
+        space[new FungeVector(5, 10, 15)] = 'X';
         Assert.AreEqual(5, space.MinX);
         Assert.AreEqual(5, space.MaxX);
         Assert.AreEqual(10, space.MinY);
         Assert.AreEqual(10, space.MaxY);
+        Assert.AreEqual(15, space.MinZ);
+        Assert.AreEqual(15, space.MaxZ);
+    }
+
+    [TestMethod]
+    public void Advance_WrapsLowBeyondMaxZ()
+    {
+        var space = FungeParser.Parse("A\fB");
+        var next = space.Advance(new FungeVector(0, 0, 1), FungeVector.Low);
+        Assert.AreEqual(new FungeVector(0, 0, 0), next);
     }
 }

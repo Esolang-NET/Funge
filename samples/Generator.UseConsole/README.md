@@ -6,17 +6,18 @@
 
 ## プロジェクト構成
 
-```
+```text
 samples/Generator.UseConsole/
 ├── Programs/
-│   └── hello.b98                          # Funge-98 ソースファイル
+│   ├── hello.b98                          # 2D Hello World
+│   └── hello3d.b98                        # 3D (Trefunge) Hello World
 ├── Esolang.Funge.Generator.UseConsole.cs  # サンプルコード（top-level statements）
 └── Esolang.Funge.Generator.UseConsole.csproj
 ```
 
 ### hello.b98
 
-```
+```.b98
 64+"!dlroW ,olleH">:#,_@
 ```
 
@@ -72,13 +73,14 @@ namespace Esolang.Funge
 このサンプルでは以下のすべての戻り型を示しています。
 
 | メソッド | 宣言 | 説明 |
-|---|---|---|
+| --- | --- | --- |
 | `HelloWorld` | `partial string HelloWorld()` | 出力を文字列として返す |
 | `HelloWorldAsync` | `partial Task<string> HelloWorldAsync()` | 非同期で出力を文字列として返す |
 | `HelloWorldWriter` | `partial void HelloWorldWriter(TextWriter output)` | `TextWriter` に出力を書き込む |
 | `HelloWorldBytes` | `partial IEnumerable<byte> HelloWorldBytes()` | 出力バイトを同期で列挙する |
 | `HelloWorldBytesAsync` | `partial IAsyncEnumerable<byte> HelloWorldBytesAsync()` | 出力バイトを非同期で列挙する |
 | `HelloWorldInline` | `partial string HelloWorldInline()` | インラインソース（後述） |
+| `HelloWorld3D` | `partial string HelloWorld3D()` | 3Dソース（`\f`でZレイヤー分割） |
 
 ## インラインソース
 
@@ -98,17 +100,18 @@ public static partial string HelloWorldInline();
 
 ## 実行
 
-```
+```bash
 dotnet run --framework net10.0
 ```
 
 期待される出力:
 
-```
+```text
 HelloWorld: Hello, World!
 HelloWorldAsync: Hello, World!
 HelloWorldWriter: Hello, World!
 HelloWorldBytes: Hello, World!
 HelloWorldBytesAsync: Hello, World!
 HelloWorldInline: Hello, World!
+HelloWorld3D: Hello, World!
 ```

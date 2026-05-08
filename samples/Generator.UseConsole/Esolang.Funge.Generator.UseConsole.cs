@@ -21,6 +21,9 @@ Console.WriteLine($"{nameof(FungeSample.HelloWorldBytesAsync)}: {Encoding.UTF8.G
 // Inline source — same "Hello, World!" program embedded as a string literal
 Console.WriteLine($"{nameof(FungeSample.HelloWorldInline)}: {FungeSample.HelloWorldInline()}");
 
+// 3D (Trefunge) — layer Z=0 uses 'l' to jump into layer Z=1 where Hello World runs
+Console.WriteLine($"{nameof(FungeSample.HelloWorld3D)}: {FungeSample.HelloWorld3D()}");
+
 static async Task<byte[]> ToByteArrayAsync(IAsyncEnumerable<byte> source)
 {
     var list = new List<byte>();
@@ -40,7 +43,7 @@ namespace Esolang.Funge
         public static partial Task<string> HelloWorldAsync();
 
         [GenerateFungeMethod("Programs/hello.b98")]
-        public static partial void HelloWorldWriter(System.IO.TextWriter output);
+        public static partial void HelloWorldWriter(TextWriter output);
 
         [GenerateFungeMethod("Programs/hello.b98")]
         public static partial IEnumerable<byte> HelloWorldBytes();
@@ -51,5 +54,9 @@ namespace Esolang.Funge
         // InlineSource: no .b98 file needed — Funge-98 code is embedded directly
         [GenerateFungeMethod(InlineSource = "64+\"!dlroW ,olleH\">:#,_@")]
         public static partial string HelloWorldInline();
+
+        // 3D (Trefunge): layer Z=0 executes 'l' (go low) to enter layer Z=1 where Hello World runs
+        [GenerateFungeMethod("Programs/hello3d.b98")]
+        public static partial string HelloWorld3D();
     }
 }

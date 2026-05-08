@@ -1,27 +1,34 @@
+using System.Diagnostics;
+
 namespace Esolang.Funge.Parser;
 
 /// <summary>
-/// Represents a 2D integer vector used for positions and deltas in Funge-98.
+/// Represents a 3D integer vector used for positions and deltas in Funge-98.
 /// </summary>
-public readonly struct FungeVector : IEquatable<FungeVector>
+/// <remarks>Initializes a new <see cref="FungeVector"/> with the given components.</remarks>
+[DebuggerDisplay($"{{{nameof(ToString)}}}")]
+public readonly struct FungeVector(int x, int y, int z) : IEquatable<FungeVector>
 {
     /// <summary>The X component.</summary>
-    public int X { get; }
+    public int X { get; } = x;
 
     /// <summary>The Y component.</summary>
-    public int Y { get; }
+    public int Y { get; } = y;
 
-    /// <summary>Initializes a new <see cref="FungeVector"/> with the given components.</summary>
-    public FungeVector(int x, int y) { X = x; Y = y; }
+    /// <summary>The Z component.</summary>
+    public int Z { get; } = z;
+
+    /// <summary>Initializes a new <see cref="FungeVector"/> in 2D (Z=0).</summary>
+    public FungeVector(int x, int y) : this(x, y, 0) { }
 
     /// <inheritdoc/>
-    public bool Equals(FungeVector other) => X == other.X && Y == other.Y;
+    public bool Equals(FungeVector other) => X == other.X && Y == other.Y && Z == other.Z;
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is FungeVector v && Equals(v);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(X, Y);
+    public override int GetHashCode() => HashCode.Combine(HashCode.Combine(X, Y), Z);
 
     /// <summary>Equality operator.</summary>
     public static bool operator ==(FungeVector left, FungeVector right) => left.Equals(right);
@@ -30,7 +37,7 @@ public readonly struct FungeVector : IEquatable<FungeVector>
     public static bool operator !=(FungeVector left, FungeVector right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public override string ToString() => $"({X}, {Y})";
+    public override string ToString() => $"({X}, {Y}, {Z})";
 
     /// <summary>Delta for East direction (right): (1, 0).</summary>
     public static readonly FungeVector East = new(1, 0);
@@ -44,30 +51,36 @@ public readonly struct FungeVector : IEquatable<FungeVector>
     /// <summary>Delta for South direction (down): (0, 1).</summary>
     public static readonly FungeVector South = new(0, 1);
 
+    /// <summary>Delta for High direction (towards -Z): (0, 0, -1).</summary>
+    public static readonly FungeVector High = new(0, 0, -1);
+
+    /// <summary>Delta for Low direction (towards +Z): (0, 0, 1).</summary>
+    public static readonly FungeVector Low = new(0, 0, 1);
+
     /// <summary>Adds two vectors.</summary>
-    public static FungeVector operator +(FungeVector a, FungeVector b) => new(a.X + b.X, a.Y + b.Y);
+    public static FungeVector operator +(FungeVector a, FungeVector b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
 
     /// <summary>Subtracts two vectors.</summary>
-    public static FungeVector operator -(FungeVector a, FungeVector b) => new(a.X - b.X, a.Y - b.Y);
+    public static FungeVector operator -(FungeVector a, FungeVector b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 
     /// <summary>Negates a vector.</summary>
-    public static FungeVector operator -(FungeVector a) => new(-a.X, -a.Y);
+    public static FungeVector operator -(FungeVector a) => new(-a.X, -a.Y, -a.Z);
 
     /// <summary>Scales a vector by a scalar.</summary>
-    public static FungeVector operator *(FungeVector a, int scalar) => new(a.X * scalar, a.Y * scalar);
+    public static FungeVector operator *(FungeVector a, int scalar) => new(a.X * scalar, a.Y * scalar, a.Z * scalar);
 
     /// <summary>
     /// Rotates 90 degrees clockwise (Turn Right <c>]</c>).
     /// </summary>
-    public FungeVector RotateRight() => new(-Y, X);
+    public FungeVector RotateRight() => new(-Y, X, Z);
 
     /// <summary>
     /// Rotates 90 degrees counter-clockwise (Turn Left <c>[</c>).
     /// </summary>
-    public FungeVector RotateLeft() => new(Y, -X);
+    public FungeVector RotateLeft() => new(Y, -X, Z);
 
     /// <summary>
     /// Reflects the vector, reversing direction (<c>r</c>).
     /// </summary>
-    public FungeVector Reflect() => new(-X, -Y);
+    public FungeVector Reflect() => new(-X, -Y, -Z);
 }

@@ -6,6 +6,39 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-08
+
+### Added
+
+- `Esolang.Processor.Abstractions` (`Esolang.Processor` namespace): shared execution abstractions package (`IProcessor<TProgram>`, `ITextProcessor<TProgram>`, `IPipeProcessor<TProgram>`).
+- `Esolang.Funge.Processor.Tests`: coverage for `RunToEnd(...)` and `RunToEndAsync(...)` on `FungeProcessor`.
+- `Esolang.Funge.Generator.Tests`: 3D runtime coverage for `h` / `l` / `m` and 3D `g` / `p` behavior.
+- `samples/Generator.UseConsole/Programs/hello3d.b98`: minimal Trefunge sample using form-feed (`\f`) layer separation.
+- `Esolang.Funge.Generator.Tests`: runtime coverage for storage offset-aware `g` / `p`, stack stack transfer via `u`, and `y` capability flags.
+
+### Changed
+
+- `Esolang.Funge.Processor`: `FungeProcessor` now implements `ITextProcessor<FungeSpace>` and exposes `RunToEnd(...)` / `RunToEndAsync(...)` while preserving existing `Run(...)` behavior.
+- `Esolang.Funge.Processor`: switched abstraction source from local `Processor/IProcessor.cs` to `Esolang.Processor.Abstractions` package.
+- `dotnet-funge` (`Esolang.Funge.Interpreter`): command execution path now calls `RunToEnd(...)`.
+- `Esolang.Funge.Generator`: added return-type support for `int`, `Task<int>`, and `ValueTask<int>`, and aligned `q` handling to return the popped exit code (`@` returns `0`).
+- `Esolang.Funge.Parser`: parser and space model now support 3D coordinates (`X`, `Y`, `Z`), with form-feed (`\f`) treated as a Z-layer separator.
+- `Esolang.Funge.Processor`: enabled Trefunge 3D navigation instructions `h` / `l` / `m`, extended `?` to 6 directions, and upgraded `g` / `p` / `x` to 3D operands.
+- `Esolang.Funge.Processor`: implemented filesystem instructions `i` / `o` (file input/output).
+- `Esolang.Funge.Processor`: implemented system execution instruction `=` (returns process exit code on stack).
+- `Esolang.Funge.Generator`: generated runtime now uses 3D execution space (XYZ bounds/cells), supports `h` / `l` / `m`, and handles 3D `g` / `p` / `x` semantics.
+- `Esolang.Funge.Generator`: generated runtime now supports filesystem instructions `i` / `o`.
+- `Esolang.Funge.Generator`: generated runtime now supports system execution instruction `=`.
+- `Esolang.Funge.Processor`: `y` now includes command-line arguments and environment variables, uses Funge-98 date/time encoding (base-256), reports least-stack-area bounds as relative extents, and aligns positive-`c` pick behavior with full-stack semantics.
+- `dotnet-funge` (`Esolang.Funge.Interpreter`): processor construction now passes command-line arguments and environment variables for `y` system-info reporting.
+- `Esolang.Funge.Generator`: generated runtime now supports concurrency (`t`), stack stack operations (`{` / `}` / `u`), `y` system-info, and applies storage offset semantics to `g` / `p` and file I/O least-point handling.
+- `Esolang.Funge.Generator`: method return handling now dispatches via runtime facade APIs (`RunSync` / `RunTask*` / `RunValueTask*` / `RunEnumerable` / `RunAsyncEnumerable`), and synchronous signatures can cooperatively cancel infinite execution via `CancellationToken`.
+- `Esolang.Funge.Generator`: runtime source emission now includes only the facade methods required by generated signatures (Piet-style minimal runtime emission), and facade source blocks are generated with raw string literals for cleaner output layout.
+- `Esolang.Funge.Generator`: generated runtime class and internal runtime entry methods are now annotated with `EditorBrowsable(EditorBrowsableState.Never)` to reduce IntelliSense surface for internal-use APIs.
+- Docs: updated package README compliance tables and added 3D notes/examples (including `\f` layer separator guidance).
+- Repository hygiene: ignore `*.csproj.lscache` (C# Dev Kit cache) to avoid generated noise in working trees.
+- Build/package baseline: incremented `AssemblyVersion` / `FileVersion` to `1.1.0.3` and `Version` to `1.1.0`.
+
 ## [1.0.1] - 2026-05-07
 
 ### Changed
