@@ -42,5 +42,7 @@
     <IsTestProject>true</IsTestProject>
     <IsPublishable>false</IsPublishable>
     <NoWarn>$(NoWarn);RS1035</NoWarn>
+    <OutputType>Exe</OutputType>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
   </PropertyGroup>
 </Project>

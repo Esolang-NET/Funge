@@ -14,6 +14,8 @@
     <PackageReference Update="MSTest.TestFramework" Version="4.2.1" />
     <PackageReference Update="System.CommandLine" Version="2.0.6" />
     <PackageReference Update="coverlet.collector" Version="8.0.1" />
+    <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="18.6.2" />
+    <PackageReference Update="Microsoft.Testing.Platform.MSBuild" Version="2.2.3" />
   </ItemGroup>
 
   <Target Name="TestResultCleaning" AfterTargets="Clean" Condition="'$(IsTestProject)' == 'true'">
