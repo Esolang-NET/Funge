@@ -1,6 +1,5 @@
 <Project>
   <ItemGroup>
-    <PackageReference Update="coverlet.collector" Version="8.0.1" />
     <PackageReference Update="Basic.Reference.Assemblies.Net100" Version="1.8.5" />
     <PackageReference Update="Basic.Reference.Assemblies.Net90" Version="1.8.5" />
     <PackageReference Update="Basic.Reference.Assemblies.Net80" Version="1.8.5" />
