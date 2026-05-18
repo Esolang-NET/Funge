@@ -9,17 +9,9 @@ partial class MethodGenerator
     [System.Flags]
     enum RuntimeFacadeFeatures
     {
-        None = 0,
-        RunSync = 1 << 0,
-        RunString = 1 << 1,
-        RunEnumerable = 1 << 2,
-        RunAsyncEnumerable = 1 << 3,
-        RunTask = 1 << 4,
-        RunTaskInt = 1 << 5,
-        RunTaskString = 1 << 6,
-        RunValueTask = 1 << 7,
-        RunValueTaskInt = 1 << 8,
-        RunValueTaskString = 1 << 9,
+        None = 0, RunSync = 1 << 0, RunString = 1 << 1, RunEnumerable = 1 << 2, RunAsyncEnumerable = 1 << 3,
+        RunTask = 1 << 4, RunTaskInt = 1 << 5, RunTaskString = 1 << 6, RunValueTask = 1 << 7,
+        RunValueTaskInt = 1 << 8, RunValueTaskString = 1 << 9,
     }
 
     static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features)
@@ -31,14 +23,12 @@ partial class MethodGenerator
     static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
     {
         var sb = new StringBuilder();
-
         if ((features & RuntimeFacadeFeatures.RunSync) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
                     => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct);
         """);
-
         if ((features & RuntimeFacadeFeatures.RunString) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
@@ -49,7 +39,6 @@ partial class MethodGenerator
                     return output.ToString();
                 }
         """);
-
         if ((features & RuntimeFacadeFeatures.RunEnumerable) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
@@ -59,7 +48,6 @@ partial class MethodGenerator
                         yield return b;
                 }
         """);
-
         if ((features & RuntimeFacadeFeatures.RunAsyncEnumerable) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
@@ -69,21 +57,18 @@ partial class MethodGenerator
                         yield return b;
                 }
         """);
-
         if ((features & RuntimeFacadeFeatures.RunTask) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
                     => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct);
         """);
-
         if ((features & RuntimeFacadeFeatures.RunTaskInt) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
                     => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct);
         """);
-
         if ((features & RuntimeFacadeFeatures.RunTaskString) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
@@ -97,21 +82,18 @@ partial class MethodGenerator
                     }, ct);
                 }
         """);
-
         if ((features & RuntimeFacadeFeatures.RunValueTask) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
                     => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct));
         """);
-
         if ((features & RuntimeFacadeFeatures.RunValueTaskInt) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
                     => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct));
         """);
-
         if ((features & RuntimeFacadeFeatures.RunValueTaskString) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
@@ -125,7 +107,6 @@ partial class MethodGenerator
                     }, ct));
                 }
         """);
-
         return sb.ToString();
     }
 
@@ -200,7 +181,7 @@ partial class MethodGenerator
                 {
                     var buffer = new System.Collections.Concurrent.ConcurrentQueue<byte>();
                     var tcs = new TaskCompletionSource<int>();
-                    _ = Task.Run(() => {
+                    await Task.Run(() => {
                         try {
                             Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (byte b) => buffer.Enqueue(b), ct);
                             tcs.SetResult(0);
