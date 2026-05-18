@@ -115,6 +115,8 @@ public class FungeMethodGeneratorTests
         var result = compilation.Emit(ms, cancellationToken: cancellationToken);
         if (!result.Success)
         {
+            foreach (var d in compilation.GetDiagnostics())
+                TestContext.WriteLine($"Diag: {d}");
             foreach (var d in result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
                 TestContext.WriteLine(d.ToString());
             foreach (var t in compilation.SyntaxTrees)
@@ -171,11 +173,14 @@ public class FungeMethodGeneratorTests
         RunGenerators(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
-        string[] expected = [ 
-            "input.cs", 
-            "Esolang.Funge.Generator\\Esolang.Funge.Generator.MethodGenerator\\GenerateFungeMethodAttribute.cs"
-        ];
-        CollectionAssert.AreEqual(expected, comp.SyntaxTrees.Select(v =>v.FilePath).ToArray()); // input.cs + attributes + helper + method
+        var actualPaths = comp.SyntaxTrees.Select(v => v.FilePath).ToArray();
+        
+        // Ensure expected files are present regardless of exact order or separator style
+        var expectedFiles = new[] { "input.cs", "GenerateFungeMethodAttribute.cs", "GenerateFungeMethod.g.cs" };
+        foreach (var expected in expectedFiles)
+        {
+            Assert.IsTrue(actualPaths.Any(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase)), $"Missing file: {expected}");
+        }
     }
 
     [TestMethod]

@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Generator\Esolang.Funge.Generator.csproj" />
+    <ProjectReference Include="..\Parser\Esolang.Funge.Parser.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
