@@ -171,7 +171,7 @@ public class FungeMethodGeneratorTests
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
         var actualPaths = comp.SyntaxTrees.Select(v => v.FilePath).ToArray();
-        
+
         // Ensure expected files are present regardless of exact order or separator style
         var expectedFiles = new[] { "input.cs", "GenerateFungeMethodAttribute.cs", "GenerateFungeMethod.g.cs" };
         foreach (var expected in expectedFiles)
