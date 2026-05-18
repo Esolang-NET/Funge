@@ -106,16 +106,13 @@ public class FungeMethodGeneratorTests
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out outputCompilation, out diagnostics, cancellationToken);
     }
 
-    Assembly Emit(Compilation compilation)
-        => Emit(compilation, TestCancellationToken);
-
     Assembly Emit(Compilation compilation, CancellationToken cancellationToken)
     {
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms, cancellationToken: cancellationToken);
         if (!result.Success)
         {
-            foreach (var d in compilation.GetDiagnostics())
+            foreach (var d in compilation.GetDiagnostics(TestCancellationToken))
                 TestContext.WriteLine($"Diag: {d}");
             foreach (var d in result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
                 TestContext.WriteLine(d.ToString());
