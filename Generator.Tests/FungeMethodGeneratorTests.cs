@@ -171,7 +171,11 @@ public class FungeMethodGeneratorTests
         RunGenerators(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
-        Assert.AreEqual(4, comp.SyntaxTrees.Count()); // input.cs + attributes + helper + method
+        string[] expected = [ 
+            "input.cs", 
+            "Esolang.Funge.Generator\\Esolang.Funge.Generator.MethodGenerator\\GenerateFungeMethodAttribute.cs"
+        ];
+        CollectionAssert.AreEqual(expected, comp.SyntaxTrees.Select(v =>v.FilePath).ToArray()); // input.cs + attributes + helper + method
     }
 
     [TestMethod]
