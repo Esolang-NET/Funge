@@ -465,8 +465,9 @@ public sealed partial class FungeProcessor(
 
                     if (n == 0)
                     {
-                        // n=0: skip the operand. IP moves to instrPos, then normal advance passes it.
-                        ip.Position = instrPos;
+                        // n=0: skip the operand. IP moves to the position AFTER the operand.
+                        ip.Position = _space.Advance(instrPos, ip.Delta);
+                        suppressAdvance = true;
                     }
                     else
                     {
@@ -586,20 +587,12 @@ public sealed partial class FungeProcessor(
 
             // ── Fingerprints (reflect – not implemented) ─────────────────────
             case '(': // Load Semantics
-                {
-                    var n = ip.StackStack.Pop();
-                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
-                    ip.Delta = ip.Delta.Reflect();
-                    break;
-                }
+                ip.Delta = ip.Delta.Reflect();
+                break;
 
             case ')': // Unload Semantics
-                {
-                    var n = ip.StackStack.Pop();
-                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
-                    ip.Delta = ip.Delta.Reflect();
-                    break;
-                }
+                ip.Delta = ip.Delta.Reflect();
+                break;
 
             // ── Optional (reflect) ────────────────────────────────────────────
             case '=': // Execute (system exec)
