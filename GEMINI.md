@@ -17,5 +17,12 @@ dotnet test
 To run tests and collect code coverage:
 
 ```bash
-dotnet test --coverage
+dotnet test --coverage --coverage-output-format cobertura
 ```
+
+To generate an HTML coverage report using ReportGenerator:
+
+```bash
+dotnet reportgenerator "-reports:**/*.cobertura.xml" "-targetdir:coveragereport" -reporttypes:Html
+```
+The report will be generated in the `coveragereport` directory.
