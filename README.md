@@ -48,7 +48,8 @@ Current implementation status across packages:
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
 | Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
 | File I/O (`i` `o`) | ✅ Implemented |
-| System exec (`=`) | ✅ Implemented |
+| System exec (`=`) | ✅ Implemented (with `ArgumentList` security) |
+| System info (`y`) | ✅ Fully implemented (includes args/envs) |
 
 Details:
 

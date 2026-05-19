@@ -28,6 +28,7 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 | Parameter type | Role |
 | --- | --- |
 | `string` | Input fed to the program (`&` / `~`) |
+| `string[]` or `IEnumerable<string>` | Command-line arguments or environment variables (detected by name: `args`, `envs`, etc.). Reported by `y`. |
 | `System.IO.TextReader` | Input reader |
 | `System.IO.Pipelines.PipeReader` | Input as pipe |
 | `System.IO.TextWriter` | Explicit output sink for methods that do not return output text/bytes (including `void`, `int`, `Task`, `Task<int>`, `ValueTask`, `ValueTask<int>`) |
@@ -62,6 +63,10 @@ partial class MyPrograms
     // Returns the program output as a string
     [GenerateFungeMethod("Programs/hello.b98")]
     public static partial string HelloWorld();
+
+    // With custom arguments and environment variables (reported by 'y' instruction)
+    [GenerateFungeMethod("Programs/sysinfo.b98")]
+    public static partial int RunWithArgs(string[] args, string[] envs);
 
     // Async variant
     [GenerateFungeMethod("Programs/hello.b98")]
