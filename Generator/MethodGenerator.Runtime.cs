@@ -277,6 +277,11 @@ partial class MethodGenerator
                             var nextNode = node.Next;
                             var ip = node.Value;
                             bool suppressAdvance = false;
+                            
+                            // Debug logging
+                            int cell = GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z);
+                            Console.WriteLine($"IP:{ip.Id} Pos:({ip.Position.X},{ip.Position.Y},{ip.Position.Z}) Cell:'{(char)cell}'");
+
                             ExecuteInstruction(ip, node, ref suppressAdvance, null);
                             if (ip.IsStopped || quit) ips.Remove(node);
                             else if (!suppressAdvance) ip.Position = Advance(ip.Position, ip.Delta);
