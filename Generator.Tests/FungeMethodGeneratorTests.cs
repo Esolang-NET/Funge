@@ -241,7 +241,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run");
             Assert.IsNotNull(m);
-            var result = (string?)m.Invoke(null, [TestCancellationToken]);
+            var result = (string?)m.Invoke(null, [TestCancellationToken])!;
             Assert.AreEqual("32 0 ", result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
