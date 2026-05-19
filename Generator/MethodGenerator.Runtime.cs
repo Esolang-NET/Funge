@@ -26,58 +26,58 @@ partial class MethodGenerator
         if ((features & RuntimeFacadeFeatures.RunSync) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
-                    => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct);
+                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                    => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
         """);
         if ((features & RuntimeFacadeFeatures.RunString) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default)
+                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
                 {
                     using var output = new StringWriter();
-                    RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct);
+                    RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
                     return output.ToString();
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunEnumerable) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default)
+                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
                 {
-                    foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct))
+                    foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs))
                         yield return b;
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunAsyncEnumerable) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default)
+                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
                 {
-                    await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct))
+                    await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs))
                         yield return b;
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunTask) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct);
+                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskInt) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct);
+                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskString) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default)
+                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
                 {
                     return Task.Run(() =>
                     {
                         using var output = new StringWriter();
-                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct);
+                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
                         return output.ToString();
                     }, ct);
                 }
@@ -85,24 +85,24 @@ partial class MethodGenerator
         if ((features & RuntimeFacadeFeatures.RunValueTask) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct));
+                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskInt) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default)
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct), ct));
+                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskString) != 0)
             sb.Append("""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default)
+                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
                 {
                     return new ValueTask<string>(Task.Run(() =>
                     {
                         using var output = new StringWriter();
-                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct);
+                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
                         return output.ToString();
                     }, ct));
                 }
@@ -165,25 +165,25 @@ partial class MethodGenerator
                     }
                 }
 
-                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct)
+                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
                 {
-                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct);
+                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct, args, envs);
                 }
 
-                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct)
+                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
                 {
                     var output = new System.Collections.Generic.List<byte>();
-                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct);
+                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs);
                     return output;
                 }
 
-                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct)
+                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
                 {
                     var buffer = new System.Collections.Concurrent.ConcurrentQueue<byte>();
                     var tcs = new TaskCompletionSource<int>();
                     await Task.Run(() => {
                         try {
-                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct);
+                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs);
                             tcs.SetResult(0);
                         } catch (Exception ex) { tcs.SetException(ex); }
                     }, ct);
@@ -196,7 +196,7 @@ partial class MethodGenerator
                     await tcs.Task;
                 }
 
-                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct)
+                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
                 {
                     var rng = new Random();
                     int exitCode = 0;
@@ -256,8 +256,24 @@ partial class MethodGenerator
                         items.Add((now.Hour * 256 * 256) + (now.Minute * 256) + now.Second);
                         items.Add(ip.StackStack.StackCount);
                         foreach (var stack in ip.StackStack.AllStacks) items.Add(stack.Count);
-                        // Args/Env not fully supported in generated runtime yet, pushing terminators
-                        items.Add(0); items.Add(0);
+
+                        var resolvedArgs = args ?? Environment.GetCommandLineArgs();
+                        foreach (var arg in resolvedArgs)
+                        {
+                            foreach (var ch in arg) items.Add(ch);
+                            items.Add(0);
+                        }
+                        items.Add(0);
+
+                        var resolvedEnvs = envs ?? Environment.GetEnvironmentVariables()
+                            .Cast<DictionaryEntry>()
+                            .Select(entry => $"{entry.Key}={entry.Value}");
+                        foreach (var env in resolvedEnvs)
+                        {
+                            foreach (var ch in env) items.Add(ch);
+                            items.Add(0);
+                        }
+                        items.Add(0);
 
                         for (int i = items.Count - 1; i >= 0; i--) ip.StackStack.Push(items[i]);
                         if (c > 0)
@@ -325,8 +341,26 @@ partial class MethodGenerator
                         try
                         {
                             var psi = new ProcessStartInfo { UseShellExecute = false, CreateNoWindow = true };
-                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { psi.FileName = "cmd.exe"; psi.Arguments = "/c \"" + command.Replace("\"", "\"\"") + "\""; }
-                            else { psi.FileName = "/bin/sh"; psi.Arguments = "-c \"" + command.Replace("\"", "\\\"") + "\""; }
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                psi.FileName = "cmd.exe";
+        #if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+                                psi.ArgumentList.Add("/c");
+                                psi.ArgumentList.Add(command);
+        #else
+                                psi.Arguments = "/c \"" + command.Replace("\"", "\"\"") + "\"";
+        #endif
+                            }
+                            else
+                            {
+                                psi.FileName = "/bin/sh";
+        #if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+                                psi.ArgumentList.Add("-c");
+                                psi.ArgumentList.Add(command);
+        #else
+                                psi.Arguments = "-c \"" + command.Replace("\"", "\\\"") + "\"";
+        #endif
+                            }
                             using var process = Process.Start(psi);
                             if (process == null) return -1;
                             process.WaitForExit();
