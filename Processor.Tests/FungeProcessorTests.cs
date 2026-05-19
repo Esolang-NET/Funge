@@ -316,6 +316,10 @@ public class FungeProcessorTests
         => Assert.AreEqual(7, RunGetExitCode("7q"));
 
     [TestMethod]
+    public void StackUnderStack_U_TransfersFromSoss()
+        => Assert.AreEqual("2 ", Run("120{4u.@"));
+
+    [TestMethod]
     public void RunToEnd_UsesProvidedTextIo()
     {
         var space = Parser.FungeParser.Parse("&.@");

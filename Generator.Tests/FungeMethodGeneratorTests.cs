@@ -933,7 +933,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run", [typeof(CancellationToken)])!;
             var result = (string?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual("Hello, World!", result);
+            Assert.AreEqual("2 ", result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
     }
