@@ -166,13 +166,13 @@ partial class MethodGenerator
 
                 private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct)
                 {
-                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (byte b) => output.Write((char)b), ct);
+                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString() + " "), (c) => output.Write((char)c), ct);
                 }
 
                 private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct)
                 {
                     var output = new System.Collections.Generic.List<byte>();
-                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (byte b) => output.Add(b), ct);
+                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString() + " ")) output.Add(b); }, (c) => output.Add((byte)c), ct);
                     return output;
                 }
 
@@ -182,7 +182,7 @@ partial class MethodGenerator
                     var tcs = new TaskCompletionSource<int>();
                     await Task.Run(() => {
                         try {
-                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (byte b) => buffer.Enqueue(b), ct);
+                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString() + " ")) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct);
                             tcs.SetResult(0);
                         } catch (Exception ex) { tcs.SetException(ex); }
                     }, ct);
@@ -195,8 +195,13 @@ partial class MethodGenerator
                     await tcs.Task;
                 }
 
-                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<byte> writeOutput, CancellationToken ct)
+                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct)
                 {
+                    // ... (rest of the method logic)
+                    // Update ExecuteInstruction:
+                    // case '.': if (!hasOutput) throw new InvalidOperationException("Output '.' without an output interface"); writeOutputInt(ip.StackStack.Pop()); break;
+                    // case ',': if (!hasOutput) throw new InvalidOperationException("Output ',' without an output interface"); writeOutputChar(ip.StackStack.Pop()); break;
+
                     var rng = new Random();
                     int exitCode = 0;
                     bool quit = false;
@@ -269,9 +274,8 @@ partial class MethodGenerator
                                 case 's': { int sv = ip.StackStack.Pop(); ip.Position = Advance(ip.Position, ip.Delta); SetCell(ip.Position.X, ip.Position.Y, ip.Position.Z, sv); break; }
                                 case 'g': { int z = ip.StackStack.Pop(); int y = ip.StackStack.Pop(); int x = ip.StackStack.Pop(); ip.StackStack.Push(GetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z)); break; }
                                 case 'p': { int z = ip.StackStack.Pop(); int y = ip.StackStack.Pop(); int x = ip.StackStack.Pop(); int v = ip.StackStack.Pop(); SetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z, v); break; }
-                                case '.': if (!hasOutput) throw new InvalidOperationException("Output '.' without an output interface"); writeOutput((byte)ip.StackStack.Pop()); writeOutput((byte)' '); break;
-                                case ',': if (!hasOutput) throw new InvalidOperationException("Output ',' without an output interface"); writeOutput((byte)ip.StackStack.Pop()); break;
-                                case '&': if (!hasInput) throw new InvalidOperationException("Input '&' without an input interface"); var line = input.ReadLine(); if (line == null) ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); else { int v; ip.StackStack.Push(int.TryParse(line.Trim(), out v) ? v : 0); } break;
+                                case '.': if (!hasOutput) throw new InvalidOperationException("Output '.' without an output interface"); writeOutputInt(ip.StackStack.Pop()); break;
+                                case ',': if (!hasOutput) throw new InvalidOperationException("Output ',' without an output interface"); writeOutputChar(ip.StackStack.Pop()); break;                                case '&': if (!hasInput) throw new InvalidOperationException("Input '&' without an input interface"); var line = input.ReadLine(); if (line == null) ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); else { int v; ip.StackStack.Push(int.TryParse(line.Trim(), out v) ? v : 0); } break;
                                 case '~': if (!hasInput) throw new InvalidOperationException("Input '~' without an input interface"); int ch = input.Read(); if (ch < 0) ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); else ip.StackStack.Push(ch); break;
                                 case '@': ip.IsStopped = true; break;
                                 case 'q': exitCode = ip.StackStack.Pop(); quit = true; break;
