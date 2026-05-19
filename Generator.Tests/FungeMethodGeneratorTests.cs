@@ -188,7 +188,6 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task HelloWorld_StringReturn()
     {
-        LogWriteLine("Executing HelloWorld_StringReturn test.");
         // Classic Hello World in Funge-98
         const string helloWorld =
             "64+\"!dlroW ,olleH\",,,,,,,,,,,,,@";
@@ -925,7 +924,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
         {
             if (tree.FilePath.EndsWith("GenerateFungeMethod.g.cs"))
             {
-                Console.WriteLine(tree.ToString());
+                // Console.WriteLine(tree.ToString());
             }
         }
 
@@ -1085,7 +1084,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
+            var result = (int)((int?)m.Invoke(null, [TestCancellationToken]))!;
             Assert.AreEqual(7, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
