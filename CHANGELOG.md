@@ -8,12 +8,21 @@ The format is based on Keep a Changelog.
 
 ### Added
 
-- `Esolang.Funge.Generator.Tests`: coverage for `int` / `Task<int>` / `ValueTask<int>` signatures with explicit `TextWriter` and `PipeWriter` output, including runtime validation of exit-code returns plus pipe output.
+- `Esolang.Funge.Generator`: Generated Funge methods now support `string[]` or `IEnumerable<string>` parameters to pass custom command-line arguments and environment variables to the Funge program.
+- `Esolang.Funge.Generator`: The `y` (System Information) instruction in the generated runtime now fully reports arguments and environment variables passed to the method, defaulting to host process data if `null`.
+- `Esolang.Funge.Generator.Tests`: Added `Runtime_SystemInfo_ReportsCustomArgs` to verify custom argument passing via the `y` instruction.
+- `Esolang.Funge.Generator.Tests`: Added coverage for `int` / `Task<int>` / `ValueTask<int>` signatures with explicit `TextWriter` and `PipeWriter` output, including runtime validation of exit-code returns plus pipe output.
+- `Esolang.Funge.Processor.Tests`: Added unit tests for the `u` (Stack Stack Transfer) instruction.
 
 ### Changed
 
-- `Esolang.Funge.Generator`: explicit `TextWriter` / `PipeWriter` output parameters now compose with exit-code returns (`int`, `Task<int>`, `ValueTask<int>`), while `FG0007` remains reserved for return-based output conflicts (`string` / byte-sequence returns).
+- `Esolang.Funge.Generator`: The `=` (Execute) instruction in the generated runtime now uses `ProcessStartInfo.ArgumentList` on supported platforms (.NET Core 2.1+, .NET Standard 2.1+, .NET 5+) for improved security and robustness.
+- `Esolang.Funge.Generator`: Cleaned up the `FungeRuntime.g.cs` template to remove redundant code and optimize generated output layout.
+- `Esolang.Funge.Generator`: Explicit `TextWriter` / `PipeWriter` output parameters now compose with exit-code returns (`int`, `Task<int>`, `ValueTask<int>`), while `FG0007` remains reserved for return-based output conflicts (`string` / byte-sequence returns).
+- `Esolang.Funge.Processor`: Refactored numerical (`.`) and character (`,`) output instructions for better consistency and maintainability.
+- `Esolang.Funge.Processor`: Improved string mode handling and runtime output processing.
 - Package metadata: added/expanded NuGet `PackageTags` for packable Funge packages (`Generator`, `Parser`, `Processor`, `dotnet-funge`) including `funge`, `funge-98`, and `befunge` tags for better discoverability.
+- `Esolang.Funge.Generator.Tests`: Fixed incorrect test assertions in `FungeMethodGeneratorTests`.
 
 ## [1.1.0] - 2026-05-08
 
