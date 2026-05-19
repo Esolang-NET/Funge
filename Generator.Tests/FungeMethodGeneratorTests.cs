@@ -1630,6 +1630,38 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
         RunGenerators(source, out var comp, out var diag);
         AssertNoErrors(diag, comp);
     }
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public async Task Runtime_SystemInfo_ReportsCustomArgs()
+    {
+        // Verify that the generated method can accept string[] args and string[] envs
+        // and that they are correctly passed to the runtime.
+        const string program = "@";
+
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("args-test.b98")]
+                public static partial int Run(string[] args, string[] envs, System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGenerators(source, out var comp, out var diag,
+            additionalFiles: [("args-test.b98", program)]);
+        AssertNoErrors(diag, comp);
+
+        var asm = Emit(comp, TestCancellationToken);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.IsNotNull(m);
+            // Verify we can call it with the new parameters
+            var result = (int?)m.Invoke(null, [new[] { "test" }, new[] { "VAR=VAL" }, TestCancellationToken]);
+            Assert.AreEqual(0, result);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
 }
 
 /// <summary>Fake AdditionalText for testing.</summary>
