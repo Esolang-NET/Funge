@@ -155,6 +155,7 @@ public class FungeMethodGeneratorTests
     // -----------------------------------------------------------------------
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void EmptyProgram_Void_NoErrors()
     {
         // "@" is the Funge "stop" instruction — program terminates immediately
@@ -181,6 +182,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task HelloWorld_StringReturn()
     {
         // Classic Hello World in Funge-98
@@ -193,7 +195,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("hello.b98")]
-                public static partial string Run();
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -204,13 +206,14 @@ public class FungeMethodGeneratorTests
         await Task.Factory.StartNew(() =>
         {
             var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run")!;
-            var result = (string?)m.Invoke(null, []);
+            var m = t.GetMethod("Run", [])!;
+            var result = (string?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual("Hello, World!", result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task StringMode_SgmlStyleSpaces_StringReturn()
     {
         const string program = "\"   \"..@";
@@ -221,7 +224,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("sgml.b98")]
-                public static partial string Run();
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -233,12 +236,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (string?)m.Invoke(null, []);
+            var result = (string?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual("32 0 ", result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Iterate_K_ExecutesOperandCorrectly_StringReturn()
     {
         const string program = "2k6...@";
@@ -249,7 +253,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("k.b98")]
-                public static partial string Run();
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -261,12 +265,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (string?)m.Invoke(null, []);
+            var result = (string?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual("6 6 6 ", result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_Void_TextWriter()
     {
         var source = """
@@ -285,6 +290,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_Int_TextWriter()
     {
         var source = """
@@ -303,6 +309,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_TaskInt_TextWriter()
     {
         var source = """
@@ -322,6 +329,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskInt_TextWriter()
     {
         var source = """
@@ -341,6 +349,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_Int_PipeWriter()
     {
         var source = """
@@ -359,6 +368,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_TaskInt_PipeWriter()
     {
         var source = """
@@ -378,6 +388,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskInt_PipeWriter()
     {
         var source = """
@@ -397,6 +408,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_Task_NoErrors()
     {
         var source = """
@@ -415,6 +427,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_Int_NoErrors()
     {
         var source = """
@@ -432,6 +445,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_TaskInt_NoErrors()
     {
         var source = """
@@ -450,6 +464,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskInt_NoErrors()
     {
         var source = """
@@ -468,6 +483,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_TaskString_NoErrors()
     {
         var source = """
@@ -486,6 +502,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_ValueTask_NoErrors()
     {
         var source = """
@@ -504,6 +521,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskString_NoErrors()
     {
         var source = """
@@ -522,6 +540,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_IEnumerableByte_NoErrors()
     {
         var source = """
@@ -540,6 +559,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void ReturnType_IAsyncEnumerableByte_NoErrors()
     {
         var source = """
@@ -653,6 +673,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_ExitCode_IntReturn_QReturnsStackTop()
     {
         const string program = "5q@";
@@ -663,7 +684,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("exit-code.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -675,12 +696,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(5, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_ExitCode_IntReturn_AtReturnsZero()
     {
         const string program = "@";
@@ -691,7 +713,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("exit-code-zero.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -703,12 +725,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(0, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_3D_GoLow_ExitCode()
     {
         const string program = "l\f>7q";
@@ -719,7 +742,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("go-low.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -731,12 +754,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(7, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_3D_GoHigh_ExitCode()
     {
         const string program = "h\f\f>7q";
@@ -747,7 +771,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("go-high.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -759,12 +783,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(7, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_3D_HighLowIf_SelectsDirection()
     {
         const string programLow = "0m\f >1q\f >2q";
@@ -776,10 +801,10 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("select-low.b98")]
-                public static partial int RunLow();
+                public static partial int RunLow(System.Threading.CancellationToken cancellationToken);
 
                 [GenerateFungeMethod("select-high.b98")]
-                public static partial int RunHigh();
+                public static partial int RunHigh(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -792,14 +817,15 @@ public class FungeMethodGeneratorTests
             var t = asm.GetType("TestProject.TestClass")!;
             var mLow = t.GetMethod("RunLow")!;
             var mHigh = t.GetMethod("RunHigh")!;
-            var low = (int?)mLow.Invoke(null, []);
-            var high = (int?)mHigh.Invoke(null, []);
+            var low = (int?)mLow.Invoke(null, [TestCancellationToken]);
+            var high = (int?)mHigh.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(1, low);
             Assert.AreEqual(2, high);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_3D_GetPut_UsesXYZ()
     {
         const string program = "88*1+500p500gq";
@@ -810,7 +836,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("getput-3d.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -822,12 +848,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(65, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_StorageOffset_AppliesToGetPut()
     {
         const string program = "0{88*1+000p000gq";
@@ -838,7 +865,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("offset-getput.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -850,12 +877,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(65, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_StackStack_U_TransfersFromSoss()
     {
         const string program = "120{4u.@";
@@ -866,7 +894,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("stack-u.b98")]
-                public static partial string Run();
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -878,12 +906,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (string?)m.Invoke(null, []);
+            var result = (string?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual("2 ", result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_SystemInfo_FlagsIncludesConcurrentFileExec()
     {
         const string program = "1yq";
@@ -894,7 +923,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("sysinfo-flags.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -906,12 +935,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(15, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_FileInput_LoadsIntoSpace()
     {
         var originalDir = Directory.GetCurrentDirectory();
@@ -932,7 +962,7 @@ public class FungeMethodGeneratorTests
                 partial class TestClass
                 {
                     [GenerateFungeMethod("file-in.b98")]
-                    public static partial int Run();
+                    public static partial int Run(System.Threading.CancellationToken cancellationToken);
                 }
                 """;
             RunGenerators(source, out var comp, out var diag,
@@ -944,7 +974,7 @@ public class FungeMethodGeneratorTests
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
-                var result = (int?)m.Invoke(null, []);
+                var result = (int?)m.Invoke(null, [TestCancellationToken]);
                 Assert.AreEqual(65, result);
             }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
@@ -956,6 +986,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_FileOutput_WritesRegion()
     {
         var originalDir = Directory.GetCurrentDirectory();
@@ -975,7 +1006,7 @@ public class FungeMethodGeneratorTests
                 partial class TestClass
                 {
                     [GenerateFungeMethod("file-out.b98")]
-                    public static partial void Run();
+                    public static partial void Run(System.Threading.CancellationToken cancellationToken);
                 }
                 """;
             RunGenerators(source, out var comp, out var diag,
@@ -987,7 +1018,7 @@ public class FungeMethodGeneratorTests
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
-                _ = m.Invoke(null, []);
+                _ = m.Invoke(null, [TestCancellationToken]);
             }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
             var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
@@ -1001,6 +1032,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_SystemExec_ReturnsExitCode()
     {
         const string command = "exit 7";
@@ -1013,7 +1045,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("system-exec.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1025,12 +1057,13 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreEqual(7, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_SystemExec_FailureIsNonZero()
     {
         const string command = "this_command_should_not_exist_12345";
@@ -1043,7 +1076,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("system-exec-fail.b98")]
-                public static partial int Run();
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1055,7 +1088,7 @@ public class FungeMethodGeneratorTests
         {
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, []);
+            var result = (int?)m.Invoke(null, [TestCancellationToken]);
             Assert.AreNotEqual(0, result);
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
@@ -1107,6 +1140,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_AsyncEnumerableByte_ReturnsOutputBytes()
     {
         const string program = "\"A\",@";
@@ -1148,6 +1182,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void Generated_SyncWithCancellationToken_UsesRunSyncWithToken()
     {
         var source = """
@@ -1225,6 +1260,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void Runtime_SyncCancellationToken_CancelsInfiniteLoop()
     {
         var source = """
@@ -1306,6 +1342,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_Int_TextWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1315,7 +1352,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial int Run(TextWriter output);
+                public static partial int Run(TextWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1328,13 +1365,14 @@ public class FungeMethodGeneratorTests
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             using var output = new StringWriter();
-            var result = (int)m.Invoke(null, [output])!;
+            var result = (int)m.Invoke(null, [output, TestCancellationToken])!;
             Assert.AreEqual(5, result);
             Assert.AreEqual("30 ", output.ToString());
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_Int_PipeWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1344,7 +1382,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial int Run(PipeWriter output);
+                public static partial int Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1355,12 +1393,13 @@ public class FungeMethodGeneratorTests
         var t = asm.GetType("TestProject.TestClass")!;
         var m = t.GetMethod("Run")!;
         var pipe = new Pipe();
-        var result = (int)m.Invoke(null, [pipe.Writer])!;
+        var result = (int)m.Invoke(null, [pipe.Writer, TestCancellationToken])!;
         Assert.AreEqual(5, result);
         Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_TaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1371,7 +1410,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial Task<int> Run(PipeWriter output);
+                public static partial Task<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1382,12 +1421,13 @@ public class FungeMethodGeneratorTests
         var t = asm.GetType("TestProject.TestClass")!;
         var m = t.GetMethod("Run")!;
         var pipe = new Pipe();
-        var result = await (Task<int>)m.Invoke(null, [pipe.Writer])!;
+        var result = await (Task<int>)m.Invoke(null, [pipe.Writer, TestCancellationToken])!;
         Assert.AreEqual(5, result);
         Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public async Task Runtime_ValueTaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1398,7 +1438,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial ValueTask<int> Run(PipeWriter output);
+                public static partial ValueTask<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1409,12 +1449,13 @@ public class FungeMethodGeneratorTests
         var t = asm.GetType("TestProject.TestClass")!;
         var m = t.GetMethod("Run")!;
         var pipe = new Pipe();
-        var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer])!;
+        var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer, TestCancellationToken])!;
         Assert.AreEqual(5, result);
         Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void Runtime_SelfModifiedOutputWithoutOutputInterface_Throws()
     {
         var source = """
@@ -1423,7 +1464,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial void Run();
+                public static partial void Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1437,7 +1478,7 @@ public class FungeMethodGeneratorTests
         var m = t.GetMethod("Run", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
         Assert.IsNotNull(m, "Failed to find generated method Run.");
 
-        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, []));
+        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [TestCancellationToken]));
         Assert.IsNotNull(ex);
         Assert.IsNotNull(ex.InnerException);
         Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
@@ -1445,6 +1486,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    [Timeout(10000, CooperativeCancellation = true)]
     public void Runtime_SelfModifiedInputWithoutInputInterface_Throws()
     {
         var source = """
@@ -1453,7 +1495,7 @@ public class FungeMethodGeneratorTests
             partial class TestClass
             {
                 [GenerateFungeMethod("test.b98")]
-                public static partial void Run();
+                public static partial void Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
         RunGenerators(source, out var comp, out var diag,
@@ -1467,7 +1509,7 @@ public class FungeMethodGeneratorTests
         var m = t.GetMethod("Run", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
         Assert.IsNotNull(m, "Failed to find generated method Run.");
 
-        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, []));
+        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [TestCancellationToken]));
         Assert.IsNotNull(ex);
         Assert.IsNotNull(ex.InnerException);
         Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
