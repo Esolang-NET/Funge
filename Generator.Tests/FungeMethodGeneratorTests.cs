@@ -158,7 +158,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     // -----------------------------------------------------------------------
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void EmptyProgram_Void_NoErrors()
     {
         // "@" is the Funge "stop" instruction — program terminates immediately
@@ -185,7 +185,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task HelloWorld_StringReturn()
     {
         LogWriteLine("Executing HelloWorld_StringReturn test.");
@@ -218,7 +218,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task StringMode_SgmlStyleSpaces_StringReturn()
     {
         const string program = "\"   \"..@";
@@ -248,7 +248,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Iterate_K_ExecutesOperandCorrectly_StringReturn()
     {
         const string program = "2k6...@";
@@ -278,7 +278,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_Void_TextWriter()
     {
         var source = """
@@ -297,7 +297,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_Int_TextWriter()
     {
         var source = """
@@ -316,7 +316,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_TaskInt_TextWriter()
     {
         var source = """
@@ -336,7 +336,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskInt_TextWriter()
     {
         var source = """
@@ -356,7 +356,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_Int_PipeWriter()
     {
         var source = """
@@ -375,7 +375,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_TaskInt_PipeWriter()
     {
         var source = """
@@ -395,7 +395,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskInt_PipeWriter()
     {
         var source = """
@@ -415,7 +415,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_Task_NoErrors()
     {
         var source = """
@@ -434,7 +434,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_Int_NoErrors()
     {
         var source = """
@@ -452,7 +452,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_TaskInt_NoErrors()
     {
         var source = """
@@ -471,7 +471,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskInt_NoErrors()
     {
         var source = """
@@ -490,7 +490,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_TaskString_NoErrors()
     {
         var source = """
@@ -509,7 +509,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_ValueTask_NoErrors()
     {
         var source = """
@@ -528,7 +528,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_ValueTaskString_NoErrors()
     {
         var source = """
@@ -547,7 +547,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_IEnumerableByte_NoErrors()
     {
         var source = """
@@ -566,7 +566,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void ReturnType_IAsyncEnumerableByte_NoErrors()
     {
         var source = """
@@ -680,7 +680,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_ExitCode_IntReturn_QReturnsStackTop()
     {
         const string program = "5q@";
@@ -710,7 +710,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_ExitCode_IntReturn_AtReturnsZero()
     {
         const string program = "@";
@@ -740,7 +740,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_3D_GoLow_ExitCode()
     {
         const string program = "l\f>7q";
@@ -770,7 +770,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_3D_GoHigh_ExitCode()
     {
         const string program = "h\f\f>7q";
@@ -800,7 +800,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_3D_HighLowIf_SelectsDirection()
     {
         const string programLow = "0m\f >1q\f >2q";
@@ -838,7 +838,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_3D_GetPut_UsesXYZ()
     {
         const string program = "88*1+500p500gq";
@@ -868,7 +868,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_StorageOffset_AppliesToGetPut()
     {
         const string program = "0{88*1+000p000gq";
@@ -898,7 +898,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_StackStack_U_TransfersFromSoss()
     {
         const string program = "120{4u.@";
@@ -940,7 +940,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_SystemInfo_FlagsIncludesConcurrentFileExec()
     {
         const string program = "1yq";
@@ -969,7 +969,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_FileInput_LoadsIntoSpace()
     {
         var originalDir = Directory.GetCurrentDirectory();
@@ -1014,7 +1014,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_FileOutput_WritesRegion()
     {
         var originalDir = Directory.GetCurrentDirectory();
@@ -1060,7 +1060,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_SystemExec_ReturnsExitCode()
     {
         const string command = "exit 7";
@@ -1091,7 +1091,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_SystemExec_FailureIsNonZero()
     {
         const string command = "this_command_should_not_exist_12345";
@@ -1168,7 +1168,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_AsyncEnumerableByte_ReturnsOutputBytes()
     {
         const string program = "\"A\",@";
@@ -1210,7 +1210,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void Generated_SyncWithCancellationToken_UsesRunSyncWithToken()
     {
         var source = """
@@ -1288,7 +1288,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void Runtime_SyncCancellationToken_CancelsInfiniteLoop()
     {
         var source = """
@@ -1371,7 +1371,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_Int_TextWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1402,7 +1402,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_Int_PipeWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1430,7 +1430,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_TaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1459,7 +1459,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public async Task Runtime_ValueTaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
     {
         var source = """
@@ -1488,7 +1488,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void Runtime_SelfModifiedOutputWithoutOutputInterface_Throws()
     {
         var source = """
@@ -1519,7 +1519,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    [Timeout(Timeout.Default, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void Runtime_SelfModifiedInputWithoutInputInterface_Throws()
     {
         var source = """
@@ -1642,7 +1642,7 @@ file sealed class TestAdditionalText(string path, string content) : AdditionalTe
 }
 
 
-file static class Timeout
+file static class Constant
 {
-    public const int Default = 1000 * 60;
+    public const int Timeout = 1000 * 30;
 }
