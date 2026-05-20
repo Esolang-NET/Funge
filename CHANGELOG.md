@@ -6,6 +6,7 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+- `Esolang.Funge.Generator`: Implement logging support for runtime instructions and events (instruction execution, fingerprint operations).
 - `Esolang.Funge.Generator`/`Processor`: Implement stub support for fingerprint instructions (`(` and `)`) to allow them to proceed without reflection, and fix corresponding test failures.
 
 ### Added
