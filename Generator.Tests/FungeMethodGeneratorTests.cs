@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Esolang.Funge.Generator.Tests;
 
@@ -72,9 +73,37 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
+    [TestMethod]
+    public void TestGenerateWithLogger()
+    {
+        var source = $$"""
+            using Esolang.Funge;
+            using Microsoft.Extensions.Logging;
+
+            namespace TestNamespace;
+
+            public partial class TestClass
+            {
+                private readonly ILogger<TestClass> _logger = null!;
+
+                [GenerateFungeMethod(InlineSource = "@@")]
+                public partial void Run();
+            }
+            """;
+
+        var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
+        
+        // Loggerを認識させるために必要な参照を追加
+        var loggerReference = MetadataReference.CreateFromFile(typeof(ILogger).Assembly.Location);
+        compilation = compilation.AddReferences(loggerReference);
+
+        var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+
+        var runResult = driver.GetRunResult();
+        var generatedSource = runResult.GeneratedTrees[0].ToString();
+
+        Assert.IsTrue(generatedSource.Contains("logger: this._logger"));
+    }
 
 
     GeneratorDriver RunGenerators(
