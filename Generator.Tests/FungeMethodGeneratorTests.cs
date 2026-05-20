@@ -49,6 +49,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                     referenceList.Add(MetadataReference.CreateFromFile(pipelinesAssemblyLocation));
                 }
             }
+            var hasLoggingReference = referenceList.Any(static r =>
+                string.Equals(Path.GetFileNameWithoutExtension(r.FilePath), "Microsoft.Extensions.Logging.Abstractions", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileNameWithoutExtension(r.FilePath), "Microsoft.Extensions.Logging", StringComparison.OrdinalIgnoreCase));
+            if (!hasLoggingReference)
+            {
+                var loggingAssemblyLocation = typeof(Microsoft.Extensions.Logging.ILogger).Assembly.Location;
+                if (!string.IsNullOrWhiteSpace(loggingAssemblyLocation))
+                {
+                    referenceList.Add(MetadataReference.CreateFromFile(loggingAssemblyLocation));
+                }
+            }
         }
 #if !NET
         {
@@ -74,7 +85,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
-    public void TestGenerateWithLogger()
+    public void TestGenerateWithStaticLoggerParameter()
     {
         var source = $$"""
             using Esolang.Funge;
@@ -84,25 +95,93 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
 
             public partial class TestClass
             {
-                private readonly ILogger<TestClass> _logger = null!;
-
                 [GenerateFungeMethod(InlineSource = "@@")]
+                public static partial void Run(ILogger<TestClass> logger);
+            }
+            """;
+
+        var driver = RunGenerators(source, out _, out _);
+        var runResult = driver.GetRunResult();
+        var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
+
+        // Should use the parameter name directly, without 'this.' or field prefix
+        Assert.IsTrue(generatedSource.Contains("logger: logger"));
+        Assert.IsFalse(generatedSource.Contains("logger: this.logger"));
+    }
+
+    [TestMethod]
+    public void TestGenerateWithNullableLoggerParameter()
+    {
+        var source = $$"""
+            using Esolang.Funge;
+            using Microsoft.Extensions.Logging;
+
+            namespace TestNamespace;
+
+            public partial class TestClass
+            {
+                [GenerateFungeMethod(InlineSource = "@@")]
+                public static partial void Run(ILogger? logger);
+            }
+            """;
+
+        var driver = RunGenerators(source, out _, out _);
+        var runResult = driver.GetRunResult();
+        var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
+
+        Assert.IsTrue(generatedSource.Contains("logger: logger"));
+    }
+
+    [TestMethod]
+    public async Task TestFunctionalLoggingInvocation()
+    {
+        var source = $$"""
+            using Esolang.Funge;
+            using Microsoft.Extensions.Logging;
+            using System;
+            using System.Collections.Generic;
+
+            namespace TestNamespace;
+
+            public class FakeLogger : ILogger
+            {
+                public List<string> Logs = new List<string>();
+                public IDisposable BeginScope<TState>(TState state) => null!;
+                public bool IsEnabled(LogLevel logLevel) => true;
+                public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+                {
+                    Logs.Add(formatter(state, exception));
+                }
+            }
+
+            public partial class TestClass
+            {
+                public FakeLogger Logger = new FakeLogger();
+
+                [GenerateFungeMethod(InlineSource = "1 @")]
                 public partial void Run();
             }
             """;
 
-        var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
-        
-        // Loggerを認識させるために必要な参照を追加
-        var loggerReference = MetadataReference.CreateFromFile(typeof(ILogger).Assembly.Location);
-        compilation = compilation.AddReferences(loggerReference);
-
         var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+        AssertNoErrors(diagnostics, outputCompilation);
 
-        var runResult = driver.GetRunResult();
-        var generatedSource = runResult.GeneratedTrees[0].ToString();
+        var asm = Emit(outputCompilation, TestCancellationToken);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestNamespace.TestClass")!;
+            var instance = Activator.CreateInstance(t)!;
+            var m = t.GetMethod("Run")!;
+            m.Invoke(instance, null);
 
-        Assert.IsTrue(generatedSource.Contains("logger: this._logger"));
+            var loggerField = t.GetField("Logger")!;
+            var logger = (dynamic)loggerField.GetValue(instance)!;
+            var logs = (List<string>)logger.Logs;
+
+            // Check if we have logs for '1' and '@'
+            Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
+            Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
 
