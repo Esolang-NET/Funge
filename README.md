@@ -29,27 +29,31 @@ partial class FungeSample
 
 ## Generator Guide
 
-For detailed Generator signatures and patterns (`string`, `TextReader`, `PipeReader`, `TextWriter`, `PipeWriter`, sync/async returns, byte-sequence returns, inline source), see:
+For detailed Generator signatures and patterns, see:
 
 - [Generator README](./Generator/README.md)
 
-For runnable examples covering all return types and inline source, see:
+### Generator Signatures
+
+| Attribute Argument | `partial` Method Parameters (Input) | `partial` Method Return Types (Output) |
+| :--- | :--- | :--- |
+| `string` (Path/Inline) | `TextReader?`, `PipeReader?`, `byte[]?` | `void`, `string`, `string?`, `int`, `Task`, `ValueTask`, `IEnumerable<byte>`, `IAsyncEnumerable<byte>` |
+
+For runnable examples, see:
 
 - [UseConsole sample](./samples/Generator.UseConsole/README.md)
 
 ## Funge-98 Support Status
 
-Current implementation status across packages:
-
 | Area | Status |
 |---|---|
-| Core Funge-98 instructions | ✅ Implemented |
-| Trefunge 3D navigation (`h` `l` `m`) | ✅ Implemented |
+| Core Funge-98 instructions | ✅ |
+| 3D navigation (`h` `l` `m`) | ✅ |
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
 | Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
-| File I/O (`i` `o`) | ✅ Implemented |
-| System exec (`=`) | ✅ Implemented (with `ArgumentList` security) |
-| System info (`y`) | ✅ Fully implemented (includes args/envs) |
+| File I/O (`i` `o`) | ✅ |
+| System exec (`=`) | ✅ |
+| System info (`y`) | ✅ |
 
 Details:
 
