@@ -20,6 +20,7 @@ partial class MethodGenerator
         RunValueTask = 1 << 7,
         RunValueTaskInt = 1 << 8, 
         RunValueTaskString = 1 << 9,
+        RunWithLogging = 1 << 10,
     }
 
     static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features)
@@ -30,87 +31,90 @@ partial class MethodGenerator
 
     static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
     {
+        var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
+        var loggingArgument = runWithLogging ? ", global::Microsoft.Extensions.Logging.ILogger? logger = null" : "";
+        var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
         var sb = new StringBuilder();
         if ((features & RuntimeFacadeFeatures.RunSync) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
-                    => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
+                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                    => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
         """);
         if ((features & RuntimeFacadeFeatures.RunString) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
                 {
                     using var output = new StringWriter();
-                    RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
+                    RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
                     return output.ToString();
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunEnumerable) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
                 {
-                    foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs))
+                    foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}))
                         yield return b;
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunAsyncEnumerable) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
                 {
-                    await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs))
+                    await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}))
                         yield return b;
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunTask) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct);
+                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskInt) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct);
+                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskString) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
                 {
                     return Task.Run(() =>
                     {
                         using var output = new StringWriter();
-                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
+                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
                         return output.ToString();
                     }, ct);
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTask) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct));
+                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskInt) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs), ct));
+                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskString) != 0)
-            sb.Append("""
+            sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null)
+                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
                 {
                     return new ValueTask<string>(Task.Run(() =>
                     {
                         using var output = new StringWriter();
-                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs);
+                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
                         return output.ToString();
                     }, ct));
                 }
@@ -118,7 +122,12 @@ partial class MethodGenerator
         return sb.ToString();
     }
 
-    static string BuildRuntimeSource(RuntimeFacadeFeatures features) => $$"""
+    static string BuildRuntimeSource(RuntimeFacadeFeatures features)
+    {
+        var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
+        var loggingArgument = runWithLogging ? ", global::Microsoft.Extensions.Logging.ILogger? logger = null" : "";
+        var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
+        return $$"""
         // <auto-generated/>
         #nullable enable
         #pragma warning disable CS1591
@@ -142,18 +151,26 @@ partial class MethodGenerator
                 private sealed class RuntimeStackStack
                 {
                     private readonly LinkedList<Stack<int>> _stacks = new LinkedList<Stack<int>>();
-                    internal RuntimeStackStack() { _stacks.AddFirst(new Stack<int>()); }
-                    internal RuntimeStackStack(LinkedList<Stack<int>> stacks) { foreach (var stack in stacks) _stacks.AddLast(new Stack<int>(stack.Reverse())); }
-                    internal Stack<int> TOSS { get { return _stacks.First!.Value; } }
-                    internal Stack<int> SOSS { get { return _stacks.First!.Next!.Value; } }
-                    internal bool HasSOSS { get { return _stacks.Count >= 2; } }
-                    internal int StackCount { get { return _stacks.Count; } }
-                    internal IEnumerable<Stack<int>> AllStacks { get { return _stacks; } }
-                    internal void Push(int value) { TOSS.Push(value); }
-                    internal int Pop() { return TOSS.Count > 0 ? TOSS.Pop() : 0; }
-                    internal void ClearToss() { TOSS.Clear(); }
-                    internal void PushNewStack() { _stacks.AddFirst(new Stack<int>()); }
-                    internal void PopCurrentStack() { if (_stacks.Count > 1) _stacks.RemoveFirst(); }
+                    internal RuntimeStackStack() => _stacks.AddFirst(new Stack<int>());
+                    internal RuntimeStackStack(LinkedList<Stack<int>> stacks)
+                    {
+                        foreach (var stack in stacks)
+                            _stacks.AddLast(new Stack<int>(stack.Reverse()));
+                    }
+                    internal Stack<int> TOSS => _stacks.First!.Value;
+                    internal Stack<int> SOSS => _stacks.First!.Next!.Value;
+                    internal bool HasSOSS => _stacks.Count >= 2;
+                    internal int StackCount => _stacks.Count;
+                    internal IEnumerable<Stack<int>> AllStacks => _stacks;
+                    internal void Push(int value) => TOSS.Push(value);
+                    internal int Pop() => TOSS.Count > 0 ? TOSS.Pop() : 0;
+                    internal void ClearToss() => TOSS.Clear();
+                    internal void PushNewStack() => _stacks.AddFirst(new Stack<int>());
+                    internal void PopCurrentStack()
+                    {
+                        if (_stacks.Count > 1)
+                            _stacks.RemoveFirst();
+                    }
                     internal RuntimeStackStack Clone() => new RuntimeStackStack(_stacks);
                 }
 
@@ -173,25 +190,25 @@ partial class MethodGenerator
                     }
                 }
 
-                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
+                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
                 {
-                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct, args, envs);
+                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct, args, envs{{withLoggingArgument}});
                 }
 
-                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
+                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
                 {
                     var output = new System.Collections.Generic.List<byte>();
-                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs);
+                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs{{withLoggingArgument}});
                     return output;
                 }
 
-                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
+                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
                 {
                     var buffer = new System.Collections.Concurrent.ConcurrentQueue<byte>();
                     var tcs = new TaskCompletionSource<int>();
                     await Task.Run(() => {
                         try {
-                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs);
+                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs{{withLoggingArgument}});
                             tcs.SetResult(0);
                         } catch (Exception ex) { tcs.SetException(ex); }
                     }, ct);
@@ -204,7 +221,7 @@ partial class MethodGenerator
                     await tcs.Task;
                 }
 
-                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs)
+                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{withLoggingArgument}})
                 {
                     var rng = new Random();
                     int exitCode = 0;
@@ -390,7 +407,8 @@ partial class MethodGenerator
                                 {
                                     var next = Advance(ip.Position, ip.Delta);
                                     var nextCell = GetCell(next.X, next.Y, next.Z);
-                                    if (nextCell == ' ' || nextCell == '\t' || nextCell == '\f' || nextCell == '\v') ip.Position = next;
+                                    if (nextCell == ' ' || nextCell == '\t' || nextCell == '\f' || nextCell == '\v')
+                                        ip.Position = next;
                                     else break;
                                 }
                             }
@@ -400,70 +418,366 @@ partial class MethodGenerator
 
                         switch (cell)
                         {
-                            case '"': ip.StringMode = true; break;
-                            case ' ': case '\t': case '\f': case '\v': case 'z': break;
-                            case '!': ip.StackStack.Push(ip.StackStack.Pop() == 0 ? 1 : 0); break;
-                            case '$': ip.StackStack.Pop(); break;
-                            case ':': { int v = ip.StackStack.Pop(); ip.StackStack.Push(v); ip.StackStack.Push(v); break; }
-                            case '\\': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(b); ip.StackStack.Push(a); break; }
-                            case 'n': ip.StackStack.ClearToss(); break;
-                            case '+': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(a + b); break; }
-                            case '-': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(a - b); break; }
-                            case '*': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(a * b); break; }
-                            case '/': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(b == 0 ? 0 : a / b); break; }
-                            case '%': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(b == 0 ? 0 : a % b); break; }
-                            case '`': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); ip.StackStack.Push(a > b ? 1 : 0); break; }
-                            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': ip.StackStack.Push(cell - '0'); break;
-                            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': ip.StackStack.Push(cell - 'a' + 10); break;
-                            case '>': ip.Delta = (1, 0, 0); break;
-                            case '<': ip.Delta = (-1, 0, 0); break;
-                            case '^': ip.Delta = (0, -1, 0); break;
-                            case 'v': ip.Delta = (0, 1, 0); break;
-                            case 'h': ip.Delta = (0, 0, -1); break;
-                            case 'l': ip.Delta = (0, 0, 1); break;
-                            case '?': switch (rng.Next(6)) { case 0: ip.Delta = (1, 0, 0); break; case 1: ip.Delta = (-1, 0, 0); break; case 2: ip.Delta = (0, -1, 0); break; case 3: ip.Delta = (0, 1, 0); break; case 4: ip.Delta = (0, 0, -1); break; default: ip.Delta = (0, 0, 1); break; } break;
-                            case 'm': { int v = ip.StackStack.Pop(); ip.Delta = v == 0 ? (0, 0, 1) : (0, 0, -1); break; }
-                            case '_': { int v = ip.StackStack.Pop(); ip.Delta = v == 0 ? (1, 0, 0) : (-1, 0, 0); break; }
-                            case '|': { int v = ip.StackStack.Pop(); ip.Delta = v == 0 ? (0, 1, 0) : (0, -1, 0); break; }
-                            case '[': ip.Delta = (ip.Delta.Y, -ip.Delta.X, 0); break;
-                            case ']': ip.Delta = (-ip.Delta.Y, ip.Delta.X, 0); break;
-                            case 'r': ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break;
-                            case 'x': { var v = PopVector(ip.StackStack); ip.Delta = v; break; }
-                            case 'w': { int b = ip.StackStack.Pop(); int a = ip.StackStack.Pop(); if (a > b) ip.Delta = (-ip.Delta.Y, ip.Delta.X, 0); else if (a < b) ip.Delta = (ip.Delta.Y, -ip.Delta.X, 0); break; }
-                            case '#': ip.Position = Advance(ip.Position, ip.Delta); break;
-                            case 'j': { int s = ip.StackStack.Pop(); var step = s >= 0 ? ip.Delta : (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); int count = Math.Abs(s); for (int i = 0; i < count; i++) ip.Position = Advance(ip.Position, step); suppressAdvance = true; break; }
-                            case ';': { ip.Position = Advance(ip.Position, ip.Delta); while (GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z) != ';') ip.Position = Advance(ip.Position, ip.Delta); break; }
-                            case '\'': { ip.Position = Advance(ip.Position, ip.Delta); ip.StackStack.Push(GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z)); break; }
-                            case 's': { int sv = ip.StackStack.Pop(); ip.Position = Advance(ip.Position, ip.Delta); SetCell(ip.Position.X, ip.Position.Y, ip.Position.Z, sv); break; }
-                            case 'g': { int z = ip.StackStack.Pop(); int y = ip.StackStack.Pop(); int x = ip.StackStack.Pop(); ip.StackStack.Push(GetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z)); break; }
-                            case 'p': { int z = ip.StackStack.Pop(); int y = ip.StackStack.Pop(); int x = ip.StackStack.Pop(); int v = ip.StackStack.Pop(); SetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z, v); break; }
-                            case '.': if (!hasOutput) throw new InvalidOperationException("Output '.' without an output interface"); writeOutputInt(ip.StackStack.Pop()); writeOutputChar(' '); break;
-                            case ',': if (!hasOutput) throw new InvalidOperationException("Output ',' without an output interface"); writeOutputChar(ip.StackStack.Pop()); break;
-                            case '&': if (!hasInput) throw new InvalidOperationException("Input '&' without an input interface"); var line = input.ReadLine(); if (line == null) ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); else { int v; ip.StackStack.Push(int.TryParse(line.Trim(), out v) ? v : 0); } break;
-                            case '~': if (!hasInput) throw new InvalidOperationException("Input '~' without an input interface"); int ch = input.Read(); if (ch < 0) ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); else ip.StackStack.Push(ch); break;
-                            case 'i': { if (!TryPopZeroTerminatedString(ip.StackStack, out var fileName)) { ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; } int flags = ip.StackStack.Pop(); var va = PopVector(ip.StackStack); var actualVa = (va.X + ip.Offset.X, va.Y + ip.Offset.Y, va.Z + ip.Offset.Z); if (!TryInputFile(actualVa, fileName, (flags & 1) != 0, out var vb)) { ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; } PushVector(ip.StackStack, va); PushVector(ip.StackStack, vb); break; }
-                            case 'o': { if (!TryPopZeroTerminatedString(ip.StackStack, out var fileName)) { ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; } int flags = ip.StackStack.Pop(); var vb = PopVector(ip.StackStack); var va = PopVector(ip.StackStack); var actualVa = (va.X + ip.Offset.X, va.Y + ip.Offset.Y, va.Z + ip.Offset.Z); if (!TryOutputFile(actualVa, vb, fileName, (flags & 1) != 0)) ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; }
-                            case '@': ip.IsStopped = true; break;
-                            case 'q': exitCode = ip.StackStack.Pop(); quit = true; break;
+                            case '"':
+                                ip.StringMode = true;
+                                break;
+                            case ' ':
+                            case '\t':
+                            case '\f':
+                            case '\v':
+                            case 'z':
+                                break;
+                            case '!':
+                                ip.StackStack.Push(ip.StackStack.Pop() == 0 ? 1 : 0);
+                                break;
+                            case '$':
+                                ip.StackStack.Pop();
+                                break;
+                            case ':':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.StackStack.Push(v);
+                                    ip.StackStack.Push(v);
+                                    break;
+                                }
+                            case '\\':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(b);
+                                    ip.StackStack.Push(a);
+                                    break;
+                                }
+                            case 'n':
+                                ip.StackStack.ClearToss();
+                                break;
+                            case '+':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a + b);
+                                    break;
+                                }
+                            case '-':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a - b);
+                                    break;
+                                }
+                            case '*':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a * b);
+                                    break;
+                                }
+                            case '/':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(b == 0 ? 0 : a / b);
+                                    break;
+                                }
+                            case '%':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(b == 0 ? 0 : a % b);
+                                    break;
+                                }
+                            case '`':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    ip.StackStack.Push(a > b ? 1 : 0);
+                                    break;
+                                }
+                            case '0':
+                            case '1':
+                            case '2':
+                            case '3':
+                            case '4':
+                            case '5':
+                            case '6':
+                            case '7':
+                            case '8':
+                            case '9':
+                                ip.StackStack.Push(cell - '0');
+                                break;
+                            case 'a':
+                            case 'b':
+                            case 'c':
+                            case 'd':
+                            case 'e':
+                            case 'f':
+                                ip.StackStack.Push(cell - 'a' + 10);
+                                break;
+                            case '>':
+                                ip.Delta = (1, 0, 0);
+                                break;
+                            case '<':
+                                ip.Delta = (-1, 0, 0);
+                                break;
+                            case '^':
+                                ip.Delta = (0, -1, 0);
+                                break;
+                            case 'v':
+                                ip.Delta = (0, 1, 0);
+                                break;
+                            case 'h':
+                                ip.Delta = (0, 0, -1);
+                                break;
+                            case 'l':
+                                ip.Delta = (0, 0, 1);
+                                break;
+                            case '?':
+                                switch (rng.Next(6))
+                                {
+                                    case 0:
+                                        ip.Delta = (1, 0, 0);
+                                        break;
+                                    case 1:
+                                        ip.Delta = (-1, 0, 0);
+                                        break;
+                                    case 2:
+                                        ip.Delta = (0, -1, 0);
+                                        break;
+                                    case 3:
+                                        ip.Delta = (0, 1, 0);
+                                        break;
+                                    case 4:
+                                        ip.Delta = (0, 0, -1);
+                                        break;
+                                    default:
+                                        ip.Delta = (0, 0, 1);
+                                        break;
+                                }
+                                break;
+                            case 'm':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.Delta = v == 0 ? (0, 0, 1) : (0, 0, -1);
+                                    break;
+                                }
+                            case '_':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.Delta = v == 0 ? (1, 0, 0) : (-1, 0, 0);
+                                    break;
+                                }
+                            case '|':
+                                {
+                                    int v = ip.StackStack.Pop();
+                                    ip.Delta = v == 0 ? (0, 1, 0) : (0, -1, 0);
+                                    break;
+                                }
+                            case '[':
+                                ip.Delta = (ip.Delta.Y, -ip.Delta.X, 0);
+                                break;
+                            case ']':
+                                ip.Delta = (-ip.Delta.Y, ip.Delta.X, 0);
+                                break;
+                            case 'r':
+                                ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                break;
+                            case 'x':
+                                {
+                                    var v = PopVector(ip.StackStack);
+                                    ip.Delta = v;
+                                    break;
+                                }
+                            case 'w':
+                                {
+                                    int b = ip.StackStack.Pop();
+                                    int a = ip.StackStack.Pop();
+                                    if (a > b)
+                                        ip.Delta = (-ip.Delta.Y, ip.Delta.X, 0);
+                                    else if (a < b)
+                                        ip.Delta = (ip.Delta.Y, -ip.Delta.X, 0);
+                                    break;
+                                }
+                            case '#':
+                                ip.Position = Advance(ip.Position, ip.Delta);
+                                break;
+                            case 'j':
+                                {
+                                    int s = ip.StackStack.Pop();
+                                    var step = s >= 0 ? ip.Delta : (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    int count = Math.Abs(s);
+                                    for (int i = 0; i < count; i++)
+                                        ip.Position = Advance(ip.Position, step);
+                                    suppressAdvance = true;
+                                    break;
+                                }
+                            case ';':
+                                {
+                                    ip.Position = Advance(ip.Position, ip.Delta);
+                                    while (GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z) != ';')
+                                        ip.Position = Advance(ip.Position, ip.Delta);
+                                    break;
+                                }
+                            case '\'':
+                                {
+                                    ip.Position = Advance(ip.Position, ip.Delta);
+                                    ip.StackStack.Push(GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z));
+                                    break;
+                                }
+                            case 's':
+                                {
+                                    int sv = ip.StackStack.Pop();
+                                    ip.Position = Advance(ip.Position, ip.Delta);
+                                    SetCell(ip.Position.X, ip.Position.Y, ip.Position.Z, sv);
+                                    break;
+                                }
+                            case 'g':
+                                {
+                                    int z = ip.StackStack.Pop();
+                                    int y = ip.StackStack.Pop();
+                                    int x = ip.StackStack.Pop();
+                                    ip.StackStack.Push(GetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z));
+                                    break;
+                                }
+                            case 'p':
+                                {
+                                    int z = ip.StackStack.Pop();
+                                    int y = ip.StackStack.Pop();
+                                    int x = ip.StackStack.Pop();
+                                    int v = ip.StackStack.Pop();
+                                    SetCell(x + ip.Offset.X, y + ip.Offset.Y, z + ip.Offset.Z, v);
+                                    break;
+                                }
+                            case '.':
+                                if (!hasOutput)
+                                    throw new InvalidOperationException("Output '.' without an output interface");
+                                writeOutputInt(ip.StackStack.Pop());
+                                writeOutputChar(' ');
+                                break;
+                            case ',':
+                                if (!hasOutput)
+                                    throw new InvalidOperationException("Output ',' without an output interface");
+                                writeOutputChar(ip.StackStack.Pop());
+                                break;
+                            case '&':
+                                if (!hasInput)
+                                    throw new InvalidOperationException("Input '&' without an input interface");
+                                var line = input.ReadLine();
+                                if (line == null)
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                else
+                                {
+                                    int v;
+                                    ip.StackStack.Push(int.TryParse(line.Trim(), out v) ? v : 0);
+                                }
+                                break;
+                            case '~':
+                                if (!hasInput) 
+                                    throw new InvalidOperationException("Input '~' without an input interface");
+                                int ch = input.Read();
+                                if (ch < 0)
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                else
+                                    ip.StackStack.Push(ch);
+                                break;
+                            case 'i':
+                                {
+                                    if (!TryPopZeroTerminatedString(ip.StackStack, out var fileName))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+                                    int flags = ip.StackStack.Pop();
+                                    var va = PopVector(ip.StackStack);
+                                    var actualVa = (va.X + ip.Offset.X, va.Y + ip.Offset.Y, va.Z + ip.Offset.Z);
+                                    if (!TryInputFile(actualVa, fileName, (flags & 1) != 0, out var vb))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+                                    PushVector(ip.StackStack, va);
+                                    PushVector(ip.StackStack, vb);
+                                    break;
+                                }
+                            case 'o':
+                                {
+                                    if (!TryPopZeroTerminatedString(ip.StackStack, out var fileName))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+                                    int flags = ip.StackStack.Pop();
+                                    var vb = PopVector(ip.StackStack);
+                                    var va = PopVector(ip.StackStack);
+                                    var actualVa = (va.X + ip.Offset.X, va.Y + ip.Offset.Y, va.Z + ip.Offset.Z);
+                                    if (!TryOutputFile(actualVa, vb, fileName, (flags & 1) != 0))
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    break;
+                                }
+                            case '@':
+                                ip.IsStopped = true;
+                                break;
+                            case 'q':
+                                exitCode = ip.StackStack.Pop();
+                                quit = true;
+                                break;
                             case 'k':
                                 {
                                     int n = ip.StackStack.Pop();
                                     var instrPos = Advance(ip.Position, ip.Delta);
-                                    while (true) { int c = GetCell(instrPos.X, instrPos.Y, instrPos.Z); if (c == ' ' || c == '\t' || c == '\f' || c == '\v') instrPos = Advance(instrPos, ip.Delta); else if (c == ';') { instrPos = Advance(instrPos, ip.Delta); while (GetCell(instrPos.X, instrPos.Y, instrPos.Z) != ';') instrPos = Advance(instrPos, ip.Delta); instrPos = Advance(instrPos, ip.Delta); } else break; }
-                                    if (n == 0) ip.Position = instrPos;
-                                    else { int operand = GetCell(instrPos.X, instrPos.Y, instrPos.Z); for (int i = 0; i < n && !ip.IsStopped && !quit; i++) { bool dummy = false; ExecuteInstruction(ip, ipNode, ref dummy, operand); } }
+                                    while (true)
+                                    {
+                                        int c = GetCell(instrPos.X, instrPos.Y, instrPos.Z);
+                                        if (c == ' ' || c == '\t' || c == '\f' || c == '\v')
+                                            instrPos = Advance(instrPos, ip.Delta);
+                                        else if (c == ';')
+                                        {
+                                            instrPos = Advance(instrPos, ip.Delta);
+                                            while (GetCell(instrPos.X, instrPos.Y, instrPos.Z) != ';')
+                                                instrPos = Advance(instrPos, ip.Delta);
+                                            instrPos = Advance(instrPos, ip.Delta);
+                                        } else 
+                                            break;
+                                    }
+                                    if (n == 0)
+                                        ip.Position = instrPos;
+                                    else
+                                    {
+                                        int operand = GetCell(instrPos.X, instrPos.Y, instrPos.Z); 
+                                        for (int i = 0; i < n && !ip.IsStopped && !quit; i++)
+                                        {
+                                            bool dummy = false;
+                                            ExecuteInstruction(ip, ipNode, ref dummy, operand);
+                                        }
+                                    }
                                     break;
                                 }
-                            case 't': { var child = ip.CreateChild(ips.Count); ips.AddAfter(ipNode, child); break; }
+                            case 't':
+                                {
+                                    var child = ip.CreateChild(ips.Count);
+                                    ips.AddAfter(ipNode, child);
+                                    break;
+                                }
                             case '{':
                                 {
                                     int n = ip.StackStack.Pop();
                                     var items = new List<int>();
-                                    if (n > 0) for (int i = 0; i < n; i++) items.Add(ip.StackStack.Pop());
-                                    ip.StackStack.Push(ip.Offset.X); ip.StackStack.Push(ip.Offset.Y); ip.StackStack.Push(ip.Offset.Z);
+                                    if (n > 0)
+                                        for (int i = 0; i < n; i++)
+                                            items.Add(ip.StackStack.Pop());
+                                    ip.StackStack.Push(ip.Offset.X);
+                                    ip.StackStack.Push(ip.Offset.Y);
+                                    ip.StackStack.Push(ip.Offset.Z);
                                     ip.StackStack.PushNewStack();
-                                    if (n > 0) for (int i = items.Count - 1; i >= 0; i--) ip.StackStack.Push(items[i]);
-                                    else if (n < 0) { var soss = ip.StackStack.SOSS; if (soss != null) for (int i = 0; i < -n; i++) soss.Push(0); }
+                                    if (n > 0) 
+                                        for (int i = items.Count - 1; i >= 0; i--)
+                                            ip.StackStack.Push(items[i]);
+                                    else if (n < 0) 
+                                    {
+                                        var soss = ip.StackStack.SOSS;
+                                        if (soss != null)
+                                            for (int i = 0; i < -n; i++)
+                                                soss.Push(0);
+                                    }
                                     ip.Offset = Advance(ip.Position, ip.Delta);
                                     break;
                                 }
@@ -483,16 +797,45 @@ partial class MethodGenerator
                             case 'u':
                                 {
                                     int n = ip.StackStack.Pop();
-                                    if (!ip.StackStack.HasSOSS) { ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; }
+                                    if (!ip.StackStack.HasSOSS)
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
                                     var soss = ip.StackStack.SOSS!;
                                     if (n > 0) for (int i = 0; i < n; i++) ip.StackStack.Push(soss.Count > 0 ? soss.Pop() : 0);
                                     else if (n < 0) for (int i = 0; i < -n; i++) soss.Push(ip.StackStack.Pop());
                                     break;
                                 }
-                            case 'y': { int c = ip.StackStack.Pop(); PushSysInfo(ip, ips.Count, c); break; }
-                            case '(': case ')': { int n = ip.StackStack.Pop(); for (int i = 0; i < n; i++) ip.StackStack.Pop(); ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; }
-                            case '=': { if (!TryPopZeroTerminatedString(ip.StackStack, out var cmd)) { ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; } ip.StackStack.Push(ExecuteSystemCommand(cmd)); break; }
-                            default: if (cell >= 'A' && cell <= 'Z') ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break;
+                            case 'y':
+                                {
+                                    int c = ip.StackStack.Pop();
+                                    PushSysInfo(ip, ips.Count, c);
+                                    break;
+                                }
+                            case '(':
+                            case ')':
+                                {
+                                    int n = ip.StackStack.Pop();
+                                    for (int i = 0; i < n; i++)
+                                        ip.StackStack.Pop();
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    break;
+                                }
+                            case '=':
+                                {
+                                    if (!TryPopZeroTerminatedString(ip.StackStack, out var cmd))
+                                    {
+                                        ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                        break;
+                                    }
+                                    ip.StackStack.Push(ExecuteSystemCommand(cmd));
+                                    break;
+                                }
+                            default:
+                                if (cell >= 'A' && cell <= 'Z')
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                break;
                         }
                     }
 
@@ -507,8 +850,10 @@ partial class MethodGenerator
                             var ip = node.Value;
                             bool suppressAdvance = false;
                             ExecuteInstruction(ip, node, ref suppressAdvance, null);
-                            if (ip.IsStopped || quit) ips.Remove(node);
-                            else if (!suppressAdvance) ip.Position = Advance(ip.Position, ip.Delta);
+                            if (ip.IsStopped || quit)
+                                ips.Remove(node);
+                            else if (!suppressAdvance)
+                                ip.Position = Advance(ip.Position, ip.Delta);
                             node = nextNode;
                         }
                     }
@@ -517,4 +862,5 @@ partial class MethodGenerator
             }
         }
         """;
+    }
 }
