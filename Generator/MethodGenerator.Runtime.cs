@@ -152,6 +152,51 @@ partial class MethodGenerator
                             _instructionExecuted(logger, id, instruction, x, y, z, null);
                         }
                     }
+
+                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, string, global::System.Exception?> _fingerprintLoaded =
+                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, string>(
+                            global::Microsoft.Extensions.Logging.LogLevel.Debug,
+                            new global::Microsoft.Extensions.Logging.EventId(2, "FingerprintLoaded"),
+                            "IP {Id}: Fingerprint '{Fingerprint}' loaded");
+
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public static void LogFingerprintLoaded(global::Microsoft.Extensions.Logging.ILogger? logger, int id, string fingerprint)
+                    {
+                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+                        {
+                            _fingerprintLoaded(logger, id, fingerprint, null);
+                        }
+                    }
+
+                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, string, global::System.Exception?> _fingerprintUnloaded =
+                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, string>(
+                            global::Microsoft.Extensions.Logging.LogLevel.Debug,
+                            new global::Microsoft.Extensions.Logging.EventId(3, "FingerprintUnloaded"),
+                            "IP {Id}: Fingerprint '{Fingerprint}' unloaded");
+
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public static void LogFingerprintUnloaded(global::Microsoft.Extensions.Logging.ILogger? logger, int id, string fingerprint)
+                    {
+                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+                        {
+                            _fingerprintUnloaded(logger, id, fingerprint, null);
+                        }
+                    }
+
+                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, int, global::System.Exception?> _sysInfoRequested =
+                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, int>(
+                            global::Microsoft.Extensions.Logging.LogLevel.Debug,
+                            new global::Microsoft.Extensions.Logging.EventId(4, "SysInfoRequested"),
+                            "IP {Id}: System information requested (Argument: {Value})");
+
+                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+                    public static void LogSysInfoRequested(global::Microsoft.Extensions.Logging.ILogger? logger, int id, int value)
+                    {
+                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+                        {
+                            _sysInfoRequested(logger, id, value, null);
+                        }
+                    }
                 }
         """ : "";
 
@@ -864,13 +909,47 @@ partial class MethodGenerator
                             case 'y':
                                 {
                                     int c = ip.StackStack.Pop();
+                                    {{(runWithLogging ? "Log.LogSysInfoRequested(__logger, ip.Id, c);" : "")}}
                                     PushSysInfo(ip, ips.Count, c);
                                     break;
                                 }
                             case '(':
+                                {
+                                    int n = ip.StackStack.Pop();
+                                    {{(runWithLogging ? """
+                                        var fingerprint = "";
+                                        var snapshot = ip.StackStack.TOSS.ToArray();
+                                        for (int i = 0; i < n && i < snapshot.Length; i++)
+                                        {
+                                            var v = snapshot[i];
+                                            fingerprint += (char)((v >> 24) & 0xFF);
+                                            fingerprint += (char)((v >> 16) & 0xFF);
+                                            fingerprint += (char)((v >> 8) & 0xFF);
+                                            fingerprint += (char)(v & 0xFF);
+                                        }
+                                        Log.LogFingerprintLoaded(__logger, ip.Id, fingerprint);
+                                    """ : "")}}
+                                    for (int i = 0; i < n; i++)
+                                        ip.StackStack.Pop();
+                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                    break;
+                                }
                             case ')':
                                 {
                                     int n = ip.StackStack.Pop();
+                                    {{(runWithLogging ? """
+                                        var fingerprint = "";
+                                        var snapshot = ip.StackStack.TOSS.ToArray();
+                                        for (int i = 0; i < n && i < snapshot.Length; i++)
+                                        {
+                                            var v = snapshot[i];
+                                            fingerprint += (char)((v >> 24) & 0xFF);
+                                            fingerprint += (char)((v >> 16) & 0xFF);
+                                            fingerprint += (char)((v >> 8) & 0xFF);
+                                            fingerprint += (char)(v & 0xFF);
+                                        }
+                                        Log.LogFingerprintUnloaded(__logger, ip.Id, fingerprint);
+                                    """ : "")}}
                                     for (int i = 0; i < n; i++)
                                         ip.StackStack.Pop();
                                     ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
