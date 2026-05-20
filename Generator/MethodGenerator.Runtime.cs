@@ -6,7 +6,7 @@ partial class MethodGenerator
 {
     const string FungeRuntimeFileName = "FungeRuntime.g.cs";
 
-    [System.Flags]
+    [Flags]
     enum RuntimeFacadeFeatures
     {
         None = 0, 
@@ -224,10 +224,21 @@ partial class MethodGenerator
                 private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{withLoggingArgument}})
                 {
                     var rng = new Random();
+
                     int exitCode = 0;
+
                     bool quit = false;
+
                     int GetCell(int x, int y, int z) => cells.TryGetValue((x, y, z), out var value) ? value : ' ';
-                    void SetCell(int x, int y, int z, int value) { if (value == ' ') cells.Remove((x, y, z)); else cells[(x, y, z)] = value; }
+
+                    void SetCell(int x, int y, int z, int value)
+                    {
+                        if (value == ' ')
+                            cells.Remove((x, y, z));
+                        else
+                            cells[(x, y, z)] = value;
+                    }
+
                     (int X, int Y, int Z) Advance((int X, int Y, int Z) pos, (int X, int Y, int Z) delta)
                     {
                         int nx = pos.X + delta.X, ny = pos.Y + delta.Y, nz = pos.Z + delta.Z;
@@ -237,11 +248,13 @@ partial class MethodGenerator
                         if (nz < minZ) nz = maxZ - ((minZ - nz - 1) % depth); else if (nz > maxZ) nz = minZ + ((nz - maxZ - 1) % depth);
                         return (nx, ny, nz);
                     }
+
                     (int X, int Y, int Z) PopVector(RuntimeStackStack stack)
                     {
                         int z = stack.Pop(), y = stack.Pop(), x = stack.Pop();
                         return (x, y, z);
                     }
+
                     void PushVector(RuntimeStackStack stack, (int X, int Y, int Z) v)
                     {
                         stack.Push(v.X); stack.Push(v.Y); stack.Push(v.Z);
@@ -358,14 +371,22 @@ partial class MethodGenerator
                         if (linearText) while (rows.Count > 0 && rows[rows.Count - 1].Length == 0) rows.RemoveAt(rows.Count - 1);
                         var text = string.Join("\n", rows);
                         var bytes = text.Select(ch => (byte)(ch & 0xFF)).ToArray();
-                        try { File.WriteAllBytes(fileName, bytes); return true; } catch { return false; }
+                        try {
+                            File.WriteAllBytes(fileName, bytes);
+                            return true;
+                        } catch {
+                            return false;
+                        }
                     }
 
                     int ExecuteSystemCommand(string command)
                     {
                         try
                         {
-                            var psi = new ProcessStartInfo { UseShellExecute = false, CreateNoWindow = true };
+                            var psi = new ProcessStartInfo {
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            };
                             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                             {
                                 psi.FileName = "cmd.exe";
@@ -390,7 +411,9 @@ partial class MethodGenerator
                             if (process == null) return -1;
                             process.WaitForExit();
                             return process.ExitCode;
-                        } catch { return -1; }
+                        } catch {
+                            return -1;
+                        }
                     }
 
                     var ips = new LinkedList<RuntimeIp>();
