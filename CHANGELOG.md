@@ -13,6 +13,7 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator.Tests`: Added `Runtime_SystemInfo_ReportsCustomArgs` to verify custom argument passing via the `y` instruction.
 - `Esolang.Funge.Generator.Tests`: Added coverage for `int` / `Task<int>` / `ValueTask<int>` signatures with explicit `TextWriter` and `PipeWriter` output, including runtime validation of exit-code returns plus pipe output.
 - `Esolang.Funge.Processor.Tests`: Added unit tests for the `u` (Stack Stack Transfer) instruction.
+- `Esolang.Funge.Processor.Tests`: Added unit tests for `StackStack` and `IP` functionality.
 
 ### Changed
 
@@ -21,8 +22,16 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: Explicit `TextWriter` / `PipeWriter` output parameters now compose with exit-code returns (`int`, `Task<int>`, `ValueTask<int>`), while `FG0007` remains reserved for return-based output conflicts (`string` / byte-sequence returns).
 - `Esolang.Funge.Processor`: Refactored numerical (`.`) and character (`,`) output instructions for better consistency and maintainability.
 - `Esolang.Funge.Processor`: Improved string mode handling and runtime output processing.
+- `Esolang.Funge.Processor`: Fix `k` instruction logic and simplify fingerprints.
 - Package metadata: added/expanded NuGet `PackageTags` for packable Funge packages (`Generator`, `Parser`, `Processor`, `dotnet-funge`) including `funge`, `funge-98`, and `befunge` tags for better discoverability.
+- Code style: Use `var` instead of explicit types for improved readability.
+- Docs: Updated testing and coverage guide in `GEMINI.md`.
+- Infra: Added `reportgenerator` tool and coverage directory ignore configuration.
+
+### Fixed
+
 - `Esolang.Funge.Generator.Tests`: Fixed incorrect test assertions in `FungeMethodGeneratorTests`.
+- `Esolang.Funge.Processor`: Fix `0k` instruction test logic.
 
 ## [1.1.0] - 2026-05-08
 
