@@ -496,6 +496,21 @@ partial class MethodGenerator
                     {
                         int cell = overrideCell ?? GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z);
         {{logInstructionCall}}
+
+                        {{(runWithLogging ? """
+                        string ExtractFingerprint(int n)
+                        {
+                            var fingerprint = "";
+                            var snapshot = ip.StackStack.TOSS.ToArray();
+                            for (int i = 0; i < n && i < snapshot.Length; i++)
+                            {
+                                var v = snapshot[i];
+                                if (v >= 0x20 && v <= 0x7E) fingerprint += (char)v;
+                                else fingerprint += $"\\x{v:X2}";
+                            }
+                            return fingerprint;
+                        }
+                        """ : "")}}
                         if (ip.StringMode)
                         {
                             if (cell == '"') ip.StringMode = false;
@@ -914,48 +929,45 @@ partial class MethodGenerator
                                     break;
                                 }
                             case '(':
-                                {
-                                    int n = ip.StackStack.Pop();
-                                    {{(runWithLogging ? """
-                                        var fingerprint = "";
-                                        var snapshot = ip.StackStack.TOSS.ToArray();
-                                        for (int i = 0; i < n && i < snapshot.Length; i++)
-                                        {
-                                            var v = snapshot[i];
-                                            fingerprint += (char)((v >> 24) & 0xFF);
-                                            fingerprint += (char)((v >> 16) & 0xFF);
-                                            fingerprint += (char)((v >> 8) & 0xFF);
-                                            fingerprint += (char)(v & 0xFF);
-                                        }
-                                        Log.LogFingerprintLoaded(__logger, ip.Id, fingerprint);
-                                    """ : "")}}
-                                    for (int i = 0; i < n; i++)
-                                        ip.StackStack.Pop();
-                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
-                                    break;
-                                }
-                            case ')':
-                                {
-                                    int n = ip.StackStack.Pop();
-                                    {{(runWithLogging ? """
-                                        var fingerprint = "";
-                                        var snapshot = ip.StackStack.TOSS.ToArray();
-                                        for (int i = 0; i < n && i < snapshot.Length; i++)
-                                        {
-                                            var v = snapshot[i];
-                                            fingerprint += (char)((v >> 24) & 0xFF);
-                                            fingerprint += (char)((v >> 16) & 0xFF);
-                                            fingerprint += (char)((v >> 8) & 0xFF);
-                                            fingerprint += (char)(v & 0xFF);
-                                        }
-                                        Log.LogFingerprintUnloaded(__logger, ip.Id, fingerprint);
-                                    """ : "")}}
-                                    for (int i = 0; i < n; i++)
-                                        ip.StackStack.Pop();
-                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
-                                    break;
-                                }
-                            case '=':
+                                 {
+                                     int n = ip.StackStack.Pop();
+                                     {{(runWithLogging ? """
+                                         var fingerprint = "";
+                                         for (int i = 0; i < n; i++)
+                                         {
+                                             var v = ip.StackStack.Pop();
+                                             if (v >= 0x20 && v <= 0x7E) fingerprint += (char)v;
+                                             else fingerprint += $"\\x{v:X2}";
+                                         }
+                                         Log.LogFingerprintLoaded(__logger, ip.Id, fingerprint);
+                                     """ : """
+                                         for (int i = 0; i < n; i++)
+                                             ip.StackStack.Pop();
+                                     """)}}
+                                     ip.StackStack.Push(0); // Dummy fingerprint ID
+                                     ip.StackStack.Push(1); // Success
+                                     break;
+                                 }
+                             case ')':
+                                 {
+                                     int n = ip.StackStack.Pop();
+                                     {{(runWithLogging ? """
+                                         var fingerprint = "";
+                                         for (int i = 0; i < n; i++)
+                                         {
+                                             var v = ip.StackStack.Pop();
+                                             if (v >= 0x20 && v <= 0x7E) fingerprint += (char)v;
+                                             else fingerprint += $"\\x{v:X2}";
+                                         }
+                                         Log.LogFingerprintUnloaded(__logger, ip.Id, fingerprint);
+                                     """ : """
+                                         for (int i = 0; i < n; i++)
+                                             ip.StackStack.Pop();
+                                     """)}}
+                                     ip.StackStack.Push(0); // Dummy fingerprint ID
+                                     ip.StackStack.Push(1); // Success
+                                     break;
+                                 }                            case '=':
                                 {
                                     if (!TryPopZeroTerminatedString(ip.StackStack, out var cmd))
                                     {

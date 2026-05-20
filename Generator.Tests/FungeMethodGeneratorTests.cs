@@ -184,6 +184,69 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
         }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
     }
 
+    [TestMethod]
+    public async Task TestFunctionalFingerprintLogging()
+    {
+        // 0x524f4d41 = 'ROMA'
+        // 'y' (121) pushes sysinfo
+        // '(' (40) loads fingerprint
+        // ')' (41) unloads fingerprint
+        var source = $$"""
+            using Esolang.Funge;
+            using Microsoft.Extensions.Logging;
+            using System;
+            using System.Collections.Generic;
+
+            namespace TestNamespace;
+
+            public class FakeLogger : ILogger
+            {
+                public List<string> Logs = new List<string>();
+                public IDisposable BeginScope<TState>(TState state) => null!;
+                public bool IsEnabled(LogLevel logLevel) => true;
+                public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+                {
+                    Logs.Add(formatter(state, exception));
+                }
+            }
+
+            public partial class TestClass
+            {
+                public FakeLogger Logger = new FakeLogger();
+
+                [GenerateFungeMethod(InlineSource = "1y \"ROMA\" 4( \"AMOR\" 4) @")]
+                public partial void Run();
+            }
+            """;
+
+        var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+        AssertNoErrors(diagnostics, outputCompilation);
+
+        var asm = Emit(outputCompilation, TestCancellationToken);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestNamespace.TestClass")!;
+            var instance = Activator.CreateInstance(t)!;
+            var m = t.GetMethod("Run")!;
+            m.Invoke(instance, null);
+
+            var loggerField = t.GetField("Logger")!;
+            var logger = (dynamic)loggerField.GetValue(instance)!;
+            var logs = (List<string>)logger.Logs;
+
+            LogWriteLine("Actual Logs:\n" + string.Join("\n", logs));
+
+            // Check for System Information log
+            Assert.Contains(l => l.Contains("System information requested") && l.Contains("Argument: 1"), logs);
+            
+            // Check for Fingerprint Loaded log ('AMOR' because we pushed 'ROMA' and pop 4 times)
+            Assert.Contains("IP 0: Fingerprint 'AMOR' loaded", logs);
+            
+            // Check for Fingerprint Unloaded log ('ROMA' because we pushed 'AMOR' and pop 4 times)
+            Assert.Contains("IP 0: Fingerprint 'ROMA' unloaded", logs);
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
 
     GeneratorDriver RunGenerators(
         string source,

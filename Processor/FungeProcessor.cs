@@ -585,14 +585,24 @@ public sealed partial class FungeProcessor(
                     break;
                 }
 
-            // ── Fingerprints (reflect – not implemented) ─────────────────────
+            // ── Fingerprints (stub) ──────────────────────────────────────────
             case '(': // Load Semantics
-                ip.Delta = ip.Delta.Reflect();
-                break;
+                {
+                    var n = ip.StackStack.Pop();
+                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
+                    ip.StackStack.Push(0); // Dummy fingerprint ID
+                    ip.StackStack.Push(1); // Success
+                    break;
+                }
 
             case ')': // Unload Semantics
-                ip.Delta = ip.Delta.Reflect();
-                break;
+                {
+                    var n = ip.StackStack.Pop();
+                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
+                    ip.StackStack.Push(0); // Dummy fingerprint ID
+                    ip.StackStack.Push(1); // Success
+                    break;
+                }
 
             // ── Optional (reflect) ────────────────────────────────────────────
             case '=': // Execute (system exec)
