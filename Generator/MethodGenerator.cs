@@ -621,10 +621,12 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     static string? FindLoggerField(ITypeSymbol? type, bool isStatic, KnownTypes types)
     {
         bool isBaseType = false;
-        while (type != null)
+        var shadowedNames = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        var currentType = type;
+
+        while (currentType != null)
         {
-            var members = type.GetMembers().OfType<IFieldSymbol>();
-            foreach (var field in members)
+            foreach (var field in currentType.GetMembers().OfType<IFieldSymbol>())
             {
                 if (isStatic && !field.IsStatic) continue;
 
@@ -636,9 +638,30 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 {
                     return field.Name;
                 }
+                else if (field.CanBeReferencedByName)
+                {
+                    shadowedNames.Add(field.Name);
+                }
             }
-            type = type.BaseType;
+            currentType = currentType.BaseType;
             isBaseType = true;
+        }
+
+        if (type is INamedTypeSymbol namedType)
+        {
+            foreach (var constructor in namedType.InstanceConstructors)
+            {
+                if (constructor.DeclaringSyntaxReferences.Any(ds => ds.GetSyntax() is ClassDeclarationSyntax))
+                {
+                    foreach (var parameter in constructor.Parameters)
+                    {
+                        if (IsLoggerType(parameter.Type, types) && !shadowedNames.Contains(parameter.Name))
+                        {
+                            return parameter.Name;
+                        }
+                    }
+                }
+            }
         }
         return null;
     }
