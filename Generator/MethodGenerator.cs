@@ -57,6 +57,71 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     enum OutputKind { None, TextWriter, PipeWriter, ReturnString, ReturnEnumerable, ReturnAsyncEnumerable }
 
+    readonly struct KnownTypes
+    {
+        public readonly INamedTypeSymbol? String;
+        public readonly INamedTypeSymbol? Task;
+        public readonly INamedTypeSymbol? TaskInt;
+        public readonly INamedTypeSymbol? TaskString;
+        public readonly INamedTypeSymbol? ValueTask;
+        public readonly INamedTypeSymbol? ValueTaskInt;
+        public readonly INamedTypeSymbol? ValueTaskString;
+        public readonly INamedTypeSymbol? IEnumerableByte;
+        public readonly INamedTypeSymbol? IAsyncEnumerableByte;
+        public readonly INamedTypeSymbol? Byte;
+        public readonly INamedTypeSymbol? Int;
+        public readonly INamedTypeSymbol? TextReader;
+        public readonly INamedTypeSymbol? PipeReader;
+        public readonly INamedTypeSymbol? TextWriter;
+        public readonly INamedTypeSymbol? PipeWriter;
+        public readonly INamedTypeSymbol? CancellationToken;
+
+        public KnownTypes(Compilation compilation)
+        {
+            String = compilation.GetSpecialType(SpecialType.System_String);
+            var byteSymbol = compilation.GetSpecialType(SpecialType.System_Byte);
+            var intSymbol = compilation.GetSpecialType(SpecialType.System_Int32);
+            
+            var taskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task`1");
+            Task = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task");
+            TaskInt = taskGeneric?.Construct(intSymbol);
+            TaskString = taskGeneric?.Construct(String);
+
+            var valueTaskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask`1");
+            ValueTask = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask");
+            ValueTaskInt = valueTaskGeneric?.Construct(intSymbol);
+            ValueTaskString = valueTaskGeneric?.Construct(String);
+
+            var enumerableGeneric = GetBestTypeByMetadataName(compilation, "System.Collections.Generic.IEnumerable`1");
+            IEnumerableByte = enumerableGeneric?.Construct(byteSymbol);
+
+            var asyncEnumerableGeneric = GetBestTypeByMetadataName(compilation, "System.Collections.Generic.IAsyncEnumerable`1");
+            IAsyncEnumerableByte = asyncEnumerableGeneric?.Construct(byteSymbol);
+
+            Byte = byteSymbol;
+            Int = intSymbol;
+            TextReader = GetBestTypeByMetadataName(compilation, "System.IO.TextReader");
+            PipeReader = GetBestTypeByMetadataName(compilation, "System.IO.Pipelines.PipeReader");
+            TextWriter = GetBestTypeByMetadataName(compilation, "System.IO.TextWriter");
+            PipeWriter = GetBestTypeByMetadataName(compilation, "System.IO.Pipelines.PipeWriter");
+            CancellationToken = GetBestTypeByMetadataName(compilation, "System.Threading.CancellationToken");
+        }
+
+        private static INamedTypeSymbol? GetBestTypeByMetadataName(Compilation compilation, string metadataName)
+        {
+            var type = compilation.GetTypeByMetadataName(metadataName);
+            if (type != null) return type;
+
+            // Manual search through references if the standard lookup fails due to ambiguity
+            foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+            {
+                var found = assembly.GetTypeByMetadataName(metadataName);
+                if (found != null) return found;
+            }
+            return null;
+        }
+    }
+
     readonly struct ExecutionBinding(
         bool isValid,
         ReturnKind returnKind,
@@ -137,14 +202,19 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 || provider.GlobalOptions.TryGetValue("build_property.ProjectDir", out dir)
                 ? dir : null);
 
+        var compilation = context.CompilationProvider;
+        var knownTypes = compilation.Select(static (c, _) => new KnownTypes(c));
+
         var inputs = generatedTargets
             .Combine(additionalFiles)
             .Combine(languageVersion)
-            .Combine(projectDirectory);
+            .Combine(projectDirectory)
+            .Combine(compilation)
+            .Combine(knownTypes);
 
         context.RegisterSourceOutput(inputs, static (ctx, input) =>
         {
-            var (((sources, files), langVersion), projDir) = input;
+            var (((((sources, files), langVersion), projDir), compilation), types) = input;
 
             if (sources.IsDefaultOrEmpty)
                 return;
@@ -170,7 +240,24 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 var attrData = syntaxCtx.Attributes.FirstOrDefault();
                 if (attrData is null) continue;
 
-                var sourcePath = attrData.ConstructorArguments.FirstOrDefault().Value as string;
+                string? sourcePath = null;
+                if (attrData.ConstructorArguments.Length > 0)
+                {
+                    sourcePath = attrData.ConstructorArguments[0].Value as string;
+                }
+                else
+                {
+                    // Fallback to syntax if semantic model couldn't resolve
+                    var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+                    if (attributeSyntax?.ArgumentList?.Arguments.Count > 0)
+                    {
+                        var arg = attributeSyntax.ArgumentList.Arguments[0].Expression;
+                        if (arg is LiteralExpressionSyntax lit)
+                        {
+                            sourcePath = lit.Token.ValueText;
+                        }
+                    }
+                }
 
                 // Check for inline source (named argument takes priority over file path)
                 string? inlineSource = null;
@@ -181,6 +268,21 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         inlineSource = namedArg.Value.Value as string;
                         break;
                     }
+                }
+                
+                if (inlineSource == null)
+                {
+                     var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+                     if (attributeSyntax?.ArgumentList != null)
+                     {
+                         foreach (var arg in attributeSyntax.ArgumentList.Arguments)
+                         {
+                             if (arg.NameEquals?.Name.Identifier.ValueText == "InlineSource" && arg.Expression is LiteralExpressionSyntax lit)
+                             {
+                                 inlineSource = lit.Token.ValueText;
+                             }
+                         }
+                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(inlineSource) && string.IsNullOrWhiteSpace(sourcePath))
@@ -193,7 +295,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
                 // Bind the method signature
-                var binding = BindExecutionSignature(symbol, method);
+                var binding = BindExecutionSignature(symbol, method, types);
                 if (!binding.IsValid)
                 {
                     if (binding.ErrorId == DiagnosticDescriptors.InvalidReturnType.Id)
@@ -304,38 +406,47 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     // Signature binding
     // -----------------------------------------------------------------------
 
-    static ExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax)
+    static bool IsSameType(ITypeSymbol? type, INamedTypeSymbol? knownType)
     {
-        var returnKind = method.ReturnType switch
-        {
-            { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
-            { SpecialType: SpecialType.System_Int32 } => ReturnKind.Int,
-            { Name: "String", ContainingNamespace.Name: "System" } => ReturnKind.String,
-            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 0
-                => ReturnKind.Task,
-            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Int32
-                => ReturnKind.TaskInt,
-            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_String
-                => ReturnKind.TaskString,
-            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 0
-                => ReturnKind.ValueTask,
-            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Int32
-                => ReturnKind.ValueTaskInt,
-            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_String
-                => ReturnKind.ValueTaskString,
-            INamedTypeSymbol t when t.Name == "IEnumerable" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Byte
-                => ReturnKind.EnumerableByte,
-            INamedTypeSymbol t when t.Name == "IAsyncEnumerable" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Byte
-                => ReturnKind.AsyncEnumerableByte,
-            _ => ReturnKind.Invalid,
-        };
+        if (type is null || knownType is null) return false;
+        return SymbolEqualityComparer.Default.Equals(type, knownType);
+    }
 
+    static bool IsSameTypeOrConstructedFrom(ITypeSymbol? type, INamedTypeSymbol? knownType)
+    {
+        if (type is null || knownType is null) return false;
+        if (SymbolEqualityComparer.Default.Equals(type, knownType)) return true;
+        if (type is INamedTypeSymbol namedType && namedType.IsGenericType && SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, knownType)) return true;
+        return false;
+    }
+
+    static ExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax, KnownTypes types)
+    {
+        var returnType = method.ReturnType;
+
+        var returnKind = ReturnKind.Invalid;
+
+        if (returnType.SpecialType == SpecialType.System_Void) returnKind = ReturnKind.Void;
+        else if (returnType.SpecialType == SpecialType.System_Int32) returnKind = ReturnKind.Int;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.String)) returnKind = ReturnKind.String;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.Task)) returnKind = ReturnKind.Task;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.TaskInt)) returnKind = ReturnKind.TaskInt;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.TaskString)) returnKind = ReturnKind.TaskString;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTask)) returnKind = ReturnKind.ValueTask;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTaskInt)) returnKind = ReturnKind.ValueTaskInt;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTaskString)) returnKind = ReturnKind.ValueTaskString;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.IEnumerableByte)) returnKind = ReturnKind.EnumerableByte;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.IAsyncEnumerableByte)) returnKind = ReturnKind.AsyncEnumerableByte;
+
+        if (returnKind == ReturnKind.Invalid)
+        {
+             // returnKind is invalid, check types for debugging
+             // Using a diagnostic for debugging as we are in a generator
+             // ctx.ReportDiagnostic(...); // Need context here, but BindExecutionSignature doesn't have it. 
+             // We'll have to return an error diagnostic later in Initialize.
+             // For now, let's keep returnKind as invalid to trigger the error.
+        }
+        
         if (returnKind == ReturnKind.Invalid)
             return new(false, returnKind, InputKind.None, OutputKind.None, "", "", null, null, null,
                 DiagnosticDescriptors.InvalidReturnType.Id);
@@ -364,8 +475,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     DiagnosticDescriptors.InvalidParameter.Id, p.Locations.FirstOrDefault());
 
             var typeName = p.Type.ToDisplayString();
-
-            if (p.Type.SpecialType == SpecialType.System_String)
+            if (typeName == "string")
             {
                 if (inputKind is not InputKind.None)
                     return new(false, returnKind, inputKind, outputKind, "", "", null, null, null,
@@ -375,8 +485,10 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (typeName is "string[]" or "global::System.Collections.Generic.IEnumerable<string>" or "System.Collections.Generic.IEnumerable<string>")
+            // String array or IEnumerable<string>
+            if (p.Type is IArrayTypeSymbol || (p.Type is INamedTypeSymbol namedType && (namedType.Name == "IEnumerable" || namedType.Name == "IEnumerable`1")))
             {
+                // This is a rough check, keeping existing logic
                 var name = p.Name.ToLowerInvariant();
                 if (name.Contains("arg"))
                 {
@@ -396,7 +508,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
             }
 
-            if (typeName == "System.IO.TextReader")
+            if (typeName.Contains("TextReader"))
             {
                 if (inputKind is not InputKind.None)
                     return new(false, returnKind, inputKind, outputKind, "", "", null, null, null,
@@ -406,7 +518,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (typeName == "System.IO.Pipelines.PipeReader")
+            if (typeName.Contains("PipeReader"))
             {
                 if (inputKind is not InputKind.None)
                     return new(false, returnKind, inputKind, outputKind, "", "", null, null, null,
@@ -416,22 +528,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (typeName == "System.IO.TextWriter")
-            {
-                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
-                        cancellationTokenName, DiagnosticDescriptors.ReturnOutputConflict.Id,
-                        p.Locations.FirstOrDefault());
-                if (outputKind is not OutputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
-                        cancellationTokenName, DiagnosticDescriptors.DuplicateParameter.Id,
-                        p.Locations.FirstOrDefault());
-                outputKind = OutputKind.TextWriter;
-                outputExpr = p.Name;
-                continue;
-            }
-
-            if (typeName == "System.IO.Pipelines.PipeWriter")
+            if (typeName.Contains("PipeWriter"))
             {
                 if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
                     return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
@@ -446,7 +543,22 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (typeName == "System.Threading.CancellationToken")
+            if (typeName.Contains("TextWriter"))
+            {
+                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
+                        cancellationTokenName, DiagnosticDescriptors.ReturnOutputConflict.Id,
+                        p.Locations.FirstOrDefault());
+                if (outputKind is not OutputKind.None)
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
+                        cancellationTokenName, DiagnosticDescriptors.DuplicateParameter.Id,
+                        p.Locations.FirstOrDefault());
+                outputKind = OutputKind.TextWriter;
+                outputExpr = p.Name;
+                continue;
+            }
+
+            if (typeName.Contains("CancellationToken"))
             {
                 if (hasCancellationToken)
                     return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null,
