@@ -9,9 +9,17 @@ partial class MethodGenerator
     [System.Flags]
     enum RuntimeFacadeFeatures
     {
-        None = 0, RunSync = 1 << 0, RunString = 1 << 1, RunEnumerable = 1 << 2, RunAsyncEnumerable = 1 << 3,
-        RunTask = 1 << 4, RunTaskInt = 1 << 5, RunTaskString = 1 << 6, RunValueTask = 1 << 7,
-        RunValueTaskInt = 1 << 8, RunValueTaskString = 1 << 9,
+        None = 0, 
+        RunSync = 1 << 0, 
+        RunString = 1 << 1, 
+        RunEnumerable = 1 << 2, 
+        RunAsyncEnumerable = 1 << 3,
+        RunTask = 1 << 4, 
+        RunTaskInt = 1 << 5, 
+        RunTaskString = 1 << 6, 
+        RunValueTask = 1 << 7,
+        RunValueTaskInt = 1 << 8, 
+        RunValueTaskString = 1 << 9,
     }
 
     static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features)
