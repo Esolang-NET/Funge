@@ -490,7 +490,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var hasCancellationToken = false;
 
         string? loggerExpression = null;
-        bool isLoggerFromParameter = false;
+        var isLoggerFromParameter = false;
 
         foreach (var p in method.Parameters)
         {
@@ -610,17 +610,20 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 p.Locations.FirstOrDefault());
         }
 
-        if (loggerExpression is null)
+        var fieldName = FindLoggerField(method.ContainingType, method.IsStatic, types, out var isField);
+        if (loggerExpression == null)
         {
-            loggerExpression = FindLoggerField(method.ContainingType, method.IsStatic, types);
+            loggerExpression = fieldName;
+            isLoggerFromParameter = !isField;
         }
 
         return new(true, returnKind, inputKind, outputKind, inputExpr, outputExpr, argsExpr, envsExpr, cancellationTokenName, loggerExpression, isLoggerFromParameter, null);
     }
 
-    static string? FindLoggerField(ITypeSymbol? type, bool isStatic, KnownTypes types)
+    static string? FindLoggerField(ITypeSymbol? type, bool isStatic, KnownTypes types, out bool isField)
     {
-        bool isBaseType = false;
+        isField = false;
+        var isBaseType = false;
         var shadowedNames = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
         var currentType = type;
 
@@ -636,6 +639,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
                 if (IsLoggerType(field.Type, types))
                 {
+                    isField = true;
                     return field.Name;
                 }
                 else if (field.CanBeReferencedByName)
@@ -657,6 +661,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     {
                         if (IsLoggerType(parameter.Type, types) && !shadowedNames.Contains(parameter.Name))
                         {
+                            isField = false;
                             return parameter.Name;
                         }
                     }

@@ -185,6 +185,55 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
     [TestMethod]
+    public async Task TestFunctionalLoggingInvocation_PrimaryConstructor()
+    {
+        var source = $$"""
+            using Esolang.Funge;
+            using Microsoft.Extensions.Logging;
+            using System;
+            using System.Collections.Generic;
+
+            namespace TestNamespace;
+
+            public class FakeLogger : ILogger
+            {
+                public List<string> Logs = new List<string>();
+                public IDisposable BeginScope<TState>(TState state) => null!;
+                public bool IsEnabled(LogLevel logLevel) => true;
+                public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+                {
+                    Logs.Add(formatter(state, exception));
+                }
+            }
+
+            public partial class TestClass(FakeLogger logger)
+            {
+                [GenerateFungeMethod(InlineSource = "1 @")]
+                public partial void Run();
+            }
+            """;
+
+        var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+        AssertNoErrors(diagnostics, outputCompilation);
+
+        var asm = Emit(outputCompilation, TestCancellationToken);
+        await Task.Factory.StartNew(() =>
+        {
+            var t = asm.GetType("TestNamespace.TestClass")!;
+            var loggerType = asm.GetType("TestNamespace.FakeLogger")!;
+            var loggerInstance = Activator.CreateInstance(loggerType)!;
+            var instance = Activator.CreateInstance(t, loggerInstance)!;
+            var m = t.GetMethod("Run")!;
+            m.Invoke(instance, null);
+
+            var logs = (List<string>)loggerType.GetField("Logs")!.GetValue(loggerInstance)!;
+
+            Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
+            Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
+        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+    }
+
+    [TestMethod]
     public async Task TestFunctionalFingerprintLogging()
     {
         // 0x524f4d41 = 'ROMA'

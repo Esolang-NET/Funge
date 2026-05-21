@@ -127,17 +127,16 @@ The generated runtime automatically handles XYZ coordinates, Z-axis wrapping, an
 The generator automatically detects and injects logging support if an `ILogger` or `ILogger<T>` is available. It searches in the following order:
 
 1. **Method Parameters**: If a parameter of type `ILogger` or `ILogger<T>` is declared, it is used directly.
-2. **Class Fields**: If no parameter is provided, the generator searches for a field of type `ILogger` or `ILogger<T>` within the containing class (including accessible fields in base classes).
+2. **Primary Constructor Parameters**: If a primary constructor parameter of type `ILogger` or `ILogger<T>` is present in the class, it is used.
+3. **Class Fields**: If no parameter or constructor argument is provided, the generator searches for a field of type `ILogger` or `ILogger<T>` within the containing class (including accessible fields in base classes).
 
 **Example:**
 ```csharp
-public partial class MyPrograms
+// Logger detected as primary constructor parameter
+public partial class MyPrograms(ILogger<MyPrograms> logger)
 {
-    // Logger detected as a class field
-    private readonly ILogger<MyPrograms> _logger;
-
     [GenerateFungeMethod("Programs/hello.b98")]
-    public partial void HelloWorld(); // _logger will be used automatically
+    public partial void HelloWorld(); // 'logger' parameter will be used automatically
 }
 ```
 
