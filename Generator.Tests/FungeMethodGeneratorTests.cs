@@ -100,7 +100,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGenerators(source, out _, out _);
+        var driver = RunGeneratorsAndUpdateCompilation(source, out _, out _);
         var runResult = driver.GetRunResult();
         var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
 
@@ -125,7 +125,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGenerators(source, out _, out _);
+        var driver = RunGeneratorsAndUpdateCompilation(source, out _, out _);
         var runResult = driver.GetRunResult();
         var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
 
@@ -163,7 +163,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+        var driver = RunGeneratorsAndUpdateCompilation(source, out var outputCompilation, out var diagnostics);
         AssertNoErrors(diagnostics, outputCompilation);
 
         var asm = Emit(outputCompilation, TestCancellationToken);
@@ -213,7 +213,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+        var driver = RunGeneratorsAndUpdateCompilation(source, out var outputCompilation, out var diagnostics);
         AssertNoErrors(diagnostics, outputCompilation);
 
         var asm = Emit(outputCompilation, TestCancellationToken);
@@ -268,7 +268,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGenerators(source, out var outputCompilation, out var diagnostics);
+        var driver = RunGeneratorsAndUpdateCompilation(source, out var outputCompilation, out var diagnostics);
         AssertNoErrors(diagnostics, outputCompilation);
 
         var asm = Emit(outputCompilation, TestCancellationToken);
@@ -297,21 +297,13 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     }
 
 
-    GeneratorDriver RunGenerators(
+    GeneratorDriver RunGeneratorsAndUpdateCompilation(
         string source,
         out Compilation outputCompilation,
         out ImmutableArray<Diagnostic> diagnostics,
         IEnumerable<(string path, string content)>? additionalFiles = null,
-        LanguageVersion languageVersion = LanguageVersion.CSharp12)
-        => RunGenerators(source, out outputCompilation, out diagnostics, TestCancellationToken, additionalFiles, languageVersion);
-
-    GeneratorDriver RunGenerators(
-        string source,
-        out Compilation outputCompilation,
-        out ImmutableArray<Diagnostic> diagnostics,
-        CancellationToken cancellationToken,
-        IEnumerable<(string path, string content)>? additionalFiles = null,
-        LanguageVersion languageVersion = LanguageVersion.CSharp12)
+        LanguageVersion languageVersion = LanguageVersion.CSharp11,
+        CancellationToken cancellationToken = default)
     {
         var parseOptions = new CSharpParseOptions(languageVersion);
         var generator = new MethodGenerator();
@@ -391,7 +383,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
         var actualPaths = comp.SyntaxTrees.Select(v => v.FilePath).ToArray();
@@ -421,7 +413,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("hello.b98", helloWorld)]);
         AssertNoErrors(diag, comp);
 
@@ -451,7 +443,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("sgml.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -481,7 +473,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("k.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -510,7 +502,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(TextWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -529,7 +521,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(TextWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -549,7 +541,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task<int> Run(TextWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -569,7 +561,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<int> Run(TextWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -588,7 +580,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(PipeWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -608,7 +600,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task<int> Run(PipeWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -628,7 +620,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<int> Run(PipeWriter output);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -647,7 +639,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -665,7 +657,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -684,7 +676,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task<int> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -703,7 +695,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<int> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -722,7 +714,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task<string> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -741,7 +733,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -760,7 +752,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<string> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -779,7 +771,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial IEnumerable<byte> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -799,7 +791,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial IAsyncEnumerable<byte> Run(CancellationToken cancellationToken = default);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -817,7 +809,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(TextReader input);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -834,7 +826,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(string input);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
     }
@@ -851,7 +843,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "@")]);
         AssertNoErrors(diag, comp);
 
@@ -893,7 +885,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial double Run();
             }
             """;
-        RunGenerators(source, out _, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out _, out var diag,
             additionalFiles: [("test.b98", "@")]);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0002"), "Expected FG0002");
     }
@@ -913,7 +905,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("exit-code.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -943,7 +935,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("exit-code-zero.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -973,7 +965,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("go-low.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1003,7 +995,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("go-high.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1037,7 +1029,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int RunHigh(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("select-low.b98", programLow), ("select-high.b98", programHigh)]);
         AssertNoErrors(diag, comp);
 
@@ -1071,7 +1063,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("getput-3d.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1101,7 +1093,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("offset-getput.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1131,7 +1123,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial string Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("stack-u.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1173,7 +1165,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("sysinfo-flags.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1212,7 +1204,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                     public static partial int Run(System.Threading.CancellationToken cancellationToken);
                 }
                 """;
-            RunGenerators(source, out var comp, out var diag,
+            RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
                 additionalFiles: [("file-in.b98", program)]);
             AssertNoErrors(diag, comp);
 
@@ -1256,7 +1248,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                     public static partial void Run(System.Threading.CancellationToken cancellationToken);
                 }
                 """;
-            RunGenerators(source, out var comp, out var diag,
+            RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
                 additionalFiles: [("file-out.b98", program)]);
             AssertNoErrors(diag, comp);
 
@@ -1295,7 +1287,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("system-exec.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1326,7 +1318,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("system-exec-fail.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1353,7 +1345,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("task-facade.b98", "@")]);
         AssertNoErrors(diag, comp);
 
@@ -1376,7 +1368,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<string> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("valuetask-facade.b98", "@")]);
         AssertNoErrors(diag, comp);
 
@@ -1403,7 +1395,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial IAsyncEnumerable<byte> Run(CancellationToken cancellationToken = default);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("async-enumerable.b98", program)]);
         AssertNoErrors(diag, comp);
 
@@ -1442,7 +1434,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(CancellationToken cancellationToken = default);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("sync-token.b98", "@")]);
         AssertNoErrors(diag, comp);
 
@@ -1465,7 +1457,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("minimal-int.b98", "@")]);
         AssertNoErrors(diag, comp);
 
@@ -1492,7 +1484,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<string> Run();
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("minimal-vts.b98", "@")]);
         AssertNoErrors(diag, comp);
 
@@ -1520,7 +1512,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(CancellationToken cancellationToken = default);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("infinite-loop.b98", ">")]);
         AssertNoErrors(diag, comp);
 
@@ -1549,7 +1541,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """;
-        RunGenerators(source, out _, out var diag);
+        RunGeneratorsAndUpdateCompilation(source, out _, out var diag);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0004"), "Expected FG0004");
     }
 
@@ -1566,7 +1558,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(TextReader a, TextReader b);
             }
             """;
-        RunGenerators(source, out _, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out _, out var diag,
             additionalFiles: [("test.b98", "@")]);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0006"), "Expected FG0006");
     }
@@ -1584,7 +1576,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial string Run(TextWriter output);
             }
             """;
-        RunGenerators(source, out _, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out _, out var diag,
             additionalFiles: [("test.b98", "@")]);
         Assert.IsTrue(diag.Any(d => d.Id == "FG0007"), "Expected FG0007");
     }
@@ -1603,7 +1595,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(TextWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "65*.5q")]);
         AssertNoErrors(diag, comp);
 
@@ -1634,7 +1626,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "65*.5q")]);
         AssertNoErrors(diag, comp);
 
@@ -1663,7 +1655,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial Task<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "65*.5q")]);
         AssertNoErrors(diag, comp);
 
@@ -1692,7 +1684,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial ValueTask<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "65*.5q")]);
         AssertNoErrors(diag, comp);
 
@@ -1719,7 +1711,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "68*2-s<<@")]);
         AssertNoErrors(diag, comp);
 
@@ -1750,7 +1742,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("test.b98", "66*2+s<<@")]);
         AssertNoErrors(diag, comp);
 
@@ -1788,7 +1780,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """";
-        RunGenerators(source, out var comp, out var diag);
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag);
         AssertNoErrors(diag, comp);
 
         var generated = comp.SyntaxTrees
@@ -1821,7 +1813,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """";
-        RunGenerators(source, out var comp, out var diag);
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag);
         AssertNoErrors(diag, comp);
 
         var generated = comp.SyntaxTrees
@@ -1847,7 +1839,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """";
-        RunGenerators(source, out var comp, out var diag);
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag);
         AssertNoErrors(diag, comp);
     }
     [TestMethod]
@@ -1867,7 +1859,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial int Run(string[] args, string[] envs, System.Threading.CancellationToken cancellationToken);
             }
             """;
-        RunGenerators(source, out var comp, out var diag,
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("args-test.b98", program)]);
         AssertNoErrors(diag, comp);
 
