@@ -6,7 +6,6 @@ using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace Esolang.Funge.Generator.Tests;
 
@@ -16,7 +15,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
 
     void LogWriteLine(string message) => TestContext.WriteLine(message);
 #pragma warning disable MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
-    CancellationToken TestCancellationToken => TestContext.CancellationTokenSource.Token;
+    CancellationToken CancellationToken => TestContext.CancellationTokenSource.Token;
 #pragma warning restore MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
 
     Compilation baseCompilation = default!;
@@ -100,13 +99,21 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGeneratorsAndUpdateCompilation(source, out _, out _);
-        var runResult = driver.GetRunResult();
-        var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
+        var driver = RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            var runResult = driver.GetRunResult();
+            var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
 
-        // Should use the parameter name directly, without 'this.' or field prefix
-        Assert.IsTrue(generatedSource.Contains("logger: logger"));
-        Assert.IsFalse(generatedSource.Contains("logger: this.logger"));
+            // Should use the parameter name directly, without 'this.' or field prefix
+            Assert.Contains("logger: logger", generatedSource);
+            Assert.DoesNotContain("logger: this.logger", generatedSource);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -125,11 +132,20 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGeneratorsAndUpdateCompilation(source, out _, out _);
-        var runResult = driver.GetRunResult();
-        var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
+        var driver = RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            cancellationToken: CancellationToken);
+        try
+        {
+            var runResult = driver.GetRunResult();
+            var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
 
-        Assert.IsTrue(generatedSource.Contains("logger: logger"));
+            Assert.Contains("logger: logger", generatedSource);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -163,25 +179,35 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGeneratorsAndUpdateCompilation(source, out var outputCompilation, out var diagnostics);
-        AssertNoErrors(diagnostics, outputCompilation);
-
-        var asm = Emit(outputCompilation, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+        var driver = RunGeneratorsAndUpdateCompilation(source,
+            out var outputCompilation, out var diagnostics,
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestNamespace.TestClass")!;
-            var instance = Activator.CreateInstance(t)!;
-            var m = t.GetMethod("Run")!;
-            m.Invoke(instance, null);
+            AssertNoErrors(diagnostics, outputCompilation);
 
-            var loggerField = t.GetField("Logger")!;
-            var logger = (dynamic)loggerField.GetValue(instance)!;
-            var logs = (List<string>)logger.Logs;
+            var asm = Emit(outputCompilation, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestNamespace.TestClass")!;
+                var instance = Activator.CreateInstance(t)!;
+                var m = t.GetMethod("Run")!;
+                m.Invoke(instance, null);
 
-            // Check if we have logs for '1' and '@'
-            Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
-            Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                var loggerField = t.GetField("Logger")!;
+                var logger = (dynamic)loggerField.GetValue(instance)!;
+                var logs = (List<string>)logger.Logs;
+
+                // Check if we have logs for '1' and '@'
+                Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
+                Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diagnostics, outputCompilation);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -213,24 +239,35 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGeneratorsAndUpdateCompilation(source, out var outputCompilation, out var diagnostics);
-        AssertNoErrors(diagnostics, outputCompilation);
-
-        var asm = Emit(outputCompilation, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+        var driver = RunGeneratorsAndUpdateCompilation(source,
+            out var outputCompilation, out var diagnostics,
+            languageVersion: LanguageVersion.CSharp12,
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestNamespace.TestClass")!;
-            var loggerType = asm.GetType("TestNamespace.FakeLogger")!;
-            var loggerInstance = Activator.CreateInstance(loggerType)!;
-            var instance = Activator.CreateInstance(t, loggerInstance)!;
-            var m = t.GetMethod("Run")!;
-            m.Invoke(instance, null);
+            AssertNoErrors(diagnostics, outputCompilation);
 
-            var logs = (List<string>)loggerType.GetField("Logs")!.GetValue(loggerInstance)!;
+            var asm = Emit(outputCompilation, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestNamespace.TestClass")!;
+                var loggerType = asm.GetType("TestNamespace.FakeLogger")!;
+                var loggerInstance = Activator.CreateInstance(loggerType)!;
+                var instance = Activator.CreateInstance(t, loggerInstance)!;
+                var m = t.GetMethod("Run")!;
+                m.Invoke(instance, null);
 
-            Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
-            Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                var logs = (List<string>)loggerType.GetField("Logs")!.GetValue(loggerInstance)!;
+
+                Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
+                Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diagnostics, outputCompilation);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -268,32 +305,43 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
 
-        var driver = RunGeneratorsAndUpdateCompilation(source, out var outputCompilation, out var diagnostics);
-        AssertNoErrors(diagnostics, outputCompilation);
-
-        var asm = Emit(outputCompilation, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+        var driver = RunGeneratorsAndUpdateCompilation(source,
+            out var outputCompilation, out var diagnostics,
+            languageVersion: LanguageVersion.CSharp12,
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestNamespace.TestClass")!;
-            var instance = Activator.CreateInstance(t)!;
-            var m = t.GetMethod("Run")!;
-            m.Invoke(instance, null);
+            AssertNoErrors(diagnostics, outputCompilation);
 
-            var loggerField = t.GetField("Logger")!;
-            var logger = (dynamic)loggerField.GetValue(instance)!;
-            var logs = (List<string>)logger.Logs;
+            var asm = Emit(outputCompilation, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestNamespace.TestClass")!;
+                var instance = Activator.CreateInstance(t)!;
+                var m = t.GetMethod("Run")!;
+                m.Invoke(instance, null);
 
-            LogWriteLine("Actual Logs:\n" + string.Join("\n", logs));
+                var loggerField = t.GetField("Logger")!;
+                var logger = (dynamic)loggerField.GetValue(instance)!;
+                var logs = (List<string>)logger.Logs;
 
-            // Check for System Information log
-            Assert.Contains(l => l.Contains("System information requested") && l.Contains("Argument: 1"), logs);
-            
-            // Check for Fingerprint Loaded log ('AMOR' because we pushed 'ROMA' and pop 4 times)
-            Assert.Contains("IP 0: Fingerprint 'AMOR' loaded", logs);
-            
-            // Check for Fingerprint Unloaded log ('ROMA' because we pushed 'AMOR' and pop 4 times)
-            Assert.Contains("IP 0: Fingerprint 'ROMA' unloaded", logs);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                LogWriteLine("Actual Logs:\n" + string.Join("\n", logs));
+
+                // Check for System Information log
+                Assert.Contains(l => l.Contains("System information requested") && l.Contains("Argument: 1"), logs);
+
+                // Check for Fingerprint Loaded log ('AMOR' because we pushed 'ROMA' and pop 4 times)
+                Assert.Contains("IP 0: Fingerprint 'AMOR' loaded", logs);
+
+                // Check for Fingerprint Unloaded log ('ROMA' because we pushed 'AMOR' and pop 4 times)
+                Assert.Contains("IP 0: Fingerprint 'ROMA' unloaded", logs);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diagnostics, outputCompilation);
+            throw;
+        }
     }
 
 
@@ -325,16 +373,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     {
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms, cancellationToken: cancellationToken);
-        if (!result.Success)
-        {
-            foreach (var d in compilation.GetDiagnostics(TestCancellationToken))
-                LogWriteLine($"Diag: {d}");
-            foreach (var d in result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
-                LogWriteLine(d.ToString());
-            foreach (var t in compilation.SyntaxTrees)
-                LogWriteLine($"// {t.FilePath}\n{t}");
-            Assert.Fail("Compilation emit failed");
-        }
+        Assert.IsTrue(result.Success);
         ms.Seek(0, SeekOrigin.Begin);
 
 #if NET48
@@ -354,6 +393,28 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             foreach (var t in compilation.SyntaxTrees) LogWriteLine($"// {t.FilePath}\n{t}");
             Assert.Fail($"{errors.Length} error(s) in generator output");
         }
+    }
+    void LogDiagnostics(ImmutableArray<Diagnostic> diagnostics)
+    {
+        foreach (var d in diagnostics)
+            LogWriteLine(d.ToString());
+    }
+
+    void LogDiagnostics(Compilation compilation)
+    {
+        foreach (var d in compilation.GetDiagnostics(CancellationToken))
+            LogWriteLine(d.ToString());
+    }
+    void LogDiagnostics(ImmutableArray<Diagnostic> diagnostics, Compilation compilation)
+    {
+        LogDiagnostics(diagnostics);
+        LogDiagnostics(compilation);
+        LogSyntaxTrees(compilation);
+    }
+    void LogSyntaxTrees(Compilation compilation)
+    {
+        foreach (var t in compilation.SyntaxTrees)
+            LogWriteLine($"// {t.FilePath}\n{t}");
     }
 
     static async Task<string> ReadPipeOutputAsync(Pipe pipe)
@@ -384,15 +445,24 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
-        var actualPaths = comp.SyntaxTrees.Select(v => v.FilePath).ToArray();
-
-        // Ensure expected files are present regardless of exact order or separator style
-        var expectedFiles = new[] { "input.cs", "GenerateFungeMethodAttribute.cs", "GenerateFungeMethod.g.cs" };
-        foreach (var expected in expectedFiles)
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
         {
-            Assert.IsTrue(actualPaths.Any(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase)), $"Missing file: {expected}");
+            AssertNoErrors(diag, comp);
+            var actualPaths = comp.SyntaxTrees.Select(v => v.FilePath).ToArray();
+
+            // Ensure expected files are present regardless of exact order or separator style
+            var expectedFiles = new[] { "input.cs", "GenerateFungeMethodAttribute.cs", "GenerateFungeMethod.g.cs" };
+            foreach (var expected in expectedFiles)
+            {
+                Assert.IsTrue(actualPaths.Any(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase)), $"Missing file: {expected}");
+            }
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
         }
     }
 
@@ -414,18 +484,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("hello.b98", helloWorld)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("hello.b98", helloWorld)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (string?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual("Hello, World!", result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (string?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual("Hello, World!", result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -444,18 +523,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("sgml.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("sgml.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (string?)m.Invoke(null, [TestCancellationToken])!;
-            Assert.AreEqual("32 0 ", result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (string?)m.Invoke(null, [CancellationToken])!;
+                Assert.AreEqual("32 0 ", result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -474,18 +562,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("k.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("k.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (string?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual("6 6 6 ", result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (string?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual("6 6 6 ", result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -503,8 +600,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -522,8 +628,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -542,8 +657,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -562,8 +686,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -581,8 +714,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -601,8 +743,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -621,8 +772,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -640,8 +800,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -658,8 +827,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -677,8 +855,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -696,8 +883,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -715,8 +911,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -734,8 +939,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -753,8 +967,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -772,8 +995,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -792,8 +1024,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -810,8 +1051,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -827,8 +1077,17 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -844,29 +1103,38 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        AssertNoErrors(diag, comp);
-
-        var options = (CSharpCompilationOptions)comp.Options;
-        var strict = comp.WithOptions(options.WithSpecificDiagnosticOptions(
-            options.SpecificDiagnosticOptions
-                .SetItem("CS8602", ReportDiagnostic.Error)
-                .SetItem("CS8603", ReportDiagnostic.Error)));
-
-        var runtimeNullabilityErrors = strict
-            .GetDiagnostics(TestCancellationToken)
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .Where(static d => d.Id is "CS8602" or "CS8603")
-            .Where(static d => d.Location.SourceTree?.FilePath.Contains("FungeRuntime.g.cs", StringComparison.OrdinalIgnoreCase) == true)
-            .ToArray();
-
-        if (runtimeNullabilityErrors.Length > 0)
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
         {
-            foreach (var d in runtimeNullabilityErrors)
-                LogWriteLine(d.ToString());
-        }
+            AssertNoErrors(diag, comp);
 
-        Assert.AreEqual(0, runtimeNullabilityErrors.Length, "FungeRuntime.g.cs must not produce CS8602/CS8603.");
+            var options = (CSharpCompilationOptions)comp.Options;
+            var strict = comp.WithOptions(options.WithSpecificDiagnosticOptions(
+                options.SpecificDiagnosticOptions
+                    .SetItem("CS8602", ReportDiagnostic.Error)
+                    .SetItem("CS8603", ReportDiagnostic.Error)));
+
+            var runtimeNullabilityErrors = strict
+                .GetDiagnostics(CancellationToken)
+                .Where(static d => d.Severity == DiagnosticSeverity.Error)
+                .Where(static d => d.Id is "CS8602" or "CS8603")
+                .Where(static d => d.Location.SourceTree?.FilePath.Contains("FungeRuntime.g.cs", StringComparison.OrdinalIgnoreCase) == true)
+                .ToArray();
+
+            if (runtimeNullabilityErrors.Length > 0)
+            {
+                foreach (var d in runtimeNullabilityErrors)
+                    LogWriteLine(d.ToString());
+            }
+
+            Assert.IsEmpty(runtimeNullabilityErrors, "FungeRuntime.g.cs must not produce CS8602/CS8603.");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -885,9 +1153,18 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial double Run();
             }
             """;
-        RunGeneratorsAndUpdateCompilation(source, out _, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        Assert.IsTrue(diag.Any(d => d.Id == "FG0002"), "Expected FG0002");
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            Assert.Contains(d => d.Id == "FG0002", diag, "Expected FG0002");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -906,18 +1183,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("exit-code.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("exit-code.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(5, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(5, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -936,18 +1222,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("exit-code-zero.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("exit-code-zero.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(0, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(0, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -966,18 +1261,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("go-low.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("go-low.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(7, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(7, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -996,18 +1300,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("go-high.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("go-high.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(7, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(7, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1030,22 +1343,31 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("select-low.b98", programLow), ("select-high.b98", programHigh)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("select-low.b98", programLow), ("select-high.b98", programHigh)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var mLow = t.GetMethod("RunLow");
-            Assert.IsNotNull(mLow);
-            var mHigh = t.GetMethod("RunHigh");
-            Assert.IsNotNull(mHigh);
-            var low = (int?)mLow.Invoke(null, [TestCancellationToken]);
-            var high = (int?)mHigh.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(1, low);
-            Assert.AreEqual(2, high);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var mLow = t.GetMethod("RunLow");
+                Assert.IsNotNull(mLow);
+                var mHigh = t.GetMethod("RunHigh");
+                Assert.IsNotNull(mHigh);
+                var low = (int?)mLow.Invoke(null, [CancellationToken]);
+                var high = (int?)mHigh.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(1, low);
+                Assert.AreEqual(2, high);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1064,18 +1386,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("getput-3d.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("getput-3d.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(65, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(65, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1094,18 +1425,27 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("offset-getput.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("offset-getput.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(65, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(65, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1124,30 +1464,38 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("stack-u.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        // Capture the compilation
-        var asm = Emit(comp, TestCancellationToken);
-
-        // Print generated code for inspection
-        var syntaxTrees = comp.SyntaxTrees;
-        foreach (var tree in syntaxTrees)
+            additionalFiles: [("stack-u.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            if (tree.FilePath.EndsWith("GenerateFungeMethod.g.cs"))
+            AssertNoErrors(diag, comp);
+
+            // Capture the compilation
+            var asm = Emit(comp, CancellationToken);
+
+            // Print generated code for inspection
+            var syntaxTrees = comp.SyntaxTrees;
+            foreach (var tree in syntaxTrees)
             {
-                // Console.WriteLine(tree.ToString());
+                if (tree.FilePath.EndsWith("GenerateFungeMethod.g.cs"))
+                {
+                    // Console.WriteLine(tree.ToString());
+                }
             }
+
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run", [typeof(CancellationToken)])!;
+                var result = (string?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual("2 ", result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-
-        await Task.Factory.StartNew(() =>
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run", [typeof(CancellationToken)])!;
-            var result = (string?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual("2 ", result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1166,17 +1514,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("sysinfo-flags.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("sysinfo-flags.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreEqual(15, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(15, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1205,17 +1562,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 }
                 """;
             RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-                additionalFiles: [("file-in.b98", program)]);
-            AssertNoErrors(diag, comp);
-
-            var asm = Emit(comp, TestCancellationToken);
-            await Task.Factory.StartNew(() =>
+                additionalFiles: [("file-in.b98", program)],
+                cancellationToken: CancellationToken);
+            try
             {
-                var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run")!;
-                var result = (int?)m.Invoke(null, [TestCancellationToken]);
-                Assert.AreEqual(65, result);
-            }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                AssertNoErrors(diag, comp);
+
+                var asm = Emit(comp, CancellationToken);
+                await Task.Factory.StartNew(() =>
+                {
+                    var t = asm.GetType("TestProject.TestClass")!;
+                    var m = t.GetMethod("Run")!;
+                    var result = (int?)m.Invoke(null, [CancellationToken]);
+                    Assert.AreEqual(65, result);
+                }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            }
+            catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+            {
+                LogDiagnostics(diag, comp);
+                throw;
+            }
         }
         finally
         {
@@ -1249,19 +1615,28 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 }
                 """;
             RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-                additionalFiles: [("file-out.b98", program)]);
-            AssertNoErrors(diag, comp);
-
-            var asm = Emit(comp, TestCancellationToken);
-            await Task.Factory.StartNew(() =>
+                additionalFiles: [("file-out.b98", program)],
+                cancellationToken: CancellationToken);
+            try
             {
-                var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run")!;
-                _ = m.Invoke(null, [TestCancellationToken]);
-            }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                AssertNoErrors(diag, comp);
 
-            var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
-            CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
+                var asm = Emit(comp, CancellationToken);
+                await Task.Factory.StartNew(() =>
+                {
+                    var t = asm.GetType("TestProject.TestClass")!;
+                    var m = t.GetMethod("Run")!;
+                    _ = m.Invoke(null, [CancellationToken]);
+                }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+
+                var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
+                CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
+            }
+            catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+            {
+                LogDiagnostics(diag, comp);
+                throw;
+            }
         }
         finally
         {
@@ -1288,17 +1663,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("system-exec.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("system-exec.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run")!;
-            var result = (int)((int?)m.Invoke(null, [TestCancellationToken]))!;
-            Assert.AreEqual(7, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (int)((int?)m.Invoke(null, [CancellationToken]))!;
+                Assert.AreEqual(7, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1319,17 +1703,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("system-exec-fail.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("system-exec-fail.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run")!;
-            var result = (int?)m.Invoke(null, [TestCancellationToken]);
-            Assert.AreNotEqual(0, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreNotEqual(0, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1346,13 +1739,22 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("task-facade.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("task-facade.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var generated = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("Generated from: task-facade.b98", StringComparison.Ordinal));
-        Assert.Contains("FungeRuntime.RunTask(", generated);
+            var generated = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("Generated from: task-facade.b98", StringComparison.Ordinal));
+            Assert.Contains("FungeRuntime.RunTask(", generated);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1369,13 +1771,22 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("valuetask-facade.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("valuetask-facade.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var generated = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("Generated from: valuetask-facade.b98", StringComparison.Ordinal));
-        Assert.Contains("FungeRuntime.RunValueTaskString(", generated);
+            var generated = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("Generated from: valuetask-facade.b98", StringComparison.Ordinal));
+            Assert.Contains("FungeRuntime.RunValueTaskString(", generated);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1396,28 +1807,37 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("async-enumerable.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")!;
-        var m = t.GetMethod("Run")!;
-        var stream = (IAsyncEnumerable<byte>?)m.Invoke(null, [TestCancellationToken]);
-        Assert.IsNotNull(stream);
-
-        var bytes = new List<byte>();
-        var enumerator = stream!.GetAsyncEnumerator(TestCancellationToken);
+            additionalFiles: [("async-enumerable.b98", program)],
+            cancellationToken: CancellationToken);
         try
         {
-            while (await enumerator.MoveNextAsync())
-                bytes.Add(enumerator.Current);
-        }
-        finally
-        {
-            await enumerator.DisposeAsync();
-        }
+            AssertNoErrors(diag, comp);
 
-        CollectionAssert.AreEqual(new byte[] { (byte)'A' }, bytes);
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            var stream = (IAsyncEnumerable<byte>?)m.Invoke(null, [CancellationToken]);
+            Assert.IsNotNull(stream);
+
+            var bytes = new List<byte>();
+            var enumerator = stream!.GetAsyncEnumerator(CancellationToken);
+            try
+            {
+                while (await enumerator.MoveNextAsync())
+                    bytes.Add(enumerator.Current);
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
+
+            CollectionAssert.AreEqual(new byte[] { (byte)'A' }, bytes);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1435,14 +1855,23 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("sync-token.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("sync-token.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var generated = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("Generated from: sync-token.b98", StringComparison.Ordinal));
-        Assert.Contains("FungeRuntime.RunSync(", generated);
-        Assert.Contains("cancellationToken", generated);
+            var generated = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("Generated from: sync-token.b98", StringComparison.Ordinal));
+            Assert.Contains("FungeRuntime.RunSync(", generated);
+            Assert.Contains("cancellationToken", generated);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1458,17 +1887,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("minimal-int.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("minimal-int.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var runtime = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
+            var runtime = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
 
-        Assert.Contains("internal static int RunSync(", runtime);
-        Assert.IsFalse(runtime.Contains("internal static Task RunTask(", StringComparison.Ordinal));
-        Assert.IsFalse(runtime.Contains("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal));
-        Assert.IsFalse(runtime.Contains("internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal));
+            Assert.Contains("internal static int RunSync(", runtime);
+            Assert.IsFalse(runtime.Contains("internal static Task RunTask(", StringComparison.Ordinal));
+            Assert.IsFalse(runtime.Contains("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal));
+            Assert.IsFalse(runtime.Contains("internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal));
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1485,17 +1923,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("minimal-vts.b98", "@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("minimal-vts.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var runtime = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
+            var runtime = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
 
-        Assert.Contains("internal static ValueTask<string> RunValueTaskString(", runtime);
-        Assert.IsFalse(runtime.Contains("internal static int RunSync(", StringComparison.Ordinal));
-        Assert.IsFalse(runtime.Contains("internal static Task<int> RunTaskInt(", StringComparison.Ordinal));
-        Assert.IsFalse(runtime.Contains("internal static IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal));
+            Assert.Contains("internal static ValueTask<string> RunValueTaskString(", runtime);
+            Assert.IsFalse(runtime.Contains("internal static int RunSync(", StringComparison.Ordinal));
+            Assert.IsFalse(runtime.Contains("internal static Task<int> RunTaskInt(", StringComparison.Ordinal));
+            Assert.IsFalse(runtime.Contains("internal static IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal));
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1513,20 +1960,29 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("infinite-loop.b98", ">")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("infinite-loop.b98", ">")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")!;
-        var m = t.GetMethod("Run")!;
-        Assert.IsNotNull(m);
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run")!;
+            Assert.IsNotNull(m);
 
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
 
-        var ex = Assert.Throws<TargetInvocationException>(() => m.Invoke(null, [cts.Token]));
-        Assert.IsNotNull(ex?.InnerException);
-        Assert.IsInstanceOfType(ex!.InnerException, typeof(OperationCanceledException));
+            var ex = Assert.Throws<TargetInvocationException>(() => m.Invoke(null, [cts.Token]));
+            Assert.IsNotNull(ex?.InnerException);
+            Assert.IsInstanceOfType(ex!.InnerException, typeof(OperationCanceledException));
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1541,8 +1997,16 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """;
-        RunGeneratorsAndUpdateCompilation(source, out _, out var diag);
-        Assert.IsTrue(diag.Any(d => d.Id == "FG0004"), "Expected FG0004");
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            Assert.IsTrue(diag.Any(d => d.Id == "FG0004"), "Expected FG0004");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1558,9 +2022,18 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run(TextReader a, TextReader b);
             }
             """;
-        RunGeneratorsAndUpdateCompilation(source, out _, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        Assert.IsTrue(diag.Any(d => d.Id == "FG0006"), "Expected FG0006");
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            Assert.IsTrue(diag.Any(d => d.Id == "FG0006"), "Expected FG0006");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1576,9 +2049,18 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial string Run(TextWriter output);
             }
             """;
-        RunGeneratorsAndUpdateCompilation(source, out _, out var diag,
-            additionalFiles: [("test.b98", "@")]);
-        Assert.IsTrue(diag.Any(d => d.Id == "FG0007"), "Expected FG0007");
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            Assert.IsTrue(diag.Any(d => d.Id == "FG0007"), "Expected FG0007");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1596,20 +2078,29 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "65*.5q")]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            using var output = new StringWriter();
-            var result = (int)m.Invoke(null, [output, TestCancellationToken])!;
-            Assert.AreEqual(5, result);
-            Assert.AreEqual("30 ", output.ToString());
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                using var output = new StringWriter();
+                var result = (int)m.Invoke(null, [output, CancellationToken])!;
+                Assert.AreEqual(5, result);
+                Assert.AreEqual("30 ", output.ToString());
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1627,17 +2118,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "65*.5q")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")!;
-        var m = t.GetMethod("Run");
-        Assert.IsNotNull(m);
-        var pipe = new Pipe();
-        var result = (int)m.Invoke(null, [pipe.Writer, TestCancellationToken])!;
-        Assert.AreEqual(5, result);
-        Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.IsNotNull(m);
+            var pipe = new Pipe();
+            var result = (int)m.Invoke(null, [pipe.Writer, CancellationToken])!;
+            Assert.AreEqual(5, result);
+            Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1656,17 +2156,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "65*.5q")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")!;
-        var m = t.GetMethod("Run");
-        Assert.IsNotNull(m);
-        var pipe = new Pipe();
-        var result = await (Task<int>)m.Invoke(null, [pipe.Writer, TestCancellationToken])!;
-        Assert.AreEqual(5, result);
-        Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.IsNotNull(m);
+            var pipe = new Pipe();
+            var result = await (Task<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
+            Assert.AreEqual(5, result);
+            Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1685,17 +2194,26 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "65*.5q")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")!;
-        var m = t.GetMethod("Run");
-        Assert.IsNotNull(m);
-        var pipe = new Pipe();
-        var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer, TestCancellationToken])!;
-        Assert.AreEqual(5, result);
-        Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.IsNotNull(m);
+            var pipe = new Pipe();
+            var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
+            Assert.AreEqual(5, result);
+            Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1712,21 +2230,30 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "68*2-s<<@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "68*2-s<<@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")
-            ?? asm.GetType("TestClass");
-        Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
-        var m = t.GetMethod("Run");
-        Assert.IsNotNull(m, "Failed to find generated method Run.");
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")
+                ?? asm.GetType("TestClass");
+            Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
+            var m = t.GetMethod("Run");
+            Assert.IsNotNull(m, "Failed to find generated method Run.");
 
-        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [TestCancellationToken]));
-        Assert.IsNotNull(ex);
-        Assert.IsNotNull(ex.InnerException);
-        Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
-        Assert.Contains("without an output interface", ex.InnerException!.Message);
+            var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [CancellationToken]));
+            Assert.IsNotNull(ex);
+            Assert.IsNotNull(ex.InnerException);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex.InnerException);
+            Assert.Contains("without an output interface", ex.InnerException!.Message);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1743,21 +2270,30 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("test.b98", "66*2+s<<@")]);
-        AssertNoErrors(diag, comp);
+            additionalFiles: [("test.b98", "66*2+s<<@")],
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var asm = Emit(comp, TestCancellationToken);
-        var t = asm.GetType("TestProject.TestClass")
-            ?? asm.GetType("TestClass");
-        Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
-        var m = t.GetMethod("Run");
-        Assert.IsNotNull(m, "Failed to find generated method Run.");
+            var asm = Emit(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")
+                ?? asm.GetType("TestClass");
+            Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
+            var m = t.GetMethod("Run");
+            Assert.IsNotNull(m, "Failed to find generated method Run.");
 
-        var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [TestCancellationToken]));
-        Assert.IsNotNull(ex);
-        Assert.IsNotNull(ex.InnerException);
-        Assert.IsInstanceOfType(ex.InnerException, typeof(InvalidOperationException));
-        Assert.Contains("without an input interface", ex.InnerException!.Message);
+            var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [CancellationToken]));
+            Assert.IsNotNull(ex);
+            Assert.IsNotNull(ex.InnerException);
+            Assert.IsInstanceOfType<InvalidOperationException>(ex.InnerException);
+            Assert.Contains("without an input interface", ex.InnerException!.Message);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -1780,20 +2316,28 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """";
-        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag);
-        AssertNoErrors(diag, comp);
-
-        var generated = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
-        Assert.Contains("__cells[(0, 0, 0)] = 64;", generated);
-
-        // Output all generated syntax trees for inspection
-        LogWriteLine("=== Generated Syntax Trees ===");
-        foreach (var tree in comp.SyntaxTrees)
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
         {
-            LogWriteLine($"\n--- {tree.FilePath} ---");
-            LogWriteLine(tree.GetText().ToString());
+            AssertNoErrors(diag, comp);
+
+            var generated = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
+            Assert.Contains("__cells[(0, 0, 0)] = 64;", generated);
+
+            // Output all generated syntax trees for inspection
+            LogWriteLine("=== Generated Syntax Trees ===");
+            foreach (var tree in comp.SyntaxTrees)
+            {
+                LogWriteLine($"\n--- {tree.FilePath} ---");
+                LogWriteLine(tree.GetText().ToString());
+            }
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
         }
     }
 
@@ -1813,16 +2357,24 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """";
-        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag);
-        AssertNoErrors(diag, comp);
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
 
-        var generated = comp.SyntaxTrees
-            .Select(static t => t.ToString())
-            .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
-        Assert.Contains("__cells[(0, 0, 0)] = 62;", generated); // '>'
-        Assert.Contains("__cells[(1, 0, 0)] = 118;", generated); // 'v'
-        Assert.Contains("__cells[(0, 1, 0)] = 94;", generated); // '^'
-        Assert.Contains("__cells[(1, 1, 0)] = 64;", generated); // '@'
+            var generated = comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
+            Assert.Contains("__cells[(0, 0, 0)] = 62;", generated); // '>'
+            Assert.Contains("__cells[(1, 0, 0)] = 118;", generated); // 'v'
+            Assert.Contains("__cells[(0, 1, 0)] = 94;", generated); // '^'
+            Assert.Contains("__cells[(1, 1, 0)] = 64;", generated); // '@'
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 
     [TestMethod]
@@ -1839,8 +2391,16 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 public static partial void Run();
             }
             """";
-        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag);
-        AssertNoErrors(diag, comp);
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
     [TestMethod]
     [Timeout(Constant.Timeout, CooperativeCancellation = true)]
@@ -1860,19 +2420,28 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-            additionalFiles: [("args-test.b98", program)]);
-        AssertNoErrors(diag, comp);
-
-        var asm = Emit(comp, TestCancellationToken);
-        await Task.Factory.StartNew(() =>
+            additionalFiles: [("args-test.b98", program)],
+            cancellationToken: CancellationToken);
+        try
         {
-            var t = asm.GetType("TestProject.TestClass")!;
-            var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
-            // Verify we can call it with the new parameters
-            var result = (int?)m.Invoke(null, [new[] { "test" }, new[] { "VAR=VAL" }, TestCancellationToken]);
-            Assert.AreEqual(0, result);
-        }, TestCancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.IsNotNull(m);
+                // Verify we can call it with the new parameters
+                var result = (int?)m.Invoke(null, [new[] { "test" }, new[] { "VAR=VAL" }, CancellationToken]);
+                Assert.AreEqual(0, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
     }
 }
 
