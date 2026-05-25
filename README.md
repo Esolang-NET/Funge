@@ -84,10 +84,10 @@ dotnet tool install -g dotnet-funge
 
 | Project | NuGet | Summary |
 |---|---|---|
-| [dotnet-funge](./Interpreter/README.md) | [![NuGet: dotnet-funge](https://img.shields.io/nuget/v/dotnet-funge?logo=nuget)](https://www.nuget.org/packages/dotnet-funge/) | Funge-98 command-line interpreter. |
-| [Esolang.Funge.Generator](./Generator/README.md) | [![NuGet: Esolang.Funge.Generator](https://img.shields.io/nuget/v/Esolang.Funge.Generator?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Generator/) | Funge-98 source generator. |
-| [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
-| [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
+| [dotnet-funge](./Interpreter/README.md) | [![NuGet: dotnet-funge](https://img.shields.io/nuget/v/dotnet-funge?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/dotnet-funge/) | Funge-98 command-line interpreter. |
+| [Esolang.Funge.Generator](./Generator/README.md) | [![NuGet: Esolang.Funge.Generator](https://img.shields.io/nuget/v/Esolang.Funge.Generator?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/Esolang.Funge.Generator/) | Funge-98 source generator. |
+| [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
+| [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
 
 ## Framework Support
 
@@ -101,6 +101,10 @@ dotnet tool install -g dotnet-funge
 ## Changelog
 
 - [CHANGELOG](./CHANGELOG.md)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## See also
 

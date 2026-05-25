@@ -6,9 +6,10 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-25
+
 - `Esolang.Funge.Generator`: Implement logging support for runtime instructions and events (instruction execution, fingerprint operations).
 - `Esolang.Funge.Generator`/`Processor`: Implement stub support for fingerprint instructions (`(` and `)`) to allow them to proceed without reflection, and fix corresponding test failures.
-- `Esolang.Funge.Generator`: Fix incorrect reference to primary constructor parameters in generated code (previously incorrectly prefixed with `this.`).
 
 ### Added
 
@@ -29,8 +30,6 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Processor`: Fix `k` instruction logic and simplify fingerprints.
 - Package metadata: added/expanded NuGet `PackageTags` for packable Funge packages (`Generator`, `Parser`, `Processor`, `dotnet-funge`) including `funge`, `funge-98`, and `befunge` tags for better discoverability.
 - Code style: Use `var` instead of explicit types for improved readability.
-- Docs: Updated testing and coverage guide in `GEMINI.md`.
-- Infra: Added `reportgenerator` tool and coverage directory ignore configuration.
 
 ### Fixed
 
@@ -94,7 +93,8 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: `FG0008` / `FG0009` severity changed from Warning to Info.
 - `Esolang.Funge.Generator`: runtime now throws when input/output instructions are executed without a declared input/output interface.
 
-[Unreleased]: https://github.com/Esolang-NET/Funge/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Esolang-NET/Funge/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/Esolang-NET/Funge/tree/v1.1.1
 [1.1.0]: https://github.com/Esolang-NET/Funge/tree/v1.1.0
 [1.0.1]: https://github.com/Esolang-NET/Funge/tree/v1.0.1
 [1.0.0]: https://github.com/Esolang-NET/Funge/tree/v1.0.0
