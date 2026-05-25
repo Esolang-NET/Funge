@@ -2,7 +2,6 @@ using Esolang.Funge.Parser;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Immutable;
 using System.Text;
 
 namespace Esolang.Funge.Generator;
@@ -57,6 +56,75 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     enum OutputKind { None, TextWriter, PipeWriter, ReturnString, ReturnEnumerable, ReturnAsyncEnumerable }
 
+    readonly struct KnownTypes
+    {
+        public readonly INamedTypeSymbol? String;
+        public readonly INamedTypeSymbol? Task;
+        public readonly INamedTypeSymbol? TaskInt;
+        public readonly INamedTypeSymbol? TaskString;
+        public readonly INamedTypeSymbol? ValueTask;
+        public readonly INamedTypeSymbol? ValueTaskInt;
+        public readonly INamedTypeSymbol? ValueTaskString;
+        public readonly INamedTypeSymbol? IEnumerableByte;
+        public readonly INamedTypeSymbol? IAsyncEnumerableByte;
+        public readonly INamedTypeSymbol? Byte;
+        public readonly INamedTypeSymbol? Int;
+        public readonly INamedTypeSymbol? TextReader;
+        public readonly INamedTypeSymbol? PipeReader;
+        public readonly INamedTypeSymbol? TextWriter;
+        public readonly INamedTypeSymbol? PipeWriter;
+        public readonly INamedTypeSymbol? CancellationToken;
+        public readonly INamedTypeSymbol? ILogger;
+        public readonly INamedTypeSymbol? ILoggerOfT;
+
+        public KnownTypes(Compilation compilation)
+        {
+            String = compilation.GetSpecialType(SpecialType.System_String);
+            var byteSymbol = compilation.GetSpecialType(SpecialType.System_Byte);
+            var intSymbol = compilation.GetSpecialType(SpecialType.System_Int32);
+            
+            var taskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task`1");
+            Task = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task");
+            TaskInt = taskGeneric?.Construct(intSymbol);
+            TaskString = taskGeneric?.Construct(String);
+
+            var valueTaskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask`1");
+            ValueTask = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask");
+            ValueTaskInt = valueTaskGeneric?.Construct(intSymbol);
+            ValueTaskString = valueTaskGeneric?.Construct(String);
+
+            var enumerableGeneric = GetBestTypeByMetadataName(compilation, "System.Collections.Generic.IEnumerable`1");
+            IEnumerableByte = enumerableGeneric?.Construct(byteSymbol);
+
+            var asyncEnumerableGeneric = GetBestTypeByMetadataName(compilation, "System.Collections.Generic.IAsyncEnumerable`1");
+            IAsyncEnumerableByte = asyncEnumerableGeneric?.Construct(byteSymbol);
+
+            Byte = byteSymbol;
+            Int = intSymbol;
+            TextReader = GetBestTypeByMetadataName(compilation, "System.IO.TextReader");
+            PipeReader = GetBestTypeByMetadataName(compilation, "System.IO.Pipelines.PipeReader");
+            TextWriter = GetBestTypeByMetadataName(compilation, "System.IO.TextWriter");
+            PipeWriter = GetBestTypeByMetadataName(compilation, "System.IO.Pipelines.PipeWriter");
+            CancellationToken = GetBestTypeByMetadataName(compilation, "System.Threading.CancellationToken");
+            ILogger = GetBestTypeByMetadataName(compilation, "Microsoft.Extensions.Logging.ILogger");
+            ILoggerOfT = GetBestTypeByMetadataName(compilation, "Microsoft.Extensions.Logging.ILogger`1");
+        }
+
+        private static INamedTypeSymbol? GetBestTypeByMetadataName(Compilation compilation, string metadataName)
+        {
+            var type = compilation.GetTypeByMetadataName(metadataName);
+            if (type != null) return type;
+
+            // Manual search through references if the standard lookup fails due to ambiguity
+            foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+            {
+                var found = assembly.GetTypeByMetadataName(metadataName);
+                if (found != null) return found;
+            }
+            return null;
+        }
+    }
+
     readonly struct ExecutionBinding(
         bool isValid,
         ReturnKind returnKind,
@@ -64,7 +132,11 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         OutputKind outputKind,
         string inputExpression,
         string outputExpression,
+        string? argsExpression,
+        string? envsExpression,
         string? cancellationTokenName,
+        string? loggerExpression,
+        bool isLoggerFromParameter,
         string? errorId,
         Location? location = null)
     {
@@ -74,7 +146,11 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         public OutputKind OutputKind { get; } = outputKind;
         public string InputExpression { get; } = inputExpression;
         public string OutputExpression { get; } = outputExpression;
+        public string? ArgsExpression { get; } = argsExpression;
+        public string? EnvsExpression { get; } = envsExpression;
         public string? CancellationTokenName { get; } = cancellationTokenName;
+        public string? LoggerExpression { get; } = loggerExpression;
+        public bool IsLoggerFromParameter { get; } = isLoggerFromParameter;
         public string? ErrorId { get; } = errorId;
         public Location? Location { get; } = location;
         public bool HasExplicitInput => InputKind is not InputKind.None;
@@ -133,14 +209,19 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 || provider.GlobalOptions.TryGetValue("build_property.ProjectDir", out dir)
                 ? dir : null);
 
+        var compilation = context.CompilationProvider;
+        var knownTypes = compilation.Select(static (c, _) => new KnownTypes(c));
+
         var inputs = generatedTargets
             .Combine(additionalFiles)
             .Combine(languageVersion)
-            .Combine(projectDirectory);
+            .Combine(projectDirectory)
+            .Combine(compilation)
+            .Combine(knownTypes);
 
         context.RegisterSourceOutput(inputs, static (ctx, input) =>
         {
-            var (((sources, files), langVersion), projDir) = input;
+            var (((((sources, files), langVersion), projDir), compilation), types) = input;
 
             if (sources.IsDefaultOrEmpty)
                 return;
@@ -166,7 +247,24 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 var attrData = syntaxCtx.Attributes.FirstOrDefault();
                 if (attrData is null) continue;
 
-                var sourcePath = attrData.ConstructorArguments.FirstOrDefault().Value as string;
+                string? sourcePath = null;
+                if (attrData.ConstructorArguments.Length > 0)
+                {
+                    sourcePath = attrData.ConstructorArguments[0].Value as string;
+                }
+                else
+                {
+                    // Fallback to syntax if semantic model couldn't resolve
+                    var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+                    if (attributeSyntax?.ArgumentList?.Arguments.Count > 0)
+                    {
+                        var arg = attributeSyntax.ArgumentList.Arguments[0].Expression;
+                        if (arg is LiteralExpressionSyntax lit)
+                        {
+                            sourcePath = lit.Token.ValueText;
+                        }
+                    }
+                }
 
                 // Check for inline source (named argument takes priority over file path)
                 string? inlineSource = null;
@@ -177,6 +275,21 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         inlineSource = namedArg.Value.Value as string;
                         break;
                     }
+                }
+                
+                if (inlineSource == null)
+                {
+                     var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+                     if (attributeSyntax?.ArgumentList != null)
+                     {
+                         foreach (var arg in attributeSyntax.ArgumentList.Arguments)
+                         {
+                             if (arg.NameEquals?.Name.Identifier.ValueText == "InlineSource" && arg.Expression is LiteralExpressionSyntax lit)
+                             {
+                                 inlineSource = lit.Token.ValueText;
+                             }
+                         }
+                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(inlineSource) && string.IsNullOrWhiteSpace(sourcePath))
@@ -189,7 +302,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
                 // Bind the method signature
-                var binding = BindExecutionSignature(symbol, method);
+                var binding = BindExecutionSignature(symbol, method, types);
                 if (!binding.IsValid)
                 {
                     if (binding.ErrorId == DiagnosticDescriptors.InvalidReturnType.Id)
@@ -272,6 +385,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 methodSb.AppendLine(emitted);
                 emittedCount++;
                 runtimeFeatures |= GetRuntimeFacadeFeatures(binding.ReturnKind);
+                if (binding.LoggerExpression is not null)
+                    runtimeFeatures |= RuntimeFacadeFeatures.RunWithLogging;
             }
 
             if (emittedCount > 0)
@@ -300,40 +415,61 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     // Signature binding
     // -----------------------------------------------------------------------
 
-    static ExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax)
+    static bool IsSameType(ITypeSymbol? type, INamedTypeSymbol? knownType)
     {
-        var returnKind = method.ReturnType switch
+        if (type is null || knownType is null) return false;
+        return SymbolEqualityComparer.Default.Equals(type, knownType);
+    }
+
+    static bool IsSameTypeOrConstructedFrom(ITypeSymbol? type, INamedTypeSymbol? knownType)
+    {
+        if (type is null || knownType is null) return false;
+        if (SymbolEqualityComparer.Default.Equals(type, knownType)) return true;
+        if (type is INamedTypeSymbol namedType && namedType.IsGenericType && SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, knownType)) return true;
+        return false;
+    }
+
+    static bool IsLoggerType(ITypeSymbol? type, KnownTypes types)
+    {
+        if (type is null) return false;
+        if (IsSameType(type, types.ILogger) || IsSameTypeOrConstructedFrom(type, types.ILoggerOfT)) return true;
+
+        foreach (var iface in type.AllInterfaces)
         {
-            { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
-            { SpecialType: SpecialType.System_Int32 } => ReturnKind.Int,
-            { Name: "String", ContainingNamespace.Name: "System" } => ReturnKind.String,
-            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 0
-                => ReturnKind.Task,
-            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Int32
-                => ReturnKind.TaskInt,
-            INamedTypeSymbol t when t.Name == "Task" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_String
-                => ReturnKind.TaskString,
-            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 0
-                => ReturnKind.ValueTask,
-            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Int32
-                => ReturnKind.ValueTaskInt,
-            INamedTypeSymbol t when t.Name == "ValueTask" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_String
-                => ReturnKind.ValueTaskString,
-            INamedTypeSymbol t when t.Name == "IEnumerable" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Byte
-                => ReturnKind.EnumerableByte,
-            INamedTypeSymbol t when t.Name == "IAsyncEnumerable" && t.TypeArguments.Length == 1
-                && t.TypeArguments[0].SpecialType == SpecialType.System_Byte
-                => ReturnKind.AsyncEnumerableByte,
-            _ => ReturnKind.Invalid,
-        };
+            if (IsSameType(iface, types.ILogger) || IsSameTypeOrConstructedFrom(iface, types.ILoggerOfT)) return true;
+        }
+        return false;
+    }
+
+    static ExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax, KnownTypes types)
+    {
+        var returnType = method.ReturnType;
+
+        var returnKind = ReturnKind.Invalid;
+
+        if (returnType.SpecialType == SpecialType.System_Void) returnKind = ReturnKind.Void;
+        else if (returnType.SpecialType == SpecialType.System_Int32) returnKind = ReturnKind.Int;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.String)) returnKind = ReturnKind.String;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.Task)) returnKind = ReturnKind.Task;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.TaskInt)) returnKind = ReturnKind.TaskInt;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.TaskString)) returnKind = ReturnKind.TaskString;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTask)) returnKind = ReturnKind.ValueTask;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTaskInt)) returnKind = ReturnKind.ValueTaskInt;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTaskString)) returnKind = ReturnKind.ValueTaskString;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.IEnumerableByte)) returnKind = ReturnKind.EnumerableByte;
+        else if (SymbolEqualityComparer.Default.Equals(returnType, types.IAsyncEnumerableByte)) returnKind = ReturnKind.AsyncEnumerableByte;
 
         if (returnKind == ReturnKind.Invalid)
-            return new(false, returnKind, InputKind.None, OutputKind.None, "", "", null,
+        {
+             // returnKind is invalid, check types for debugging
+             // Using a diagnostic for debugging as we are in a generator
+             // ctx.ReportDiagnostic(...); // Need context here, but BindExecutionSignature doesn't have it. 
+             // We'll have to return an error diagnostic later in Initialize.
+             // For now, let's keep returnKind as invalid to trigger the error.
+        }
+        
+        if (returnKind == ReturnKind.Invalid)
+            return new(false, returnKind, InputKind.None, OutputKind.None, "", "", null, null, null, null, false,
                 DiagnosticDescriptors.InvalidReturnType.Id);
 
         var outputKind = returnKind switch
@@ -348,94 +484,191 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var inputKind = InputKind.None;
         var inputExpr = "";
         var outputExpr = "";
+        string? argsExpr = null;
+        string? envsExpr = null;
         string? cancellationTokenName = null;
         var hasCancellationToken = false;
+
+        string? loggerExpression = null;
+        var isLoggerFromParameter = false;
 
         foreach (var p in method.Parameters)
         {
             if (p.RefKind is not RefKind.None)
-                return new(false, returnKind, inputKind, outputKind, "", "", null,
+                return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
                     DiagnosticDescriptors.InvalidParameter.Id, p.Locations.FirstOrDefault());
 
-            if (p.Type.SpecialType == SpecialType.System_String)
+            var typeName = p.Type.ToDisplayString();
+
+            if (IsLoggerType(p.Type, types))
+            {
+                if (loggerExpression is not null)
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, argsExpr, envsExpr,
+                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
+                        p.Locations.FirstOrDefault());
+                loggerExpression = p.Name;
+                isLoggerFromParameter = true;
+                continue;
+            }
+
+            if (typeName == "string")
             {
                 if (inputKind is not InputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, "", "", null,
+                    return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
                         DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
                 inputKind = InputKind.String;
                 inputExpr = p.Name;
                 continue;
             }
 
-            var typeName = p.Type.ToDisplayString();
+            // String array or IEnumerable<string>
+            if (p.Type is IArrayTypeSymbol || (p.Type is INamedTypeSymbol namedType && (namedType.Name == "IEnumerable" || namedType.Name == "IEnumerable`1")))
+            {
+                // This is a rough check, keeping existing logic
+                var name = p.Name.ToLowerInvariant();
+                if (name.Contains("arg"))
+                {
+                    if (argsExpr is not null)
+                        return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null, null, null, false,
+                            DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
+                    argsExpr = p.Name;
+                    continue;
+                }
+                if (name.Contains("env"))
+                {
+                    if (envsExpr is not null)
+                        return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null, null, null, false,
+                            DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
+                    envsExpr = p.Name;
+                    continue;
+                }
+            }
 
-            if (typeName == "System.IO.TextReader")
+            if (typeName.Contains("TextReader"))
             {
                 if (inputKind is not InputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, "", "", null,
+                    return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
                         DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
                 inputKind = InputKind.TextReader;
                 inputExpr = p.Name;
                 continue;
             }
 
-            if (typeName == "System.IO.Pipelines.PipeReader")
+            if (typeName.Contains("PipeReader"))
             {
                 if (inputKind is not InputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, "", "", null,
+                    return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
                         DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
                 inputKind = InputKind.PipeReader;
                 inputExpr = p.Name;
                 continue;
             }
 
-            if (typeName == "System.IO.TextWriter")
+            if (typeName.Contains("PipeWriter"))
             {
-                if (returnKind is not ReturnKind.Void)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name,
-                        cancellationTokenName, DiagnosticDescriptors.ReturnOutputConflict.Id,
+                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
+                        cancellationTokenName, null, false, DiagnosticDescriptors.ReturnOutputConflict.Id,
                         p.Locations.FirstOrDefault());
                 if (outputKind is not OutputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name,
-                        cancellationTokenName, DiagnosticDescriptors.DuplicateParameter.Id,
-                        p.Locations.FirstOrDefault());
-                outputKind = OutputKind.TextWriter;
-                outputExpr = p.Name;
-                continue;
-            }
-
-            if (typeName == "System.IO.Pipelines.PipeWriter")
-            {
-                if (returnKind is not ReturnKind.Void)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name,
-                        cancellationTokenName, DiagnosticDescriptors.ReturnOutputConflict.Id,
-                        p.Locations.FirstOrDefault());
-                if (outputKind is not OutputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name,
-                        cancellationTokenName, DiagnosticDescriptors.DuplicateParameter.Id,
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
+                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
                         p.Locations.FirstOrDefault());
                 outputKind = OutputKind.PipeWriter;
                 outputExpr = p.Name;
                 continue;
             }
 
-            if (typeName == "System.Threading.CancellationToken")
+            if (typeName.Contains("TextWriter"))
+            {
+                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
+                        cancellationTokenName, null, false, DiagnosticDescriptors.ReturnOutputConflict.Id,
+                        p.Locations.FirstOrDefault());
+                if (outputKind is not OutputKind.None)
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
+                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
+                        p.Locations.FirstOrDefault());
+                outputKind = OutputKind.TextWriter;
+                outputExpr = p.Name;
+                continue;
+            }
+
+            if (typeName.Contains("CancellationToken"))
             {
                 if (hasCancellationToken)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr,
-                        cancellationTokenName, DiagnosticDescriptors.DuplicateParameter.Id,
+                    return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null,
+                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
                         p.Locations.FirstOrDefault());
                 hasCancellationToken = true;
                 cancellationTokenName = p.Name;
                 continue;
             }
 
-            return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr,
-                cancellationTokenName, DiagnosticDescriptors.InvalidParameter.Id,
+            return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null,
+                cancellationTokenName, null, false, DiagnosticDescriptors.InvalidParameter.Id,
                 p.Locations.FirstOrDefault());
         }
 
-        return new(true, returnKind, inputKind, outputKind, inputExpr, outputExpr, cancellationTokenName, null);
+        var fieldName = FindLoggerField(method.ContainingType, method.IsStatic, types, out var isField);
+        if (loggerExpression == null)
+        {
+            loggerExpression = fieldName;
+            isLoggerFromParameter = !isField;
+        }
+
+        return new(true, returnKind, inputKind, outputKind, inputExpr, outputExpr, argsExpr, envsExpr, cancellationTokenName, loggerExpression, isLoggerFromParameter, null);
+    }
+
+    static string? FindLoggerField(ITypeSymbol? type, bool isStatic, KnownTypes types, out bool isField)
+    {
+        isField = false;
+        var isBaseType = false;
+        var shadowedNames = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        var currentType = type;
+
+        while (currentType != null)
+        {
+            foreach (var field in currentType.GetMembers().OfType<IFieldSymbol>())
+            {
+                if (isStatic && !field.IsStatic) continue;
+
+                // If searching in a base type, the field must be accessible (protected or public)
+                if (isBaseType && field.DeclaredAccessibility is not (Accessibility.Protected or Accessibility.ProtectedOrInternal or Accessibility.Public or Accessibility.Internal))
+                    continue;
+
+                if (IsLoggerType(field.Type, types))
+                {
+                    isField = true;
+                    return field.Name;
+                }
+                else if (field.CanBeReferencedByName)
+                {
+                    shadowedNames.Add(field.Name);
+                }
+            }
+            currentType = currentType.BaseType;
+            isBaseType = true;
+        }
+
+        if (type is INamedTypeSymbol namedType)
+        {
+            foreach (var constructor in namedType.InstanceConstructors)
+            {
+                if (constructor.DeclaringSyntaxReferences.Any(ds => ds.GetSyntax() is ClassDeclarationSyntax))
+                {
+                    foreach (var parameter in constructor.Parameters)
+                    {
+                        if (IsLoggerType(parameter.Type, types) && !shadowedNames.Contains(parameter.Name))
+                        {
+                            isField = false;
+                            return parameter.Name;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     // -----------------------------------------------------------------------
@@ -468,7 +701,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var asyncMod = binding.ReturnKind == ReturnKind.AsyncEnumerableByte ? " async" : string.Empty;
         var returnTypeSyntax = symbol.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-        var paramList = string.Join(", ", System.Linq.Enumerable.Select(symbol.Parameters, p =>
+        var paramList = string.Join(", ", Enumerable.Select(symbol.Parameters, p =>
         {
             var prefix = (binding.ReturnKind == ReturnKind.AsyncEnumerableByte
                 && binding.CancellationTokenName is not null
@@ -490,7 +723,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             .Append(symbol.Name).Append('(').Append(paramList).AppendLine(")");
         sb.AppendLine("    {");
 
-        EmitBody(sb, space, binding);
+        EmitBody(sb, space, binding, symbol.IsStatic);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -498,23 +731,30 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    static void EmitBody(StringBuilder sb, FungeSpace space, ExecutionBinding binding)
+    static void EmitBody(StringBuilder sb, FungeSpace space, ExecutionBinding binding, bool isStatic)
     {
         var inputExpr = binding.InputKind switch
         {
             InputKind.None => "global::System.IO.TextReader.Null",
-            InputKind.String =>
-                $"new global::System.IO.StringReader({binding.InputExpression} ?? string.Empty)",
+            InputKind.String => $"new global::System.IO.StringReader({binding.InputExpression} ?? string.Empty)",
             InputKind.TextReader => binding.InputExpression,
-            InputKind.PipeReader =>
-                $"new global::System.IO.StreamReader({binding.InputExpression}.AsStream())",
+            InputKind.PipeReader => $"new global::System.IO.StreamReader({binding.InputExpression}.AsStream())",
             _ => "global::System.IO.TextReader.Null",
         };
         var cancellationTokenExpr = binding.CancellationTokenName is null
             ? "global::System.Threading.CancellationToken.None"
             : binding.CancellationTokenName;
+        var argsExpr = binding.ArgsExpression ?? "null";
+        var envsExpr = binding.EnvsExpression ?? "null";
 
         EmitSpaceData(sb, space);
+
+        var loggerExpr = "";
+        if (binding.LoggerExpression is not null)
+        {
+            var prefix = (!isStatic && !binding.IsLoggerFromParameter) ? "this." : "";
+            loggerExpr = $", logger: {prefix}{binding.LoggerExpression}";
+        }
 
         switch (binding.ReturnKind)
         {
@@ -522,120 +762,204 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 {
                     if (binding.OutputKind == OutputKind.PipeWriter)
                     {
-                        sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
-                        sb.AppendLine("        global::Esolang.Funge.__Generated.FungeRuntime.RunSync(");
-                        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                        sb.AppendLine($"""
+                using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+                global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                     }
                     else
                     {
                         var outExpr = binding.OutputKind == OutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
-                        sb.AppendLine("        global::Esolang.Funge.__Generated.FungeRuntime.RunSync(");
-                        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                        sb.AppendLine($"""
+                global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                     }
                     break;
                 }
 
             case ReturnKind.Int:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, global::System.IO.TextWriter.Null, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                if (binding.OutputKind == OutputKind.PipeWriter)
+                {
+                    sb.AppendLine($"""
+                using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
+                }
+                else
+                {
+                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        ? binding.OutputExpression
+                        : "global::System.IO.TextWriter.Null";
+                    sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
+                }
                 break;
 
             case ReturnKind.String:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunString(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunString(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                 break;
 
             case ReturnKind.Task:
                 {
                     if (binding.OutputKind == OutputKind.PipeWriter)
                     {
-                        sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
-                        sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunTask(");
-                        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                        sb.AppendLine($"""
+                using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunTask(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                     }
                     else
                     {
                         var outExpr = binding.OutputKind == OutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
-                        sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunTask(");
-                        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                        sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunTask(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                     }
                     break;
                 }
 
             case ReturnKind.TaskInt:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                if (binding.OutputKind == OutputKind.PipeWriter)
+                {
+                    sb.AppendLine($$"""
+                return __RunTaskIntWithPipeWriter();
+
+                async global::System.Threading.Tasks.Task<int> __RunTaskIntWithPipeWriter()
+                {
+                    using var __fungeOutput = new global::System.IO.StreamWriter({{binding.OutputExpression}}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+                    return await global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(
+                        __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {{inputExpr}}, __fungeOutput, {{(binding.HasExplicitInput ? "true" : "false")}}, {{(binding.HasExplicitOutput ? "true" : "false")}}, {{cancellationTokenExpr}}, {{argsExpr}}, {{envsExpr}}{{loggerExpr}});
+                }
+        """);
+                }
+                else
+                {
+                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        ? binding.OutputExpression
+                        : "global::System.IO.TextWriter.Null";
+                    sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
+                }
                 break;
 
             case ReturnKind.TaskString:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskString(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskString(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                 break;
 
             case ReturnKind.ValueTask:
                 {
                     if (binding.OutputKind == OutputKind.PipeWriter)
                     {
-                        sb.AppendLine($"        using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);");
-                        sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTask(");
-                        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                        sb.AppendLine($"""
+                using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTask(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                     }
                     else
                     {
                         var outExpr = binding.OutputKind == OutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
-                        sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTask(");
-                        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                        sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTask(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                     }
                     break;
                 }
 
             case ReturnKind.ValueTaskInt:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                if (binding.OutputKind == OutputKind.PipeWriter)
+                {
+                    sb.AppendLine($$"""
+                return __RunValueTaskIntWithPipeWriter();
+        
+                async global::System.Threading.Tasks.ValueTask<int> __RunValueTaskIntWithPipeWriter()
+                {
+                    using var __fungeOutput = new global::System.IO.StreamWriter({{binding.OutputExpression}}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
+                    return await global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(
+                        __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {{inputExpr}}, __fungeOutput, {{(binding.HasExplicitInput ? "true" : "false")}}, {{(binding.HasExplicitOutput ? "true" : "false")}}, {{cancellationTokenExpr}}, {{argsExpr}}, {{envsExpr}}{{loggerExpr}});
+                }
+        """);
+                }
+                else
+                {
+                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        ? binding.OutputExpression
+                        : "global::System.IO.TextWriter.Null";
+                    sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
+                }
                 break;
 
             case ReturnKind.ValueTaskString:
-                sb.AppendLine("        return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskString(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr});");
+                sb.AppendLine($"""
+                return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskString(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+        """);
                 break;
 
             case ReturnKind.EnumerableByte:
-                sb.AppendLine("        foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunEnumerable(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}))");
-                sb.AppendLine("            yield return __b;");
+                sb.AppendLine($"""
+                foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunEnumerable(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}))
+                    yield return __b;
+        """);
                 break;
 
             case ReturnKind.AsyncEnumerableByte:
-                sb.AppendLine("        await foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunAsyncEnumerable(");
-                sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}))");
-                sb.AppendLine("            yield return __b;");
+                sb.AppendLine($"""
+                await foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunAsyncEnumerable(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}))
+                    yield return __b;
+        """);
                 break;
         }
     }
 
     static void EmitRuntimeRunCall(StringBuilder sb, string inputExpr, string outputExpr, bool hasInput, bool hasOutput)
-    {
-        sb.AppendLine("        global::Esolang.Funge.__Generated.FungeRuntime.Run(");
-        sb.AppendLine($"            __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outputExpr}, {(hasInput ? "true" : "false")}, {(hasOutput ? "true" : "false")});");
-    }
+     => sb.AppendLine($"""
+                global::Esolang.Funge.__Generated.FungeRuntime.Run(
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outputExpr}, {(hasInput ? "true" : "false")}, {(hasOutput ? "true" : "false")});
+        """);
 
     static void EmitSpaceData(StringBuilder sb, FungeSpace space)
     {
-        sb.AppendLine($"        int __minX = {space.MinX}, __minY = {space.MinY}, __minZ = {space.MinZ}, __maxX = {space.MaxX}, __maxY = {space.MaxY}, __maxZ = {space.MaxZ};");
-        sb.AppendLine("        var __cells = new global::System.Collections.Generic.Dictionary<(int, int, int), int>();");
+        sb.AppendLine($"""
+                int __minX = {space.MinX}, __minY = {space.MinY}, __minZ = {space.MinZ}, __maxX = {space.MaxX}, __maxY = {space.MaxY}, __maxZ = {space.MaxZ};
+                var __cells = new global::System.Collections.Generic.Dictionary<(int, int, int), int>();
+        """);
         for (var z = space.MinZ; z <= space.MaxZ; z++)
             for (var y = space.MinY; y <= space.MaxY; y++)
                 for (var x = space.MinX; x <= space.MaxX; x++)
                 {
                     var val = space[new FungeVector(x, y, z)];
                     if (val != ' ')
-                        sb.AppendLine($"        __cells[({x}, {y}, {z})] = {val};");
+                        sb.AppendLine($"""
+                __cells[({x}, {y}, {z})] = {val};
+        """);
                 }
     }
 

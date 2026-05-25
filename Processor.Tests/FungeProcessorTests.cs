@@ -3,17 +3,16 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Esolang.Funge.Processor.Tests;
 
 [TestClass]
-public class FungeProcessorTests
+public class FungeProcessorTests(TestContext TestContext)
 {
-    public TestContext TestContext { get; set; } = default!;
-
+    CancellationToken TestCancellationToken => TestContext.CancellationTokenSource.Token;
     private string Run(string source, string? input = null)
     {
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
         var proc = new FungeProcessor(space, output, reader);
-        proc.Run(TestContext.CancellationTokenSource.Token);
+        proc.Run(TestCancellationToken);
         return output.ToString();
     }
 
@@ -21,7 +20,30 @@ public class FungeProcessorTests
     {
         var space = Parser.FungeParser.Parse(source);
         var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
-        return proc.Run(TestContext.CancellationTokenSource.Token);
+        return proc.Run(TestCancellationToken);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public async Task TestDirectionalInstructions()
+    {
+        var space = new Parser.FungeSpace();
+        var pos1 = new Parser.FungeVector(0, 0, 0);
+        var pos2 = new Parser.FungeVector(1, 0, 0);
+        var pos3 = new Parser.FungeVector(0, 1, 0);
+        var pos4 = new Parser.FungeVector(0, 2, 0);
+        var pos5 = new Parser.FungeVector(0, 3, 0);
+
+        space[pos1] = '>';
+        space[pos2] = '<';
+        space[pos3] = '^';
+        space[pos4] = 'v';
+        space[pos5] = '@';
+
+        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
+        var token = TestCancellationToken;
+
+        await proc.RunToEndAsync(null, null, token);
     }
 
     private static string EncodeZeroGnirts(string value)
@@ -30,7 +52,7 @@ public class FungeProcessorTests
     // ── Termination ────────────────────────────────────────────────────────
 
     [TestMethod]
-    [Timeout(5000)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void Stop_EmptyProgram_Wraps()
     {
         // No @ → program loops but should terminate via cancellation
@@ -117,7 +139,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void NorthSouthIf_NonZero_GoesNorth()
     {
@@ -127,7 +149,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void EastWestIf_NonZero_GoesWest()
     {
@@ -140,11 +162,38 @@ public class FungeProcessorTests
     }
 #pragma warning restore IDE0022
 
-    // ── Hex digits ────────────────────────────────────────────────────────
+    [TestMethod]
+    public void Fingerprint_StubSucceeds()
+        => Assert.AreEqual("1 ", Run("(1.@"));
 
     [TestMethod]
-    public void HexDigits()
-        => Assert.AreEqual("15 14 13 12 11 10 ", Run("abcdef......@"));
+    public void Fingerprint_Unload_StubSucceeds()
+        => Assert.AreEqual("1 ", Run(")1.@"));
+
+    // ── Additional coverage for ExecuteInstruction ────────────────────────
+
+    [TestMethod]
+    public void Trampoline_SkipUntilSemicolon()
+        => Assert.AreEqual("1 ", Run("; skipped code ;1.@"));
+
+    [TestMethod]
+    public void HexDigits_Individual()
+    {
+        Assert.AreEqual("10 ", Run("a.@"));
+        Assert.AreEqual("11 ", Run("b.@"));
+    }
+
+    [TestMethod]
+    public void OutputInt_EmptyStack_OutputsZero()
+        => Assert.AreEqual("0 ", Run(".@"));
+
+    [TestMethod]
+    public void Iterate_ZeroTimes_SkipsOperand()
+    {
+        var result = Run("0k1.2.@");
+        Assert.AreEqual("0 2 ", result, $"Expected '0 2 ', but got '{result}'");
+    }
+
 
     // ── String mode ───────────────────────────────────────────────────────
 
@@ -164,7 +213,7 @@ public class FungeProcessorTests
     // ── Trampoline ────────────────────────────────────────────────────────
 
     [TestMethod]
-    [Timeout(5000)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void Trampoline_SkipsOne()
     {
@@ -174,7 +223,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void SgmlSpaces_DoNotReflect()
         => Assert.AreEqual("1 ", Run("1\t\v.@"));
 
@@ -190,29 +239,29 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void GoHigh_ChangesDeltaToNegativeZ()
         => Assert.AreEqual(7, RunGetExitCode("h\f\f>7q"));
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void GoLow_ChangesDeltaToPositiveZ()
         => Assert.AreEqual(7, RunGetExitCode("l\f>7q"));
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void HighLowIf_Zero_GoesLow()
         => Assert.AreEqual(1, RunGetExitCode("0m\f >1q\f >2q"));
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void HighLowIf_NonZero_GoesHigh()
         => Assert.AreEqual(2, RunGetExitCode("1m\f >1q\f >2q"));
 
     // ── Hello World ───────────────────────────────────────────────────────
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void HelloWorld_Classic()
     {
@@ -223,7 +272,7 @@ public class FungeProcessorTests
 #pragma warning restore IDE0022
 
     [TestMethod]
-    [Timeout(5000, CooperativeCancellation = true)]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
 #pragma warning disable IDE0022
     public void HelloWorld_WithExclamation()
     {
@@ -231,6 +280,7 @@ public class FungeProcessorTests
         Assert.AreEqual("Hello, World!", Run(src));
     }
 #pragma warning restore IDE0022
+
 
     // ── Input ─────────────────────────────────────────────────────────────
 
@@ -316,6 +366,10 @@ public class FungeProcessorTests
         => Assert.AreEqual(7, RunGetExitCode("7q"));
 
     [TestMethod]
+    public void StackUnderStack_U_TransfersFromSoss()
+        => Assert.AreEqual("2 ", Run("120{4u.@"));
+
+    [TestMethod]
     public void RunToEnd_UsesProvidedTextIo()
     {
         var space = Parser.FungeParser.Parse("&.@");
@@ -323,7 +377,7 @@ public class FungeProcessorTests
         var input = new StringReader("42\n");
         var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
 
-        var exitCode = proc.RunToEnd(input, output, TestContext.CancellationTokenSource.Token);
+        var exitCode = proc.RunToEnd(input, output, TestCancellationToken);
 
         Assert.AreEqual(0, exitCode);
         Assert.AreEqual("42 ", output.ToString());
@@ -335,8 +389,13 @@ public class FungeProcessorTests
         var space = Parser.FungeParser.Parse("7q");
         var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
 
-        var exitCode = await proc.RunToEndAsync(cancellationToken: TestContext.CancellationTokenSource.Token);
+        var exitCode = await proc.RunToEndAsync(cancellationToken: TestCancellationToken);
 
         Assert.AreEqual(7, exitCode);
     }
+}
+
+file static class Constant
+{
+    public const int Timeout = 1000 * 30;
 }

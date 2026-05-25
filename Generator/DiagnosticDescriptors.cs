@@ -81,7 +81,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor ReturnOutputConflict = new(
         id: "FG0007",
         title: "Return type and output parameter conflict",
-        messageFormat: "Method '{0}' has both a non-void return type and an output parameter (TextWriter/PipeWriter); use one or the other",
+        messageFormat: "Method '{0}' has both return-based output and an output parameter (TextWriter/PipeWriter); use one or the other",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

@@ -12,6 +12,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>Command-line interpreter for Funge-98 (Befunge-98) programs.</Description>
     <PackageId>dotnet-funge</PackageId>
+    <PackageTags>esolang;funge;funge-98;befunge;interpreter;cli;dotnet-tool</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">

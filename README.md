@@ -29,26 +29,31 @@ partial class FungeSample
 
 ## Generator Guide
 
-For detailed Generator signatures and patterns (`string`, `TextReader`, `PipeReader`, `TextWriter`, `PipeWriter`, sync/async returns, byte-sequence returns, inline source), see:
+For detailed Generator signatures and patterns, see:
 
 - [Generator README](./Generator/README.md)
 
-For runnable examples covering all return types and inline source, see:
+### Generator Signatures
+
+| Attribute Argument | `partial` Method Parameters (Input) | `partial` Method Return Types (Output) |
+| :--- | :--- | :--- |
+| `string` (Path/Inline) | `TextReader?`, `PipeReader?`, `byte[]?` | `void`, `string`, `string?`, `int`, `Task`, `ValueTask`, `IEnumerable<byte>`, `IAsyncEnumerable<byte>` |
+
+For runnable examples, see:
 
 - [UseConsole sample](./samples/Generator.UseConsole/README.md)
 
 ## Funge-98 Support Status
 
-Current implementation status across packages:
-
 | Area | Status |
 |---|---|
-| Core Funge-98 instructions | ✅ Implemented |
-| Trefunge 3D navigation (`h` `l` `m`) | ✅ Implemented |
+| Core Funge-98 instructions | ✅ |
+| 3D navigation (`h` `l` `m`) | ✅ |
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
 | Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
-| File I/O (`i` `o`) | ✅ Implemented |
-| System exec (`=`) | ✅ Implemented |
+| File I/O (`i` `o`) | ✅ |
+| System exec (`=`) | ✅ |
+| System info (`y`) | ✅ |
 
 Details:
 
@@ -79,10 +84,10 @@ dotnet tool install -g dotnet-funge
 
 | Project | NuGet | Summary |
 |---|---|---|
-| [dotnet-funge](./Interpreter/README.md) | [![NuGet: dotnet-funge](https://img.shields.io/nuget/v/dotnet-funge?logo=nuget)](https://www.nuget.org/packages/dotnet-funge/) | Funge-98 command-line interpreter. |
-| [Esolang.Funge.Generator](./Generator/README.md) | [![NuGet: Esolang.Funge.Generator](https://img.shields.io/nuget/v/Esolang.Funge.Generator?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Generator/) | Funge-98 source generator. |
-| [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
-| [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
+| [dotnet-funge](./Interpreter/README.md) | [![NuGet: dotnet-funge](https://img.shields.io/nuget/v/dotnet-funge?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/dotnet-funge/) | Funge-98 command-line interpreter. |
+| [Esolang.Funge.Generator](./Generator/README.md) | [![NuGet: Esolang.Funge.Generator](https://img.shields.io/nuget/v/Esolang.Funge.Generator?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/Esolang.Funge.Generator/) | Funge-98 source generator. |
+| [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
+| [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget&label=1.1.1)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
 
 ## Framework Support
 
@@ -96,6 +101,10 @@ dotnet tool install -g dotnet-funge
 ## Changelog
 
 - [CHANGELOG](./CHANGELOG.md)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## See also
 

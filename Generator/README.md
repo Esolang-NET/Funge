@@ -28,10 +28,11 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 | Parameter type | Role |
 | --- | --- |
 | `string` | Input fed to the program (`&` / `~`) |
+| `string[]` or `IEnumerable<string>` | Command-line arguments or environment variables (detected by name: `args`, `envs`, etc.). Reported by `y`. |
 | `System.IO.TextReader` | Input reader |
 | `System.IO.Pipelines.PipeReader` | Input as pipe |
-| `System.IO.TextWriter` | Output writer (`void` return only) |
-| `System.IO.Pipelines.PipeWriter` | Output as pipe (`void` return only) |
+| `System.IO.TextWriter` | Explicit output sink for methods that do not return output text/bytes (including `void`, `int`, `Task`, `Task<int>`, `ValueTask`, `ValueTask<int>`) |
+| `System.IO.Pipelines.PipeWriter` | Explicit pipe output sink for methods that do not return output text/bytes (including `void`, `int`, `Task`, `Task<int>`, `ValueTask`, `ValueTask<int>`) |
 | `CancellationToken` | Cancellation (async methods) |
 
 ## Installation
@@ -63,6 +64,10 @@ partial class MyPrograms
     [GenerateFungeMethod("Programs/hello.b98")]
     public static partial string HelloWorld();
 
+    // With custom arguments and environment variables (reported by 'y' instruction)
+    [GenerateFungeMethod("Programs/sysinfo.b98")]
+    public static partial int RunWithArgs(string[] args, string[] envs);
+
     // Async variant
     [GenerateFungeMethod("Programs/hello.b98")]
     public static partial Task<string> HelloWorldAsync(CancellationToken cancellationToken = default);
@@ -70,6 +75,10 @@ partial class MyPrograms
     // With explicit TextWriter output
     [GenerateFungeMethod("Programs/hello.b98")]
     public static partial void HelloWorldWriter(System.IO.TextWriter output);
+
+    // Exit code return can be combined with explicit output
+    [GenerateFungeMethod("Programs/hello.b98")]
+    public static partial Task<int> HelloWorldExitCodeAsync(System.IO.Pipelines.PipeWriter output, CancellationToken cancellationToken = default);
 
     // With string input
     [GenerateFungeMethod("Programs/echo.b98")]
@@ -112,6 +121,24 @@ l
 | `m` | Pop value; zero → Low, non-zero → High |
 
 The generated runtime automatically handles XYZ coordinates, Z-axis wrapping, and 3D `g`/`p`/`x` operands.
+
+## Logger Support
+
+The generator automatically detects and injects logging support if an `ILogger` or `ILogger<T>` is available. It searches in the following order:
+
+1. **Method Parameters**: If a parameter of type `ILogger` or `ILogger<T>` is declared, it is used directly.
+2. **Primary Constructor Parameters**: If a primary constructor parameter of type `ILogger` or `ILogger<T>` is present in the class, it is used.
+3. **Class Fields**: If no parameter or constructor argument is provided, the generator searches for a field of type `ILogger` or `ILogger<T>` within the containing class (including accessible fields in base classes).
+
+**Example:**
+```csharp
+// Logger detected as primary constructor parameter
+public partial class MyPrograms(ILogger<MyPrograms> logger)
+{
+    [GenerateFungeMethod("Programs/hello.b98")]
+    public partial void HelloWorld(); // 'logger' parameter will be used automatically
+}
+```
 
 ## Diagnostics
 
