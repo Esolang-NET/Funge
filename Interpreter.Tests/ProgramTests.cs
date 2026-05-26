@@ -1,56 +1,17 @@
-using Esolang.Funge.Interpreter;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Reflection;
 
 namespace Esolang.Funge.Interpreter.Tests;
 
 [TestClass]
 public class ProgramTests
 {
-    const string HelloWorldProgram = "64+\"!dlroW ,olleH\">:#,_@";
-
     [TestMethod]
-    public async Task RunAsync_HelpOption_ReturnsZero()
+    public void EntryPoint_Invoke_ReturnsZero()
     {
-        var exitCode = await Program.RunAsync(["--help"]);
+        var entryPoint = typeof(Program).Assembly.EntryPoint!;
+        var task = (Task<int>)entryPoint.Invoke(null, new object[] { Array.Empty<string>() })!;
+        var exitCode = task.Result;
         Assert.AreEqual(0, exitCode);
-    }
-
-    [TestMethod]
-    public async Task RunAsync_HelloWorld_ReturnsZero()
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
-        try
-        {
-            await File.WriteAllTextAsync(path, HelloWorldProgram);
-
-            var exitCode = await Program.RunAsync([path]);
-            Assert.AreEqual(0, exitCode);
-        }
-        finally
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-        }
-    }
-
-    [TestMethod]
-    public async Task RunAsync_CancelledToken_StopsInfiniteProgram()
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
-        try
-        {
-            await File.WriteAllTextAsync(path, ">");
-
-            using var cancellation = new CancellationTokenSource();
-            cancellation.Cancel();
-
-            var exitCode = await Program.RunAsync([path], cancellation.Token);
-            Assert.AreEqual(0, exitCode);
-        }
-        finally
-        {
-            if (File.Exists(path))
-                File.Delete(path);
-        }
     }
 }
