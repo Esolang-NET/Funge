@@ -144,16 +144,17 @@ public partial class MyPrograms(ILogger<MyPrograms> logger)
 
 | ID | Severity | Description |
 | --- | --- | --- |
-| FG0001 | Error | `sourcePath` is empty and `InlineSource` is not set |
-| FG0002 | Error | Unsupported return type |
-| FG0003 | Error | Unsupported parameter type |
-| FG0004 | Error | Source file not found in `AdditionalFiles` |
-| FG0005 | Warning | C# language version is too low (requires ≥ C# 8) |
-| FG0006 | Error | Duplicate input/output parameter |
-| FG0007 | Error | Return type conflicts with explicit output parameter |
-| FG0008 | Info | Program appears to use output (`.`/`,`) but no output parameter or output return type is declared (static best-effort scan; runtime throws if reached) |
-| FG0009 | Info | Program appears to use input (`&`/`~`) but no input parameter is declared (static best-effort scan; runtime throws if reached) |
-| FG0010 | Hidden | Input parameter declared but program never reads input |
+| [FG0001](Rules/FG0001.md) | Error | `sourcePath` is empty and `InlineSource` is not set |
+| [FG0002](Rules/FG0002.md) | Error | Unsupported return type |
+| [FG0003](Rules/FG0003.md) | Error | Unsupported parameter type |
+| [FG0004](Rules/FG0004.md) | Error | Source file not found in `AdditionalFiles` |
+| [FG0005](Rules/FG0005.md) | Warning | C# language version is too low (requires ≥ C# 8) |
+| [FG0006](Rules/FG0006.md) | Error | Duplicate input/output parameter |
+| [FG0007](Rules/FG0007.md) | Error | Return type conflicts with explicit output parameter |
+| [FG0008](Rules/FG0008.md) | Info | Program appears to use output (`.`/`,`) but no output parameter or output return type is declared (static best-effort scan; runtime throws if reached) |
+| [FG0009](Rules/FG0009.md) | Info | Program appears to use input (`&`/`~`) but no input parameter is declared (static best-effort scan; runtime throws if reached) |
+| [FG0010](Rules/FG0010.md) | Hidden | Input parameter declared but program never reads input |
+| [FG0011](Rules/FG0011.md) | Error | Method must be partial |
 
 ## Funge-98 Compliance
 
