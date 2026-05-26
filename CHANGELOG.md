@@ -6,6 +6,9 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- `Esolang.Funge.Generator`: Added FG0011 diagnostic for enforcing partial method declaration.
+
 ## [1.1.1] - 2026-05-25
 
 - `Esolang.Funge.Generator`: Implement logging support for runtime instructions and events (instruction execution, fingerprint operations).

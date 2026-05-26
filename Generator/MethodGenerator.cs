@@ -82,7 +82,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             String = compilation.GetSpecialType(SpecialType.System_String);
             var byteSymbol = compilation.GetSpecialType(SpecialType.System_Byte);
             var intSymbol = compilation.GetSpecialType(SpecialType.System_Int32);
-            
+
             var taskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task`1");
             Task = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task");
             TaskInt = taskGeneric?.Construct(intSymbol);
@@ -235,6 +235,15 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 var method = (MethodDeclarationSyntax)syntaxCtx.TargetNode;
                 var symbol = (IMethodSymbol)syntaxCtx.TargetSymbol;
 
+                if (!symbol.IsPartialDefinition)
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.MethodMustBePartial,
+                        method.Identifier.GetLocation(),
+                        symbol.Name));
+                    continue;
+                }
+
                 if (!IsLanguageVersionAtLeastCSharp8(langVersion))
                 {
                     ctx.ReportDiagnostic(Diagnostic.Create(
@@ -276,20 +285,20 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         break;
                     }
                 }
-                
+
                 if (inlineSource == null)
                 {
-                     var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
-                     if (attributeSyntax?.ArgumentList != null)
-                     {
-                         foreach (var arg in attributeSyntax.ArgumentList.Arguments)
-                         {
-                             if (arg.NameEquals?.Name.Identifier.ValueText == "InlineSource" && arg.Expression is LiteralExpressionSyntax lit)
-                             {
-                                 inlineSource = lit.Token.ValueText;
-                             }
-                         }
-                     }
+                    var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+                    if (attributeSyntax?.ArgumentList != null)
+                    {
+                        foreach (var arg in attributeSyntax.ArgumentList.Arguments)
+                        {
+                            if (arg.NameEquals?.Name.Identifier.ValueText == "InlineSource" && arg.Expression is LiteralExpressionSyntax lit)
+                            {
+                                inlineSource = lit.Token.ValueText;
+                            }
+                        }
+                    }
                 }
 
                 if (string.IsNullOrWhiteSpace(inlineSource) && string.IsNullOrWhiteSpace(sourcePath))
@@ -461,13 +470,13 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
         if (returnKind == ReturnKind.Invalid)
         {
-             // returnKind is invalid, check types for debugging
-             // Using a diagnostic for debugging as we are in a generator
-             // ctx.ReportDiagnostic(...); // Need context here, but BindExecutionSignature doesn't have it. 
-             // We'll have to return an error diagnostic later in Initialize.
-             // For now, let's keep returnKind as invalid to trigger the error.
+            // returnKind is invalid, check types for debugging
+            // Using a diagnostic for debugging as we are in a generator
+            // ctx.ReportDiagnostic(...); // Need context here, but BindExecutionSignature doesn't have it. 
+            // We'll have to return an error diagnostic later in Initialize.
+            // For now, let's keep returnKind as invalid to trigger the error.
         }
-        
+
         if (returnKind == ReturnKind.Invalid)
             return new(false, returnKind, InputKind.None, OutputKind.None, "", "", null, null, null, null, false,
                 DiagnosticDescriptors.InvalidReturnType.Id);
