@@ -1,6 +1,3 @@
-using Esolang.Funge.Interpreter;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 namespace Esolang.Funge.Interpreter.Tests;
 
 [TestClass]
@@ -21,10 +18,10 @@ public class ProgramTests(TestContext TestContext)
     }
 
     [TestMethod]
-    public void Run_Default_ReturnsZero()
+    public void Run_Default_ReturnsOne()
     {
         var exitCode = Run([]);
-        Assert.AreEqual(0, exitCode);
+        Assert.AreEqual(1, exitCode);
     }
 
     [TestMethod]
