@@ -6,9 +6,10 @@ namespace Esolang.Funge.Interpreter.Tests;
 [TestClass]
 public class ProgramTests(TestContext TestContext)
 {
-#pragma warning disable MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
+#pragma warning disable MSTEST0054
     CancellationToken CancellationToken => TestContext.CancellationTokenSource.Token;
-#pragma warning restore MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
+#pragma warning restore MSTEST0054
+
     static int Run(string[] args)
     {
         var entryPoint = typeof(Program).Assembly.EntryPoint;
@@ -18,13 +19,13 @@ public class ProgramTests(TestContext TestContext)
         Assert.IsNotNull(result);
         return result.Value;
     }
+
     [TestMethod]
     public void Run_Default_ReturnsZero()
     {
         var exitCode = Run([]);
         Assert.AreEqual(0, exitCode);
     }
-    const string HelloWorldProgram = "64+\"!dlroW ,olleH\">:#,_@";
 
     [TestMethod]
     public void Run_HelpOption_ReturnsZero()
@@ -39,8 +40,7 @@ public class ProgramTests(TestContext TestContext)
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
         try
         {
-            await File.WriteAllTextAsync(path, HelloWorldProgram, CancellationToken);
-
+            await File.WriteAllTextAsync(path, "64+\"!dlroW ,olleH\">:#,_@", CancellationToken);
             var exitCode = Run([path]);
             Assert.AreEqual(0, exitCode);
         }
