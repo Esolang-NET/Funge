@@ -1,8 +1,10 @@
 using Esolang.Funge.Parser;
+using Esolang.Generator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Text;
+using static Esolang.Generator.BindingError;
 
 namespace Esolang.Funge.Generator;
 
@@ -32,129 +34,14 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
         """;
 
-    // -----------------------------------------------------------------------
-    // Enumerations for execution signature binding
-    // -----------------------------------------------------------------------
-
-    enum ReturnKind
+    readonly record struct FungeExecutionBinding(
+        MethodSignatureBinding Binding,
+        string? ArgsExpression = null,
+        string? EnvsExpression = null,
+        BindingError? FungeError = null)
     {
-        Void,
-        Int,
-        String,
-        Task,
-        TaskInt,
-        TaskString,
-        ValueTask,
-        ValueTaskInt,
-        ValueTaskString,
-        EnumerableByte,
-        AsyncEnumerableByte,
-        Invalid,
-    }
-
-    enum InputKind { None, String, TextReader, PipeReader }
-
-    enum OutputKind { None, TextWriter, PipeWriter, ReturnString, ReturnEnumerable, ReturnAsyncEnumerable }
-
-    readonly struct KnownTypes
-    {
-        public readonly INamedTypeSymbol? String;
-        public readonly INamedTypeSymbol? Task;
-        public readonly INamedTypeSymbol? TaskInt;
-        public readonly INamedTypeSymbol? TaskString;
-        public readonly INamedTypeSymbol? ValueTask;
-        public readonly INamedTypeSymbol? ValueTaskInt;
-        public readonly INamedTypeSymbol? ValueTaskString;
-        public readonly INamedTypeSymbol? IEnumerableByte;
-        public readonly INamedTypeSymbol? IAsyncEnumerableByte;
-        public readonly INamedTypeSymbol? Byte;
-        public readonly INamedTypeSymbol? Int;
-        public readonly INamedTypeSymbol? TextReader;
-        public readonly INamedTypeSymbol? PipeReader;
-        public readonly INamedTypeSymbol? TextWriter;
-        public readonly INamedTypeSymbol? PipeWriter;
-        public readonly INamedTypeSymbol? CancellationToken;
-        public readonly INamedTypeSymbol? ILogger;
-        public readonly INamedTypeSymbol? ILoggerOfT;
-
-        public KnownTypes(Compilation compilation)
-        {
-            String = compilation.GetSpecialType(SpecialType.System_String);
-            var byteSymbol = compilation.GetSpecialType(SpecialType.System_Byte);
-            var intSymbol = compilation.GetSpecialType(SpecialType.System_Int32);
-
-            var taskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task`1");
-            Task = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.Task");
-            TaskInt = taskGeneric?.Construct(intSymbol);
-            TaskString = taskGeneric?.Construct(String);
-
-            var valueTaskGeneric = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask`1");
-            ValueTask = GetBestTypeByMetadataName(compilation, "System.Threading.Tasks.ValueTask");
-            ValueTaskInt = valueTaskGeneric?.Construct(intSymbol);
-            ValueTaskString = valueTaskGeneric?.Construct(String);
-
-            var enumerableGeneric = GetBestTypeByMetadataName(compilation, "System.Collections.Generic.IEnumerable`1");
-            IEnumerableByte = enumerableGeneric?.Construct(byteSymbol);
-
-            var asyncEnumerableGeneric = GetBestTypeByMetadataName(compilation, "System.Collections.Generic.IAsyncEnumerable`1");
-            IAsyncEnumerableByte = asyncEnumerableGeneric?.Construct(byteSymbol);
-
-            Byte = byteSymbol;
-            Int = intSymbol;
-            TextReader = GetBestTypeByMetadataName(compilation, "System.IO.TextReader");
-            PipeReader = GetBestTypeByMetadataName(compilation, "System.IO.Pipelines.PipeReader");
-            TextWriter = GetBestTypeByMetadataName(compilation, "System.IO.TextWriter");
-            PipeWriter = GetBestTypeByMetadataName(compilation, "System.IO.Pipelines.PipeWriter");
-            CancellationToken = GetBestTypeByMetadataName(compilation, "System.Threading.CancellationToken");
-            ILogger = GetBestTypeByMetadataName(compilation, "Microsoft.Extensions.Logging.ILogger");
-            ILoggerOfT = GetBestTypeByMetadataName(compilation, "Microsoft.Extensions.Logging.ILogger`1");
-        }
-
-        private static INamedTypeSymbol? GetBestTypeByMetadataName(Compilation compilation, string metadataName)
-        {
-            var type = compilation.GetTypeByMetadataName(metadataName);
-            if (type != null) return type;
-
-            // Manual search through references if the standard lookup fails due to ambiguity
-            foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
-            {
-                var found = assembly.GetTypeByMetadataName(metadataName);
-                if (found != null) return found;
-            }
-            return null;
-        }
-    }
-
-    readonly struct ExecutionBinding(
-        bool isValid,
-        ReturnKind returnKind,
-        InputKind inputKind,
-        OutputKind outputKind,
-        string inputExpression,
-        string outputExpression,
-        string? argsExpression,
-        string? envsExpression,
-        string? cancellationTokenName,
-        string? loggerExpression,
-        bool isLoggerFromParameter,
-        string? errorId,
-        Location? location = null)
-    {
-        public bool IsValid { get; } = isValid;
-        public ReturnKind ReturnKind { get; } = returnKind;
-        public InputKind InputKind { get; } = inputKind;
-        public OutputKind OutputKind { get; } = outputKind;
-        public string InputExpression { get; } = inputExpression;
-        public string OutputExpression { get; } = outputExpression;
-        public string? ArgsExpression { get; } = argsExpression;
-        public string? EnvsExpression { get; } = envsExpression;
-        public string? CancellationTokenName { get; } = cancellationTokenName;
-        public string? LoggerExpression { get; } = loggerExpression;
-        public bool IsLoggerFromParameter { get; } = isLoggerFromParameter;
-        public string? ErrorId { get; } = errorId;
-        public Location? Location { get; } = location;
-        public bool HasExplicitInput => InputKind is not InputKind.None;
-        public bool HasExplicitOutput => OutputKind is not OutputKind.None;
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(false, nameof(FungeError))]
+        public bool IsValid => Binding.IsValid && FungeError is null;
     }
 
     // -----------------------------------------------------------------------
@@ -314,22 +201,30 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 var binding = BindExecutionSignature(symbol, method, types);
                 if (!binding.IsValid)
                 {
-                    if (binding.ErrorId == DiagnosticDescriptors.InvalidReturnType.Id)
-                        ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.InvalidReturnType,
-                            binding.Location ?? method.Identifier.GetLocation(),
-                            symbol.ReturnType.ToDisplayString()));
-                    else if (binding.ErrorId == DiagnosticDescriptors.DuplicateParameter.Id)
-                        ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.DuplicateParameter,
-                            binding.Location ?? method.Identifier.GetLocation(),
-                            symbol.Name, symbol.Name));
-                    else if (binding.ErrorId == DiagnosticDescriptors.ReturnOutputConflict.Id)
-                        ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.ReturnOutputConflict,
-                            binding.Location ?? method.Identifier.GetLocation(),
-                            symbol.Name));
-                    else
-                        ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.InvalidParameter,
-                            binding.Location ?? method.Identifier.GetLocation(),
-                            symbol.Name));
+                    var error = binding.FungeError ?? binding.Binding.Error!;
+                    var location = error.Location ?? method.Identifier.GetLocation();
+
+                    var descriptor = error switch
+                    {
+                        UnsupportedReturnType => DiagnosticDescriptors.InvalidReturnType,
+                        DuplicateInput or DuplicateOutput or DuplicateCancellationToken or DuplicateLogger => DiagnosticDescriptors.DuplicateParameter,
+                        ReturnOutputConflict => DiagnosticDescriptors.ReturnOutputConflict,
+                        _ => DiagnosticDescriptors.InvalidParameter,
+                    };
+
+                    var messageArgs = error switch
+                    {
+                        UnsupportedReturnType e => new object[] { e.ReturnType.ToDisplayString() },
+                        DuplicateInput e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
+                        DuplicateOutput e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
+                        DuplicateCancellationToken e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
+                        DuplicateLogger e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
+                        ReturnOutputConflict e => new object[] { symbol.Name },
+                        InvalidParameterModifier e => new object[] { e.Parameter.Name },
+                        _ => new object[] { symbol.Name }
+                    };
+
+                    ctx.ReportDiagnostic(Diagnostic.Create(descriptor, location, messageArgs));
                     continue;
                 }
 
@@ -349,7 +244,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         // Strip the ".funge.txt" intermediate suffix that the .targets file appends
                         const string fungeSuffix = ".funge.txt";
                         var compareFile = normalizedFile.EndsWith(fungeSuffix, StringComparison.OrdinalIgnoreCase)
-                            ? normalizedFile.Substring(0, normalizedFile.Length - fungeSuffix.Length)
+                            ? normalizedFile[..^fungeSuffix.Length]
                             : normalizedFile;
                         if (string.Equals(compareFile, normalizedSource, StringComparison.OrdinalIgnoreCase)
                             || compareFile.EndsWith("/" + normalizedSource, StringComparison.OrdinalIgnoreCase)
@@ -377,15 +272,15 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 // Scan for I/O usage
                 var (usesOutput, usesInput) = ScanFungeIo(space);
 
-                if (usesOutput && !binding.HasExplicitOutput)
+                if (usesOutput && !binding.Binding.HasExplicitOutput)
                     ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.RequiredOutputInterface,
                         method.Identifier.GetLocation(), symbol.Name));
 
-                if (usesInput && !binding.HasExplicitInput)
+                if (usesInput && !binding.Binding.HasExplicitInput)
                     ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.RequiredInputInterface,
                         method.Identifier.GetLocation(), symbol.Name));
 
-                if (!usesInput && binding.HasExplicitInput)
+                if (!usesInput && binding.Binding.HasExplicitInput)
                     ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnusedInputInterface,
                         method.Identifier.GetLocation(), symbol.Name));
 
@@ -393,8 +288,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 var emitted = EmitMethod(symbol, method, space, binding, projDir, displayPath);
                 methodSb.AppendLine(emitted);
                 emittedCount++;
-                runtimeFeatures |= GetRuntimeFacadeFeatures(binding.ReturnKind);
-                if (binding.LoggerExpression is not null)
+                runtimeFeatures |= GetRuntimeFacadeFeatures(binding.Binding.ReturnKind);
+                if (binding.Binding.LoggerExpression is not null)
                     runtimeFeatures |= RuntimeFacadeFeatures.RunWithLogging;
             }
 
@@ -405,18 +300,18 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         });
     }
 
-    static RuntimeFacadeFeatures GetRuntimeFacadeFeatures(ReturnKind returnKind) => returnKind switch
+    static RuntimeFacadeFeatures GetRuntimeFacadeFeatures(MethodReturnKind returnKind) => returnKind switch
     {
-        ReturnKind.Void or ReturnKind.Int => RuntimeFacadeFeatures.RunSync,
-        ReturnKind.String => RuntimeFacadeFeatures.RunString,
-        ReturnKind.Task => RuntimeFacadeFeatures.RunTask,
-        ReturnKind.TaskInt => RuntimeFacadeFeatures.RunTaskInt,
-        ReturnKind.TaskString => RuntimeFacadeFeatures.RunTaskString,
-        ReturnKind.ValueTask => RuntimeFacadeFeatures.RunValueTask,
-        ReturnKind.ValueTaskInt => RuntimeFacadeFeatures.RunValueTaskInt,
-        ReturnKind.ValueTaskString => RuntimeFacadeFeatures.RunValueTaskString,
-        ReturnKind.EnumerableByte => RuntimeFacadeFeatures.RunEnumerable,
-        ReturnKind.AsyncEnumerableByte => RuntimeFacadeFeatures.RunAsyncEnumerable,
+        MethodReturnKind.Void or MethodReturnKind.Int32 => RuntimeFacadeFeatures.RunSync,
+        MethodReturnKind.String or MethodReturnKind.NullableString => RuntimeFacadeFeatures.RunString,
+        MethodReturnKind.Task => RuntimeFacadeFeatures.RunTask,
+        MethodReturnKind.TaskInt32 => RuntimeFacadeFeatures.RunTaskInt,
+        MethodReturnKind.TaskString or MethodReturnKind.TaskNullableString => RuntimeFacadeFeatures.RunTaskString,
+        MethodReturnKind.ValueTask => RuntimeFacadeFeatures.RunValueTask,
+        MethodReturnKind.ValueTaskInt32 => RuntimeFacadeFeatures.RunValueTaskInt,
+        MethodReturnKind.ValueTaskString or MethodReturnKind.ValueTaskNullableString => RuntimeFacadeFeatures.RunValueTaskString,
+        MethodReturnKind.IEnumerableByte => RuntimeFacadeFeatures.RunEnumerable,
+        MethodReturnKind.IAsyncEnumerableByte => RuntimeFacadeFeatures.RunAsyncEnumerable,
         _ => RuntimeFacadeFeatures.None,
     };
 
@@ -424,260 +319,57 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     // Signature binding
     // -----------------------------------------------------------------------
 
-    static bool IsSameType(ITypeSymbol? type, INamedTypeSymbol? knownType)
+    static FungeExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax, KnownTypes types)
     {
-        if (type is null || knownType is null) return false;
-        return SymbolEqualityComparer.Default.Equals(type, knownType);
-    }
+        var binding = MethodSignatureBinder.Bind(method, types);
+        if (!binding.IsValid)
+            return new FungeExecutionBinding(binding);
 
-    static bool IsSameTypeOrConstructedFrom(ITypeSymbol? type, INamedTypeSymbol? knownType)
-    {
-        if (type is null || knownType is null) return false;
-        if (SymbolEqualityComparer.Default.Equals(type, knownType)) return true;
-        if (type is INamedTypeSymbol namedType && namedType.IsGenericType && SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, knownType)) return true;
-        return false;
-    }
-
-    static bool IsLoggerType(ITypeSymbol? type, KnownTypes types)
-    {
-        if (type is null) return false;
-        if (IsSameType(type, types.ILogger) || IsSameTypeOrConstructedFrom(type, types.ILoggerOfT)) return true;
-
-        foreach (var iface in type.AllInterfaces)
-        {
-            if (IsSameType(iface, types.ILogger) || IsSameTypeOrConstructedFrom(iface, types.ILoggerOfT)) return true;
-        }
-        return false;
-    }
-
-    static ExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax, KnownTypes types)
-    {
-        var returnType = method.ReturnType;
-
-        var returnKind = ReturnKind.Invalid;
-
-        if (returnType.SpecialType == SpecialType.System_Void) returnKind = ReturnKind.Void;
-        else if (returnType.SpecialType == SpecialType.System_Int32) returnKind = ReturnKind.Int;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.String)) returnKind = ReturnKind.String;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.Task)) returnKind = ReturnKind.Task;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.TaskInt)) returnKind = ReturnKind.TaskInt;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.TaskString)) returnKind = ReturnKind.TaskString;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTask)) returnKind = ReturnKind.ValueTask;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTaskInt)) returnKind = ReturnKind.ValueTaskInt;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.ValueTaskString)) returnKind = ReturnKind.ValueTaskString;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.IEnumerableByte)) returnKind = ReturnKind.EnumerableByte;
-        else if (SymbolEqualityComparer.Default.Equals(returnType, types.IAsyncEnumerableByte)) returnKind = ReturnKind.AsyncEnumerableByte;
-
-        if (returnKind == ReturnKind.Invalid)
-        {
-            // returnKind is invalid, check types for debugging
-            // Using a diagnostic for debugging as we are in a generator
-            // ctx.ReportDiagnostic(...); // Need context here, but BindExecutionSignature doesn't have it. 
-            // We'll have to return an error diagnostic later in Initialize.
-            // For now, let's keep returnKind as invalid to trigger the error.
-        }
-
-        if (returnKind == ReturnKind.Invalid)
-            return new(false, returnKind, InputKind.None, OutputKind.None, "", "", null, null, null, null, false,
-                DiagnosticDescriptors.InvalidReturnType.Id);
-
-        var outputKind = returnKind switch
-        {
-            ReturnKind.String or ReturnKind.TaskString or ReturnKind.ValueTaskString
-                => OutputKind.ReturnString,
-            ReturnKind.EnumerableByte => OutputKind.ReturnEnumerable,
-            ReturnKind.AsyncEnumerableByte => OutputKind.ReturnAsyncEnumerable,
-            _ => OutputKind.None,
-        };
-
-        var inputKind = InputKind.None;
-        var inputExpr = "";
-        var outputExpr = "";
         string? argsExpr = null;
         string? envsExpr = null;
-        string? cancellationTokenName = null;
-        var hasCancellationToken = false;
 
-        string? loggerExpression = null;
-        var isLoggerFromParameter = false;
-
-        foreach (var p in method.Parameters)
+        foreach (var p in binding.UnhandledParameters)
         {
-            if (p.RefKind is not RefKind.None)
-                return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
-                    DiagnosticDescriptors.InvalidParameter.Id, p.Locations.FirstOrDefault());
-
-            var typeName = p.Type.ToDisplayString();
-
-            if (IsLoggerType(p.Type, types))
+            var type = p.Type;
+            // Funge-specific logic: match string array or IEnumerable<string> for args/envs
+            var isStringContainer = false;
+            if (type is IArrayTypeSymbol arrayType && types.IsString(arrayType.ElementType, false))
             {
-                if (loggerExpression is not null)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, argsExpr, envsExpr,
-                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
-                        p.Locations.FirstOrDefault());
-                loggerExpression = p.Name;
-                isLoggerFromParameter = true;
-                continue;
+                isStringContainer = true;
+            }
+            else if (type is INamedTypeSymbol namedType && namedType.IsGenericType)
+            {
+                if (SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, types.IEnumerableT)
+                    && types.IsString(namedType.TypeArguments[0], false))
+                {
+                    isStringContainer = true;
+                }
             }
 
-            if (typeName == "string")
+            if (isStringContainer)
             {
-                if (inputKind is not InputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
-                        DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
-                inputKind = InputKind.String;
-                inputExpr = p.Name;
-                continue;
-            }
-
-            // String array or IEnumerable<string>
-            if (p.Type is IArrayTypeSymbol || (p.Type is INamedTypeSymbol namedType && (namedType.Name == "IEnumerable" || namedType.Name == "IEnumerable`1")))
-            {
-                // This is a rough check, keeping existing logic
                 var name = p.Name.ToLowerInvariant();
                 if (name.Contains("arg"))
                 {
                     if (argsExpr is not null)
-                        return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null, null, null, false,
-                            DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
+                        return new(binding, FungeError: new DuplicateInput(p, MethodInputKind.None, p.Locations.FirstOrDefault()));
                     argsExpr = p.Name;
                     continue;
                 }
                 if (name.Contains("env"))
                 {
                     if (envsExpr is not null)
-                        return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null, null, null, false,
-                            DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
+                        return new(binding, FungeError: new DuplicateInput(p, MethodInputKind.None, p.Locations.FirstOrDefault()));
                     envsExpr = p.Name;
                     continue;
                 }
             }
 
-            if (typeName.Contains("TextReader"))
-            {
-                if (inputKind is not InputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
-                        DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
-                inputKind = InputKind.TextReader;
-                inputExpr = p.Name;
-                continue;
-            }
-
-            if (typeName.Contains("PipeReader"))
-            {
-                if (inputKind is not InputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, "", "", null, null, null, null, false,
-                        DiagnosticDescriptors.DuplicateParameter.Id, p.Locations.FirstOrDefault());
-                inputKind = InputKind.PipeReader;
-                inputExpr = p.Name;
-                continue;
-            }
-
-            if (typeName.Contains("PipeWriter"))
-            {
-                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
-                        cancellationTokenName, null, false, DiagnosticDescriptors.ReturnOutputConflict.Id,
-                        p.Locations.FirstOrDefault());
-                if (outputKind is not OutputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
-                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
-                        p.Locations.FirstOrDefault());
-                outputKind = OutputKind.PipeWriter;
-                outputExpr = p.Name;
-                continue;
-            }
-
-            if (typeName.Contains("TextWriter"))
-            {
-                if (outputKind is OutputKind.ReturnString or OutputKind.ReturnEnumerable or OutputKind.ReturnAsyncEnumerable)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
-                        cancellationTokenName, null, false, DiagnosticDescriptors.ReturnOutputConflict.Id,
-                        p.Locations.FirstOrDefault());
-                if (outputKind is not OutputKind.None)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, p.Name, null, null,
-                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
-                        p.Locations.FirstOrDefault());
-                outputKind = OutputKind.TextWriter;
-                outputExpr = p.Name;
-                continue;
-            }
-
-            if (typeName.Contains("CancellationToken"))
-            {
-                if (hasCancellationToken)
-                    return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null,
-                        cancellationTokenName, null, false, DiagnosticDescriptors.DuplicateParameter.Id,
-                        p.Locations.FirstOrDefault());
-                hasCancellationToken = true;
-                cancellationTokenName = p.Name;
-                continue;
-            }
-
-            return new(false, returnKind, inputKind, outputKind, inputExpr, outputExpr, null, null,
-                cancellationTokenName, null, false, DiagnosticDescriptors.InvalidParameter.Id,
-                p.Locations.FirstOrDefault());
+            // Still unhandled
+            return new(binding, FungeError: new InvalidParameterModifier(p, p.Locations.FirstOrDefault()));
         }
 
-        var fieldName = FindLoggerField(method.ContainingType, method.IsStatic, types, out var isField);
-        if (loggerExpression == null)
-        {
-            loggerExpression = fieldName;
-            isLoggerFromParameter = !isField;
-        }
-
-        return new(true, returnKind, inputKind, outputKind, inputExpr, outputExpr, argsExpr, envsExpr, cancellationTokenName, loggerExpression, isLoggerFromParameter, null);
-    }
-
-    static string? FindLoggerField(ITypeSymbol? type, bool isStatic, KnownTypes types, out bool isField)
-    {
-        isField = false;
-        var isBaseType = false;
-        var shadowedNames = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
-        var currentType = type;
-
-        while (currentType != null)
-        {
-            foreach (var field in currentType.GetMembers().OfType<IFieldSymbol>())
-            {
-                if (isStatic && !field.IsStatic) continue;
-
-                // If searching in a base type, the field must be accessible (protected or public)
-                if (isBaseType && field.DeclaredAccessibility is not (Accessibility.Protected or Accessibility.ProtectedOrInternal or Accessibility.Public or Accessibility.Internal))
-                    continue;
-
-                if (IsLoggerType(field.Type, types))
-                {
-                    isField = true;
-                    return field.Name;
-                }
-                else if (field.CanBeReferencedByName)
-                {
-                    shadowedNames.Add(field.Name);
-                }
-            }
-            currentType = currentType.BaseType;
-            isBaseType = true;
-        }
-
-        if (type is INamedTypeSymbol namedType)
-        {
-            foreach (var constructor in namedType.InstanceConstructors)
-            {
-                if (constructor.DeclaringSyntaxReferences.Any(ds => ds.GetSyntax() is ClassDeclarationSyntax))
-                {
-                    foreach (var parameter in constructor.Parameters)
-                    {
-                        if (IsLoggerType(parameter.Type, types) && !shadowedNames.Contains(parameter.Name))
-                        {
-                            isField = false;
-                            return parameter.Name;
-                        }
-                    }
-                }
-            }
-        }
-        return null;
+        return new(binding, argsExpr, envsExpr);
     }
 
     // -----------------------------------------------------------------------
@@ -688,7 +380,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         IMethodSymbol symbol,
         MethodDeclarationSyntax syntax,
         FungeSpace space,
-        ExecutionBinding binding,
+        FungeExecutionBinding binding,
         string? projDir,
         string sourcePath)
     {
@@ -707,14 +399,14 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var typeName = symbol.ContainingType.Name;
         var accessibility = GetAccessibility(symbol.DeclaredAccessibility);
         var staticMod = symbol.IsStatic ? " static" : string.Empty;
-        var asyncMod = binding.ReturnKind == ReturnKind.AsyncEnumerableByte ? " async" : string.Empty;
+        var asyncMod = binding.Binding.ReturnKind == MethodReturnKind.IAsyncEnumerableByte ? " async" : string.Empty;
         var returnTypeSyntax = symbol.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-        var paramList = string.Join(", ", Enumerable.Select(symbol.Parameters, p =>
+        var paramList = string.Join(", ", symbol.Parameters.Select(p =>
         {
-            var prefix = (binding.ReturnKind == ReturnKind.AsyncEnumerableByte
-                && binding.CancellationTokenName is not null
-                && string.Equals(p.Name, binding.CancellationTokenName, StringComparison.Ordinal))
+            var prefix = (binding.Binding.IsAsyncEnumerable
+                && binding.Binding.CancellationTokenName is not null
+                && string.Equals(p.Name, binding.Binding.CancellationTokenName, StringComparison.Ordinal))
                 ? "[global::System.Runtime.CompilerServices.EnumeratorCancellation] "
                 : string.Empty;
             return prefix + p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + " " + p.Name;
@@ -740,21 +432,22 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    static void EmitBody(StringBuilder sb, FungeSpace space, ExecutionBinding binding, bool isStatic)
+    static void EmitBody(StringBuilder sb, FungeSpace space, FungeExecutionBinding fungeBinding, bool isStatic)
     {
+        var binding = fungeBinding.Binding;
         var inputExpr = binding.InputKind switch
         {
-            InputKind.None => "global::System.IO.TextReader.Null",
-            InputKind.String => $"new global::System.IO.StringReader({binding.InputExpression} ?? string.Empty)",
-            InputKind.TextReader => binding.InputExpression,
-            InputKind.PipeReader => $"new global::System.IO.StreamReader({binding.InputExpression}.AsStream())",
+            MethodInputKind.None => "global::System.IO.TextReader.Null",
+            MethodInputKind.String => $"new global::System.IO.StringReader({binding.InputExpression} ?? string.Empty)",
+            MethodInputKind.TextReader => binding.InputExpression,
+            MethodInputKind.PipeReader => $"new global::System.IO.StreamReader({binding.InputExpression}.AsStream())",
             _ => "global::System.IO.TextReader.Null",
         };
         var cancellationTokenExpr = binding.CancellationTokenName is null
             ? "global::System.Threading.CancellationToken.None"
             : binding.CancellationTokenName;
-        var argsExpr = binding.ArgsExpression ?? "null";
-        var envsExpr = binding.EnvsExpression ?? "null";
+        var argsExpr = fungeBinding.ArgsExpression ?? "null";
+        var envsExpr = fungeBinding.EnvsExpression ?? "null";
 
         EmitSpaceData(sb, space);
 
@@ -767,9 +460,9 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
         switch (binding.ReturnKind)
         {
-            case ReturnKind.Void:
+            case MethodReturnKind.Void:
                 {
-                    if (binding.OutputKind == OutputKind.PipeWriter)
+                    if (binding.OutputKind == MethodOutputKind.PipeWriter)
                     {
                         sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
@@ -779,7 +472,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     }
                     else
                     {
-                        var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        var outExpr = binding.OutputKind == MethodOutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
                         sb.AppendLine($"""
@@ -790,8 +483,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     break;
                 }
 
-            case ReturnKind.Int:
-                if (binding.OutputKind == OutputKind.PipeWriter)
+            case MethodReturnKind.Int32:
+                if (binding.OutputKind == MethodOutputKind.PipeWriter)
                 {
                     sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
@@ -801,7 +494,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
                 else
                 {
-                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                    var outExpr = binding.OutputKind == MethodOutputKind.TextWriter
                         ? binding.OutputExpression
                         : "global::System.IO.TextWriter.Null";
                     sb.AppendLine($"""
@@ -811,16 +504,17 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
                 break;
 
-            case ReturnKind.String:
+            case MethodReturnKind.String:
+            case MethodReturnKind.NullableString:
                 sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunString(
                     __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
         """);
                 break;
 
-            case ReturnKind.Task:
+            case MethodReturnKind.Task:
                 {
-                    if (binding.OutputKind == OutputKind.PipeWriter)
+                    if (binding.OutputKind == MethodOutputKind.PipeWriter)
                     {
                         sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
@@ -830,7 +524,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     }
                     else
                     {
-                        var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        var outExpr = binding.OutputKind == MethodOutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
                         sb.AppendLine($"""
@@ -841,8 +535,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     break;
                 }
 
-            case ReturnKind.TaskInt:
-                if (binding.OutputKind == OutputKind.PipeWriter)
+            case MethodReturnKind.TaskInt32:
+                if (binding.OutputKind == MethodOutputKind.PipeWriter)
                 {
                     sb.AppendLine($$"""
                 return __RunTaskIntWithPipeWriter();
@@ -857,7 +551,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
                 else
                 {
-                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                    var outExpr = binding.OutputKind == MethodOutputKind.TextWriter
                         ? binding.OutputExpression
                         : "global::System.IO.TextWriter.Null";
                     sb.AppendLine($"""
@@ -867,16 +561,17 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
                 break;
 
-            case ReturnKind.TaskString:
+            case MethodReturnKind.TaskString:
+            case MethodReturnKind.TaskNullableString:
                 sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskString(
                     __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
         """);
                 break;
 
-            case ReturnKind.ValueTask:
+            case MethodReturnKind.ValueTask:
                 {
-                    if (binding.OutputKind == OutputKind.PipeWriter)
+                    if (binding.OutputKind == MethodOutputKind.PipeWriter)
                     {
                         sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
@@ -886,7 +581,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     }
                     else
                     {
-                        var outExpr = binding.OutputKind == OutputKind.TextWriter
+                        var outExpr = binding.OutputKind == MethodOutputKind.TextWriter
                             ? binding.OutputExpression
                             : "global::System.IO.TextWriter.Null";
                         sb.AppendLine($"""
@@ -897,8 +592,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     break;
                 }
 
-            case ReturnKind.ValueTaskInt:
-                if (binding.OutputKind == OutputKind.PipeWriter)
+            case MethodReturnKind.ValueTaskInt32:
+                if (binding.OutputKind == MethodOutputKind.PipeWriter)
                 {
                     sb.AppendLine($$"""
                 return __RunValueTaskIntWithPipeWriter();
@@ -913,7 +608,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
                 else
                 {
-                    var outExpr = binding.OutputKind == OutputKind.TextWriter
+                    var outExpr = binding.OutputKind == MethodOutputKind.TextWriter
                         ? binding.OutputExpression
                         : "global::System.IO.TextWriter.Null";
                     sb.AppendLine($"""
@@ -923,14 +618,15 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
                 break;
 
-            case ReturnKind.ValueTaskString:
+            case MethodReturnKind.ValueTaskString:
+            case MethodReturnKind.ValueTaskNullableString:
                 sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskString(
                     __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
         """);
                 break;
 
-            case ReturnKind.EnumerableByte:
+            case MethodReturnKind.IEnumerableByte:
                 sb.AppendLine($"""
                 foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunEnumerable(
                     __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}))
@@ -938,7 +634,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         """);
                 break;
 
-            case ReturnKind.AsyncEnumerableByte:
+            case MethodReturnKind.IAsyncEnumerableByte:
                 sb.AppendLine($"""
                 await foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunAsyncEnumerable(
                     __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}))
@@ -1022,7 +718,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var sep = System.IO.Path.DirectorySeparatorChar.ToString();
         if (!baseDir.EndsWith(sep)) baseDir += sep;
         return fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase)
-            ? fullPath.Substring(baseDir.Length)
+            ? fullPath[baseDir.Length..]
             : fullPath;
     }
 }
