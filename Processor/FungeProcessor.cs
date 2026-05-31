@@ -25,7 +25,7 @@ public sealed partial class FungeProcessor(
     TextWriter? output = null,
     TextReader? input = null,
     IEnumerable<string>? commandLineArguments = null,
-    IEnumerable<string>? environmentVariables = null) : ITextProcessor<FungeSpace>
+    IEnumerable<string>? environmentVariables = null) : IProcessor<FungeSpace>
 {
     private readonly FungeSpace _space = space;
     private readonly TextWriter _output = output ?? Console.Out;
@@ -55,55 +55,17 @@ public sealed partial class FungeProcessor(
 
     /// <inheritdoc/>
     public int RunToEnd(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
-    {
-        var resolvedInput = input ?? _input;
-        var resolvedOutput = output ?? _output;
-
-        var ips = new LinkedList<InstructionPointer>();
-        ips.AddFirst(new InstructionPointer(_nextIpId++));
-        var exitCode = 0;
-        var quit = false;
-
-        while (ips.Count > 0 && !quit && !cancellationToken.IsCancellationRequested)
-        {
-            var node = ips.First!;
-            while (node is not null && !quit && !cancellationToken.IsCancellationRequested)
-            {
-                var nextNode = node.Next;
-                var ip = node.Value;
-
-                var suppressAdvance = false;
-                ExecuteInstruction(ip, ips, node, ref exitCode, ref quit, ref suppressAdvance, resolvedInput, resolvedOutput);
-
-                if (ip.IsStopped || quit)
-                {
-                    ips.Remove(node);
-                }
-                else if (!suppressAdvance)
-                {
-                    ip.Position = _space.Advance(ip.Position, ip.Delta);
-                }
-
-                node = nextNode;
-            }
-        }
-
-        return exitCode;
-    }
+        => TextProcessorExtensions.RunToEndAsync(this, input ?? _input, output ?? _output, cancellationToken).AsTask().GetAwaiter().GetResult();
 
     /// <inheritdoc/>
     public ValueTask<int> RunToEndAsync(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(RunToEnd(input, output, cancellationToken));
+        => TextProcessorExtensions.RunToEndAsync(this, input ?? _input, output ?? _output, cancellationToken);
 
-    private void ExecuteInstruction(
+    private IEnumerable<IOEvent> ExecuteInstruction(
         InstructionPointer ip,
         LinkedList<InstructionPointer> ips,
         LinkedListNode<InstructionPointer> ipNode,
-        ref int exitCode,
-        ref bool quit,
-        ref bool suppressAdvance,
-        TextReader input,
-        TextWriter output,
+        FungeState state,
         int? overrideCell = null)
     {
         var cell = overrideCell ?? _space[ip.Position];
@@ -138,7 +100,7 @@ public sealed partial class FungeProcessor(
             {
                 ip.StackStack.Push(cell);
             }
-            return;
+            yield break;
         }
 
         switch (cell)
@@ -313,7 +275,7 @@ public sealed partial class FungeProcessor(
                     var dir = s >= 0 ? ip.Delta : ip.Delta.Reflect();
                     for (var i = 0; i < Math.Abs(s); i++)
                         ip.Position = _space.Advance(ip.Position, dir);
-                    suppressAdvance = true;
+                    state.SuppressAdvance = true;
                     break;
                 }
 
@@ -360,27 +322,29 @@ public sealed partial class FungeProcessor(
 
             // ── I/O ──────────────────────────────────────────────────────────
             case '.': // Output Integer
-                output.Write(ip.StackStack.Pop());
-                output.Write(' ');
+                yield return new OutputIntEvent(ip.StackStack.Pop());
+                yield return new OutputCharEvent(' ');
                 break;
 
             case ',': // Output Character
-                output.Write((char)ip.StackStack.Pop());
+                yield return new OutputCharEvent((char)ip.StackStack.Pop());
                 break;
 
             case '&': // Input Integer
                 {
-                    var line = input.ReadLine();
-                    if (line is null) { ip.Delta = ip.Delta.Reflect(); break; }
-                    ip.StackStack.Push(int.TryParse(line.Trim(), out var v) ? v : 0);
+                    var ev = new FungeInputIntEvent();
+                    yield return ev;
+                    if (ev.Value.HasValue) ip.StackStack.Push(ev.Value.Value);
+                    else ip.Delta = ip.Delta.Reflect();
                     break;
                 }
 
             case '~': // Input Character
                 {
-                    var ch = input.Read();
-                    if (ch < 0) ip.Delta = ip.Delta.Reflect();
-                    else ip.StackStack.Push(ch);
+                    var ev = new FungeInputCharEvent();
+                    yield return ev;
+                    if (ev.Value.HasValue) ip.StackStack.Push(ev.Value.Value);
+                    else ip.Delta = ip.Delta.Reflect();
                     break;
                 }
 
@@ -431,8 +395,8 @@ public sealed partial class FungeProcessor(
                 break;
 
             case 'q': // Quit program immediately
-                exitCode = ip.StackStack.Pop();
-                quit = true;
+                state.ExitCode = ip.StackStack.Pop();
+                state.Quit = true;
                 break;
 
             case 'k': // Iterate: execute next instruction n times
@@ -467,7 +431,7 @@ public sealed partial class FungeProcessor(
                     {
                         // n=0: skip the operand. IP moves to the position AFTER the operand.
                         ip.Position = _space.Advance(instrPos, ip.Delta);
-                        suppressAdvance = true;
+                        state.SuppressAdvance = true;
                     }
                     else
                     {
@@ -476,10 +440,13 @@ public sealed partial class FungeProcessor(
                         // After k finishes, normal advancement continues from the IP's current position,
                         // so position-changing operands such as [ and # behave "from k".
                         var operand = _space[instrPos];
-                        for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
+                        for (var i = 0; i < n && !ip.IsStopped && !state.Quit; i++)
                         {
-                            var dummy = false;
-                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy, input, output, operand);
+                            var subState = new FungeState { ExitCode = state.ExitCode, Quit = state.Quit, SuppressAdvance = false };
+                            foreach (var ev in ExecuteInstruction(ip, ips, ipNode, subState, operand))
+                                yield return ev;
+                            state.ExitCode = subState.ExitCode;
+                            state.Quit = subState.Quit;
                         }
                     }
                     break;

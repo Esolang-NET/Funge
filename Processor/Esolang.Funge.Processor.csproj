@@ -22,7 +22,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Esolang.Processor.Abstractions" />
     <PackageReference Include="System.IO.Pipelines" />
   </ItemGroup>
 
