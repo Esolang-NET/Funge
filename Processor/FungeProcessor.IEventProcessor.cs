@@ -1,21 +1,11 @@
 using Esolang.Processor;
 using System.Runtime.CompilerServices;
+using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor;
 
 public sealed partial class FungeProcessor : IEventProcessor
 {
-    sealed class FungeInputCharEvent : InputCharEvent
-    {
-        public int? Value { get; private set; }
-        public override void Write(char c) => Value = c;
-    }
-
-    sealed class FungeInputIntEvent : InputIntEvent
-    {
-        public int? Value { get; private set; }
-        public override void Write(int i) => Value = i;
-    }
 
     sealed class FungeState
     {

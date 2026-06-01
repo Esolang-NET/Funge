@@ -2,6 +2,7 @@ using Esolang.Funge.Parser;
 using Esolang.Processor;
 using System.Collections;
 using System.Diagnostics;
+using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor;
 
@@ -296,28 +297,30 @@ public sealed partial class FungeProcessor(
 
             // ── I/O ──────────────────────────────────────────────────────────
             case '.': // Output Integer
-                yield return new OutputIntEvent(ip.StackStack.Pop());
-                yield return new OutputCharEvent(' ');
+                yield return OutputInt(ip.StackStack.Pop());
+                yield return OutputChar(' ');
                 break;
 
             case ',': // Output Character
-                yield return new OutputCharEvent((char)ip.StackStack.Pop());
+                yield return OutputChar((char)ip.StackStack.Pop());
                 break;
 
             case '&': // Input Integer
                 {
-                    var ev = new FungeInputIntEvent();
+                    int? input = null;
+                    var ev = InputInt(value => input = value);
                     yield return ev;
-                    if (ev.Value.HasValue) ip.StackStack.Push(ev.Value.Value);
+                    if (input.HasValue) ip.StackStack.Push(input.Value);
                     else ip.Delta = ip.Delta.Reflect();
                     break;
                 }
 
             case '~': // Input Character
                 {
-                    var ev = new FungeInputCharEvent();
+                    char? input = null;
+                    var ev = InputChar(value => input = value);
                     yield return ev;
-                    if (ev.Value.HasValue) ip.StackStack.Push(ev.Value.Value);
+                    if (input.HasValue) ip.StackStack.Push(input.Value);
                     else ip.Delta = ip.Delta.Reflect();
                     break;
                 }
