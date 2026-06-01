@@ -16,52 +16,26 @@ namespace Esolang.Funge.Processor;
 /// Initializes a new <see cref="FungeProcessor"/> with the given program space and optional I/O.
 /// </remarks>
 /// <param name="space">The parsed Funge-98 program space.</param>
-/// <param name="output">Output writer; defaults to <see cref="Console.Out"/>.</param>
-/// <param name="input">Input reader; defaults to <see cref="Console.In"/>.</param>
 /// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
 /// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
 public sealed partial class FungeProcessor(
     FungeSpace space,
-    TextWriter? output = null,
-    TextReader? input = null,
     IEnumerable<string>? commandLineArguments = null,
-    IEnumerable<string>? environmentVariables = null) : IProcessor<FungeSpace>
+    IEnumerable<string>? environmentVariables = null)
 {
-    private readonly FungeSpace _space = space;
-    private readonly TextWriter _output = output ?? Console.Out;
-    private readonly TextReader _input = input ?? Console.In;
-    private readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
+    readonly FungeSpace _space = space;
+    readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
 #pragma warning disable IDE0305 // コレクションの初期化を簡略化します
             .ToArray();
 #pragma warning restore IDE0305 // コレクションの初期化を簡略化します
-    private readonly string[] _environmentVariables = [.. environmentVariables
+    readonly string[] _environmentVariables = [.. environmentVariables
              ?? Environment.GetEnvironmentVariables()
             .Cast<DictionaryEntry>()
             .Select(static entry => $"{entry.Key}={entry.Value}")];
-    private readonly Random _random = new();
-    private int _nextIpId;
+    readonly Random _random = new();
+    int _nextIpId;
 
-    /// <inheritdoc/>
-    public FungeSpace Program => _space;
-
-    /// <summary>
-    /// Runs the Funge-98 program and returns the process exit code.
-    /// The program starts with a single IP at (0,0) moving East.
-    /// </summary>
-    /// <param name="cancellationToken">Token to cancel execution.</param>
-    /// <returns>Exit code: 0 unless the program used <c>q</c>.</returns>
-    public int Run(CancellationToken cancellationToken = default)
-        => RunToEnd(null, null, cancellationToken);
-
-    /// <inheritdoc/>
-    public int RunToEnd(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
-        => TextProcessorExtensions.RunToEndAsync(this, input ?? _input, output ?? _output, cancellationToken).AsTask().GetAwaiter().GetResult();
-
-    /// <inheritdoc/>
-    public ValueTask<int> RunToEndAsync(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
-        => TextProcessorExtensions.RunToEndAsync(this, input ?? _input, output ?? _output, cancellationToken);
-
-    private IEnumerable<IOEvent> ExecuteInstruction(
+    IEnumerable<IOEvent> ExecuteInstruction(
         InstructionPointer ip,
         LinkedList<InstructionPointer> ips,
         LinkedListNode<InstructionPointer> ipNode,
@@ -593,7 +567,7 @@ public sealed partial class FungeProcessor(
         }
     }
 
-    private static FungeVector PopVector(StackStack stack)
+    static FungeVector PopVector(StackStack stack)
     {
         var z = stack.Pop();
         var y = stack.Pop();
@@ -601,14 +575,14 @@ public sealed partial class FungeProcessor(
         return new FungeVector(x, y, z);
     }
 
-    private static void PushVector(StackStack stack, FungeVector vector)
+    static void PushVector(StackStack stack, FungeVector vector)
     {
         stack.Push(vector.X);
         stack.Push(vector.Y);
         stack.Push(vector.Z);
     }
 
-    private static bool TryPopZeroTerminatedString(StackStack stack, out string result)
+    static bool TryPopZeroTerminatedString(StackStack stack, out string result)
     {
         var chars = new List<char>();
         while (true)
@@ -630,7 +604,7 @@ public sealed partial class FungeProcessor(
         }
     }
 
-    private bool TryInputFile(FungeVector leastPoint, string fileName, bool binaryMode, out FungeVector size)
+    bool TryInputFile(FungeVector leastPoint, string fileName, bool binaryMode, out FungeVector size)
     {
         size = new FungeVector(0, 0, 0);
 
@@ -694,7 +668,7 @@ public sealed partial class FungeProcessor(
         return true;
     }
 
-    private bool TryOutputFile(FungeVector leastPoint, FungeVector size, string fileName, bool linearText)
+    bool TryOutputFile(FungeVector leastPoint, FungeVector size, string fileName, bool linearText)
     {
         var sx = Math.Max(0, size.X);
         var sy = Math.Max(0, size.Y);
@@ -740,7 +714,7 @@ public sealed partial class FungeProcessor(
         }
     }
 
-    private static int ExecuteSystemCommand(string command)
+    static int ExecuteSystemCommand(string command)
     {
         try
         {
@@ -783,7 +757,7 @@ public sealed partial class FungeProcessor(
     /// If <paramref name="c"/> is greater than zero, only item <paramref name="c"/>
     /// (1-indexed from top) is left on the stack.
     /// </summary>
-    private void PushSysInfo(InstructionPointer ip, int _, int c)
+    void PushSysInfo(InstructionPointer ip, int _, int c)
     {
         // Build list of items in order: items[0] will be last-pushed (item 1 from top)
         List<int> items = [];
@@ -829,9 +803,9 @@ public sealed partial class FungeProcessor(
 
         var now = DateTime.Now;
         // 20. Current date: (year-1900)*256*256 + month*256 + day
-        items.Add(((now.Year - 1900) * 256 * 256) + (now.Month * 256) + now.Day);
+        items.Add((now.Year - 1900) * 256 * 256 + now.Month * 256 + now.Day);
         // 21. Current time: HH*256*256 + MM*256 + SS
-        items.Add((now.Hour * 256 * 256) + (now.Minute * 256) + now.Second);
+        items.Add(now.Hour * 256 * 256 + now.Minute * 256 + now.Second);
         // 22. Number of stacks in stack stack
         items.Add(ip.StackStack.StackCount);
         // 23+. Size of each stack (TOSS first)

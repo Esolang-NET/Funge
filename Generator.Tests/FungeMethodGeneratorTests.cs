@@ -10,7 +10,7 @@ using System.Text;
 namespace Esolang.Funge.Generator.Tests;
 
 [TestClass]
-public class FungeMethodGeneratorTests(TestContext TestContext)
+public class FungeMethodGeneratorTests
 {
 
     void LogWriteLine(string message) => TestContext.WriteLine(message);
@@ -18,11 +18,13 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     CancellationToken CancellationToken => TestContext.CancellationTokenSource.Token;
 #pragma warning restore MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
 
-    Compilation baseCompilation = default!;
+    readonly Compilation baseCompilation = default!;
 
-    [TestInitialize]
-    public void InitializeCompilation()
+    readonly TestContext TestContext;
+
+    public FungeMethodGeneratorTests(TestContext TestContext)
     {
+        this.TestContext = TestContext;
         IEnumerable<PortableExecutableReference> references =
 #if NET10_0_OR_GREATER
             Net100.References.All;
@@ -199,8 +201,8 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
                 var logs = (List<string>)logger.Logs;
 
                 // Check if we have logs for '1' and '@'
-                Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
-                Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
+                Assert.Contains(l => l.Contains("'1'"), logs);
+                Assert.Contains(l => l.Contains("'@'"), logs);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
@@ -259,8 +261,8 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
 
                 var logs = (List<string>)loggerType.GetField("Logs")!.GetValue(loggerInstance)!;
 
-                Assert.IsTrue(logs.Any(l => l.Contains("'1'")));
-                Assert.IsTrue(logs.Any(l => l.Contains("'@'")));
+                Assert.Contains(l => l.Contains("'1'"), logs);
+                Assert.Contains(l => l.Contains("'@'"), logs);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
@@ -456,7 +458,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             var expectedFiles = new[] { "input.cs", "GenerateFungeMethodAttribute.cs", "GenerateFungeMethod.g.cs" };
             foreach (var expected in expectedFiles)
             {
-                Assert.IsTrue(actualPaths.Any(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase)), $"Missing file: {expected}");
+                Assert.Contains(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase), actualPaths, $"Missing file: {expected}");
             }
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
@@ -1549,7 +1551,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             Directory.SetCurrentDirectory(tempDir);
             File.WriteAllText("input.txt", "A");
 
-            var reversed = new string("input.txt".Reverse().ToArray());
+            var reversed = new string([.. "input.txt".Reverse()]);
             var program = $"00000\"{reversed}\"in000gq";
 
             var source = """
@@ -1602,7 +1604,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
         {
             Directory.SetCurrentDirectory(tempDir);
 
-            var reversed = new string("output.txt".Reverse().ToArray());
+            var reversed = new string([.. "output.txt".Reverse()]);
             var program = $"88*1+000p00000000\"{reversed}\"o@";
 
             var source = """
@@ -1650,7 +1652,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     public async Task Runtime_SystemExec_ReturnsExitCode()
     {
         const string command = "exit 7";
-        var reversed = new string(command.Reverse().ToArray());
+        var reversed = new string([.. command.Reverse()]);
         var program = $"0\"{reversed}\"=q";
 
         var source = """
@@ -1690,7 +1692,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
     public async Task Runtime_SystemExec_FailureIsNonZero()
     {
         const string command = "this_command_should_not_exist_12345";
-        var reversed = new string(command.Reverse().ToArray());
+        var reversed = new string([.. command.Reverse()]);
         var program = $"0\"{reversed}\"=q";
 
         var source = """
@@ -2331,7 +2333,7 @@ public class FungeMethodGeneratorTests(TestContext TestContext)
             foreach (var tree in comp.SyntaxTrees)
             {
                 LogWriteLine($"\n--- {tree.FilePath} ---");
-                LogWriteLine(tree.GetText().ToString());
+                LogWriteLine(tree.GetText(TestContext.CancellationToken).ToString());
             }
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)

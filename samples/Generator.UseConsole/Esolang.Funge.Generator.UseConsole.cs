@@ -13,7 +13,7 @@ FungeSample.HelloWorldWriter(textWriter);
 Console.WriteLine($"{nameof(FungeSample.HelloWorldWriter)}: {textWriter}");
 
 // IEnumerable<byte> (file-based)
-Console.WriteLine($"{nameof(FungeSample.HelloWorldBytes)}: {Encoding.UTF8.GetString(FungeSample.HelloWorldBytes().ToArray())}");
+Console.WriteLine($"{nameof(FungeSample.HelloWorldBytes)}: {Encoding.UTF8.GetString([.. FungeSample.HelloWorldBytes()])}");
 
 // IAsyncEnumerable<byte> (file-based)
 Console.WriteLine($"{nameof(FungeSample.HelloWorldBytesAsync)}: {Encoding.UTF8.GetString(await ToByteArrayAsync(FungeSample.HelloWorldBytesAsync()))}");

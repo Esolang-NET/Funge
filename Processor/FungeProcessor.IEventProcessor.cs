@@ -5,26 +5,31 @@ namespace Esolang.Funge.Processor;
 
 public sealed partial class FungeProcessor : IEventProcessor
 {
-    private sealed class FungeInputCharEvent : InputCharEvent
+    sealed class FungeInputCharEvent : InputCharEvent
     {
         public int? Value { get; private set; }
         public override void Write(char c) => Value = c;
     }
 
-    private sealed class FungeInputIntEvent : InputIntEvent
+    sealed class FungeInputIntEvent : InputIntEvent
     {
         public int? Value { get; private set; }
         public override void Write(int i) => Value = i;
     }
 
-    private sealed class FungeState
+    sealed class FungeState
     {
         public int ExitCode;
         public bool Quit;
         public bool SuppressAdvance;
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Runs the Funge-98 program and returns the process exit code.
+    /// The program starts with a single IP at (0,0) moving East.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel execution.</param>
+    /// <returns>Exit code: 0 unless the program used <c>q</c>.</returns>
     public async IAsyncEnumerable<IOEvent> RunAsyncEnumerable([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var ips = new LinkedList<InstructionPointer>();

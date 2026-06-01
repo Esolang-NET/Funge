@@ -16,6 +16,7 @@
     <NoWarn>$(NoWarn);NETSDK1213;CS9057</NoWarn>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IncludeSymbols>True</IncludeSymbols>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'!='DEBUG'">
@@ -41,8 +42,9 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <IsPublishable>false</IsPublishable>
-    <NoWarn>$(NoWarn);RS1035</NoWarn>
+    <NoWarn>$(NoWarn);RS1035;CS1591</NoWarn>
     <OutputType>Exe</OutputType>
     <EnableMSTestRunner>true</EnableMSTestRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
 </Project>

@@ -215,13 +215,13 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     var messageArgs = error switch
                     {
                         UnsupportedReturnType e => new object[] { e.ReturnType.ToDisplayString() },
-                        DuplicateInput e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
-                        DuplicateOutput e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
-                        DuplicateCancellationToken e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
-                        DuplicateLogger e => new object[] { e.Parameter.Type.ToDisplayString(), symbol.Name },
-                        ReturnOutputConflict e => new object[] { symbol.Name },
-                        InvalidParameterModifier e => new object[] { e.Parameter.Name },
-                        _ => new object[] { symbol.Name }
+                        DuplicateInput e => [e.Parameter.Type.ToDisplayString(), symbol.Name],
+                        DuplicateOutput e => [e.Parameter.Type.ToDisplayString(), symbol.Name],
+                        DuplicateCancellationToken e => [e.Parameter.Type.ToDisplayString(), symbol.Name],
+                        DuplicateLogger e => [e.Parameter.Type.ToDisplayString(), symbol.Name],
+                        ReturnOutputConflict e => [symbol.Name],
+                        InvalidParameterModifier e => [e.Parameter.Name],
+                        _ => [symbol.Name]
                     };
 
                     ctx.ReportDiagnostic(Diagnostic.Create(descriptor, location, messageArgs));
@@ -643,12 +643,6 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 break;
         }
     }
-
-    static void EmitRuntimeRunCall(StringBuilder sb, string inputExpr, string outputExpr, bool hasInput, bool hasOutput)
-     => sb.AppendLine($"""
-                global::Esolang.Funge.__Generated.FungeRuntime.Run(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outputExpr}, {(hasInput ? "true" : "false")}, {(hasOutput ? "true" : "false")});
-        """);
 
     static void EmitSpaceData(StringBuilder sb, FungeSpace space)
     {

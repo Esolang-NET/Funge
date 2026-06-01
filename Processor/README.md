@@ -65,12 +65,14 @@ using Esolang.Funge.Parser;
 using Esolang.Funge.Processor;
 
 var space = FungeParser.ParseFile("hello.b98");
-var proc = new FungeProcessor(space, Console.Out, Console.In);
-int exitCode = proc.Run();
+var proc = new FungeProcessor(space);
+int exitCode = await proc.RunToEndAsync();
 ```
 
-`FungeProcessor` accepts optional `TextWriter` (output) and `TextReader` (input) arguments, defaulting to `Console.Out` / `Console.In`.  
-`Run()` accepts an optional `CancellationToken` and returns the exit code set by `q` (0 if not used).
+`FungeProcessor` executes programs via an event stream. You can run it to completion using `RunToEndAsync()` (or the synchronous `Run()`), which defaults to `Console.In` / `Console.Out`.  
+For fine-grained control, use `RunAsyncEnumerable()` to handle I/O events manually.
+
+`Run()` and `RunToEndAsync()` accept optional `TextReader` and `TextWriter` arguments, and an optional `CancellationToken`. They return the exit code set by `q` (0 if not used).
 
 ## References
 

@@ -7,12 +7,12 @@ namespace Esolang.Funge.Processor;
 /// </summary>
 public sealed class StackStack
 {
-    private readonly LinkedList<Stack<int>> _stacks = new();
+    readonly LinkedList<Stack<int>> _stacks = new();
 
     /// <summary>Initializes a new stack stack with a single empty TOSS.</summary>
     public StackStack() => _stacks.AddFirst(new Stack<int>());
 
-    private StackStack(LinkedList<Stack<int>> stacks) => _stacks = stacks;
+    StackStack(LinkedList<Stack<int>> stacks) => _stacks = stacks;
 
     /// <summary>Gets the top-of-stack-stack (current active stack).</summary>
     public Stack<int> TOSS => _stacks.First!.Value;
