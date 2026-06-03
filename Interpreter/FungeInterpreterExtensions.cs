@@ -16,26 +16,45 @@ public static class FungeInterpreterExtensions
     /// </summary>
     public static RootCommand BuildRootCommand()
     {
-        var pathArgument = new Argument<string>("path")
+        var pathOption = new Option<string?>(name: "--path", aliases: ["-p"])
         {
             Description = "Path to a Funge-98 source file (.b98).",
         };
 
+        var sourceOption = new Option<string?>(name: "--source", aliases: ["-s"])
+        {
+            Description = "Inline Funge-98 source code. Newlines are supported.",
+        };
+
         var rootCommand = new RootCommand("Run Funge-98 (Befunge-98) programs.")
         {
-            pathArgument,
+            pathOption,
+            sourceOption,
         };
 
         rootCommand.SetAction(async (parseResult, cancellationToken) =>
         {
-            var path = parseResult.GetValue(pathArgument)!;
-            var space = FungeParser.ParseFile(path);
+            var path = parseResult.GetValue(pathOption);
+            var source = parseResult.GetValue(sourceOption);
+
+            var hasPath = !string.IsNullOrWhiteSpace(path);
+            var hasSource = source is not null;
+            if (hasPath == hasSource)
+            {
+                Console.Error.WriteLine("Specify exactly one of --path/-p or --source/-s.");
+                return 1;
+            }
+
+            var space = hasPath
+                ? FungeParser.ParseFile(path!)
+                : FungeParser.Parse(source!);
             var env = Environment.GetEnvironmentVariables()
                 .Cast<DictionaryEntry>()
                 .Select(static entry => $"{entry.Key}={entry.Value}");
+            var inputArgument = hasPath ? path! : "<inline-source>";
             var proc = new FungeProcessor(
                 space,
-                commandLineArguments: [path],
+                commandLineArguments: [inputArgument],
                 environmentVariables: env);
 
             return await proc.RunToConsoleAsync(cancellationToken);

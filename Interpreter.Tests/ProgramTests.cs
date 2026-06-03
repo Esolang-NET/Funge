@@ -38,8 +38,33 @@ public class ProgramTests(TestContext TestContext)
         try
         {
             await File.WriteAllTextAsync(path, "64+\"!dlroW ,olleH\">:#,_@", CancellationToken);
-            var exitCode = Run([path]);
+            var exitCode = Run(["--path", path]);
             Assert.AreEqual(0, exitCode);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public void Run_SourceOptionWithMultilineCode_ReturnsZero()
+    {
+        const string source = "v\n>25*\"!dlroW ,olleH\",,,,@";
+        var exitCode = Run(["--source", source]);
+        Assert.AreEqual(0, exitCode);
+    }
+
+    [TestMethod]
+    public async Task Run_PathAndSourceTogether_ReturnsOne()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
+        try
+        {
+            await File.WriteAllTextAsync(path, "@", CancellationToken);
+            var exitCode = Run(["--path", path, "--source", "@"]);
+            Assert.AreEqual(1, exitCode);
         }
         finally
         {
@@ -59,7 +84,7 @@ public class ProgramTests(TestContext TestContext)
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            var exitCode = await Program.RunAsync([path], cancellationToken: cancellation.Token);
+            var exitCode = await Program.RunAsync(["--path", path], cancellationToken: cancellation.Token);
             Assert.AreEqual(0, exitCode);
         }
         finally
