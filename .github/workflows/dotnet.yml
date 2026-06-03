@@ -61,38 +61,47 @@ jobs:
           rm -rf .artifacts/tool-e2e
           mkdir -p .artifacts/tool-e2e
 
-          dotnet pack Interpreter/Esolang.Piet.Interpreter.csproj -r "$rid" -p:ToolPackageRuntimeIdentifiers= -o .artifacts/tool-e2e
+          dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -r "$rid" -p:ToolPackageRuntimeIdentifiers= -o .artifacts/tool-e2e
 
-          nupkg_path=$(find .artifacts/tool-e2e -maxdepth 1 -type f -name "dotnet-piet.*.nupkg" ! -name "*.snupkg" | head -n 1)
+          nupkg_path=$(find .artifacts/tool-e2e -maxdepth 1 -type f -name "dotnet-funge.*.nupkg" ! -name "*.snupkg" | head -n 1)
           if [ -z "$nupkg_path" ]; then
-            echo "Failed to find dotnet-piet nupkg in .artifacts/tool-e2e"
+            echo "Failed to find dotnet-funge nupkg in .artifacts/tool-e2e"
             exit 1
           fi
           nupkg_name=$(basename "$nupkg_path")
-          tool_version=${nupkg_name#dotnet-piet.}
+          tool_version=${nupkg_name#dotnet-funge.}
           tool_version=${tool_version%.nupkg}
           echo "Detected tool version: $tool_version"
 
           dotnet new tool-manifest --force
-          dotnet tool install dotnet-piet \
+          dotnet tool install dotnet-funge \
             --add-source .artifacts/tool-e2e \
             --version "$tool_version"
 
-          dotnet tool run dotnet-piet -- --help
+          dotnet tool run dotnet-funge -- --help
 
           # hello-world.png → "Hello, world!" を検証
-          output1=$(dotnet tool run dotnet-piet -- samples/Generator.UseConsole/samples/hello-world.png)
+          output1=$(dotnet tool run dotnet-funge -- samples/Generator.UseConsole/samples/hello-world.png)
           echo "$output1"
           test "$output1" = "Hello, world!"
 
           # parse サブコマンドで ascii-piet テキストが出力されることを確認
-          output2=$(dotnet tool run dotnet-piet -- parse samples/Generator.UseConsole/samples/hello-world.png)
+          output2=$(dotnet tool run dotnet-funge -- parse samples/Generator.UseConsole/samples/hello-world.png)
           echo "$output2"
           [ -n "$output2" ]
 
           # inline funge テキストで実行
-          output3=$(dotnet tool run dotnet-funge -- --ascii-piet-text "l_ C")
+          output3=$(dotnet tool run dotnet-funge -- --source "64+\"!dlroW ,olleH\">:#,_@")
           echo "$output3"
+
+          # 改行を含む inline funge テキストで実行
+          inline_source=$(cat <<'EOF'
+v
+>25*"!dlroW ,olleH",,,,@
+EOF
+)
+          output4=$(dotnet tool run dotnet-funge -- --source "$inline_source")
+          echo "$output4"
 
           dotnet tool uninstall dotnet-funge
 
