@@ -3,82 +3,110 @@ name: build and test
 on:
   push:
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
     paths:
-    - '**.cs'
-    - '**.csproj'
-    - '**.slnx'
-    - '.github/workflows/**'
+      - '**.cs'
+      - '**.csproj'
+      - '**.slnx'
+      - '**.props'
+      - '**.targets'
+      - 'global.json'
+      - '.github/workflows/**'
 
 env:
   DOTNET_VERSION: '10.0.x'
-  NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
 
 jobs:
   build-and-test:
-
-    name: build-and-test-${{matrix.os}}
+    name: build-and-test-${{ matrix.rid }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macOS-latest
+            rid: osx-arm64
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/checkout@v6
 
-    - name: Install dependencies
-      run: dotnet restore --source "${{ env.NUGET_SOURCE }}"
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Build
-      run: dotnet build --no-restore
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev
 
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      - name: Restore
+        run: dotnet restore
 
-    - name: Tool E2E (pack/install/run)
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      shell: bash
-      run: |
-        set -euo pipefail
-        rm -rf .artifacts/tool-e2e
-        mkdir -p .artifacts/tool-e2e
+      - name: Build
+        run: dotnet build --no-restore
 
-        dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -o .artifacts/tool-e2e
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
 
-        nupkg_path=$(find .artifacts/tool-e2e -maxdepth 1 -type f -name 'dotnet-funge.*.nupkg' | head -n 1)
-        if [ -z "$nupkg_path" ]; then
-          echo "Failed to find dotnet-funge nupkg in .artifacts/tool-e2e"
-          exit 1
-        fi
-        nupkg_name=$(basename "$nupkg_path")
-        tool_version=${nupkg_name#dotnet-funge.}
-        tool_version=${tool_version%.nupkg}
-        echo "Detected tool version: $tool_version"
+      - name: Tool E2E (pack/install/run)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rid="${{ matrix.rid }}"
+          rm -rf .artifacts/tool-e2e
+          mkdir -p .artifacts/tool-e2e
 
-        dotnet tool install dotnet-funge \
-          --tool-path .artifacts/tool-e2e/path \
-          --add-source .artifacts/tool-e2e \
-          --version "$tool_version"
+          dotnet pack Interpreter/Esolang.Piet.Interpreter.csproj -r "$rid" -p:ToolPackageRuntimeIdentifiers= -o .artifacts/tool-e2e
 
-        ./.artifacts/tool-e2e/path/dotnet-funge --help
+          nupkg_path=$(find .artifacts/tool-e2e -maxdepth 1 -type f -name "dotnet-piet.*.nupkg" ! -name "*.snupkg" | head -n 1)
+          if [ -z "$nupkg_path" ]; then
+            echo "Failed to find dotnet-piet nupkg in .artifacts/tool-e2e"
+            exit 1
+          fi
+          nupkg_name=$(basename "$nupkg_path")
+          tool_version=${nupkg_name#dotnet-piet.}
+          tool_version=${tool_version%.nupkg}
+          echo "Detected tool version: $tool_version"
 
-        output=$(./.artifacts/tool-e2e/path/dotnet-funge "samples/Generator.UseConsole/Programs/hello.b98")
-        echo "$output"
-        test "$output" = "Hello, World!"
+          dotnet new tool-manifest --force
+          dotnet tool install dotnet-piet \
+            --add-source .artifacts/tool-e2e \
+            --version "$tool_version"
 
-        dotnet tool uninstall dotnet-funge --tool-path .artifacts/tool-e2e/path
+          dotnet tool run dotnet-piet -- --help
 
-    - name: Pack
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      run: |
-        dotnet pack -o artifacts/
+          # hello-world.png → "Hello, world!" を検証
+          output1=$(dotnet tool run dotnet-piet -- samples/Generator.UseConsole/samples/hello-world.png)
+          echo "$output1"
+          test "$output1" = "Hello, world!"
 
-    - uses: actions/upload-artifact@v4
-      if: ${{ matrix.os == 'ubuntu-latest' }}
-      with:
-        name: artifacts
-        path: artifacts
+          # parse サブコマンドで ascii-piet テキストが出力されることを確認
+          output2=$(dotnet tool run dotnet-piet -- parse samples/Generator.UseConsole/samples/hello-world.png)
+          echo "$output2"
+          [ -n "$output2" ]
+
+          # inline funge テキストで実行
+          output3=$(dotnet tool run dotnet-funge -- --ascii-piet-text "l_ C")
+          echo "$output3"
+
+          dotnet tool uninstall dotnet-funge
+
+      - name: Pack
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          dotnet pack Generator/Esolang.Funge.Generator.csproj -o artifacts/
+          dotnet pack Parser/Esolang.Funge.Parser.csproj -o artifacts/
+          dotnet pack Processor/Esolang.Funge.Processor.csproj -o artifacts/
+          dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -p:ToolPackageRuntimeIdentifiers= -o artifacts/
+          dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -p:PublishAot=false -p:ToolPackageRuntimeIdentifiers="" -o artifacts/
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: artifacts
+          path: artifacts/

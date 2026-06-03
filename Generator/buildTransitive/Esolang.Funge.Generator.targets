@@ -24,4 +24,10 @@
                        FungeLogicalPath="%(_FungeGeneratedFile.LogicalPath)" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup Condition="'$(MSBuildThisPackageRoot)' != ''">
+    <Analyzer Include="$(MSBuildThisPackageRoot)analyzers/dotnet/cs/Esolang.Funge.Generator.dll" />
+    <Analyzer Include="$(MSBuildThisPackageRoot)analyzers/dotnet/cs/Esolang.Funge.Parser.dll" />
+    <Analyzer Include="$(MSBuildThisPackageRoot)analyzers/dotnet/cs/Esolang.Generator.Abstractions.dll" />
+  </ItemGroup>
 </Project>
