@@ -6,7 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
-## [2.0.0] - 2026-06-03
+### Added
+
+- `Esolang.Funge.Abstractions`: new package providing fingerprint abstractions (`IFingerprint`, `NullFingerprint`) targeting `netstandard2.0`, `netstandard2.1`, and `net10.0` with AOT compatibility.
+- `Esolang.Funge.Fingerprints.File`: new package implementing the `FILE` fingerprint (`0x46494C45`) with instructions `C` (close), `D` (delete), `G` (get binary), `M` (move), `O` (open), `P` (put string), `R` (read), `S` (size), `W` (write byte), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+- `Esolang.Funge.Generator`: new `[FingerprintsProvider]` attribute to register custom fingerprints; the generated runtime now dispatches fingerprint instructions through registered `IFingerprint` implementations.
+- `Esolang.Funge.Processor`: fingerprint load/unload (`(` `)`) now dispatches instructions through registered `IFingerprint` implementations; unrecognised fingerprints reflect as per spec.
+
+## [2.0.0]- 2026-06-03
 
 ### Added
 
