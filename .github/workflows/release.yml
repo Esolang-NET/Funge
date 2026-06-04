@@ -149,6 +149,8 @@ jobs:
           for pkg in "${ordered_nupkgs[@]}"; do
             push_nupkg "$pkg"
           done
+          # Wait for NuGet.org to index nupkgs before pushing snupkgs
+          sleep 60
           # Then upload snupkg files for library packages only (AOT/RID-specific packages have no managed DLLs)
           for pkg in artifacts/nuget/*.nupkg; do
             push_snupkg "$pkg"
