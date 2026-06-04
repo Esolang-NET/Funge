@@ -16,5 +16,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Parser\Esolang.Funge.Parser.csproj" />
     <ProjectReference Include="..\Processor\Esolang.Funge.Processor.csproj" />
+    <ProjectReference Include="..\Abstractions\Esolang.Funge.Abstractions.csproj" />
   </ItemGroup>
 </Project>

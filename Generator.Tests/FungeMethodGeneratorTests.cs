@@ -61,6 +61,11 @@ public class FungeMethodGeneratorTests
                     referenceList.Add(MetadataReference.CreateFromFile(loggingAssemblyLocation));
                 }
             }
+            var abstractionsAssemblyLocation = typeof(IFingerprint).Assembly.Location;
+            if (!string.IsNullOrWhiteSpace(abstractionsAssemblyLocation))
+            {
+                referenceList.Add(MetadataReference.CreateFromFile(abstractionsAssemblyLocation));
+            }
         }
 #if !NET
         {
@@ -2437,6 +2442,213 @@ public class FungeMethodGeneratorTests
                 // Verify we can call it with the new parameters
                 var result = (int?)m.Invoke(null, [new[] { "test" }, new[] { "VAR=VAL" }, CancellationToken]);
                 Assert.AreEqual(0, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // FingerprintsProvider tests
+    // -----------------------------------------------------------------------
+
+    [TestMethod]
+    public void FingerprintsProvider_Property_GeneratesArgument()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public IEnumerable<IFingerprint> MyFingerprints => System.Array.Empty<IFingerprint>();
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "MyFingerprints")]
+                public partial void Run();
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var allGenerated = string.Join("\n", comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Where(static text => text.Contains("Generated from:", StringComparison.Ordinal)));
+            Assert.Contains("fingerprints:", allGenerated);
+            Assert.Contains("this.MyFingerprints", allGenerated);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    public void FingerprintsProvider_Method_GeneratesArgument()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public IEnumerable<IFingerprint> GetFingerprints() => System.Array.Empty<IFingerprint>();
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "GetFingerprints")]
+                public partial void Run();
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var allGenerated = string.Join("\n", comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Where(static text => text.Contains("Generated from:", StringComparison.Ordinal)));
+            Assert.Contains("fingerprints:", allGenerated);
+            Assert.Contains("this.GetFingerprints()", allGenerated);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    public void FingerprintsProvider_StaticMethod_GeneratesQualifiedExpression()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public static IEnumerable<IFingerprint> GetFingerprints() => System.Array.Empty<IFingerprint>();
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "GetFingerprints")]
+                public static partial void Run();
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var allGenerated = string.Join("\n", comp.SyntaxTrees
+                .Select(static t => t.ToString())
+                .Where(static text => text.Contains("Generated from:", StringComparison.Ordinal)));
+            Assert.Contains("fingerprints:", allGenerated);
+            // Static member reference is fully qualified with global:: prefix
+            Assert.Contains("global::TestProject.TestClass.GetFingerprints()", allGenerated);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    public void FingerprintsProvider_InvalidMember_EmitsFG0012()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "NonExistentMember")]
+                public partial void Run();
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for unknown FingerprintsProvider member");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    public void FingerprintsProvider_EnablesFingerprintSupportRuntime()
+    {
+        // When FingerprintsProvider is set, the generated runtime should include RuntimeFungeExecutionContext.
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public static IEnumerable<IFingerprint> GetFingerprints() => System.Array.Empty<IFingerprint>();
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "GetFingerprints")]
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var runtime = string.Join("\n", comp.SyntaxTrees.Select(static t => t.ToString()));
+            Assert.Contains("RuntimeFungeExecutionContext", runtime);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public async Task FingerprintsProvider_Functional_DispatchesInstruction()
+    {
+        // Integration test: FingerprintsProvider wires up a real fingerprint.
+        // PEST fingerprint with 'A' → pushes 42, program outputs it as integer.
+        // Program: "TSEP"4(A.@ (load PEST, run A which pushes 42, output, stop)
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public static IEnumerable<IFingerprint> GetFingerprints()
+                    => new IFingerprint[] { new PestFingerprint() };
+
+                [GenerateFungeMethod(InlineSource = "\"TSEP\"4(A.@", FingerprintsProvider = "GetFingerprints")]
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
+
+                sealed class PestFingerprint : IFingerprint
+                {
+                    public int Handprint => FingerprintHandprint.Compute("PEST");
+                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+                        = new Dictionary<char, FingerprintInstruction> { ['A'] = ctx => ctx.Push(42) };
+                }
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (string?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual("42 ", result);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
