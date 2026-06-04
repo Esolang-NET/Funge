@@ -10,7 +10,7 @@ namespace Esolang.Funge.Processor;
 /// Executes a Funge-98 program loaded into a <see cref="FungeSpace"/>.
 /// Supports the full core instruction set including concurrent IPs (<c>t</c>) and
 /// the stack stack (<c>{</c>/<c>}</c>/<c>u</c>).
-/// Fingerprints (<c>(</c>/<c>)</c>) reflect (not implemented).
+/// Fingerprints (<c>(</c>/<c>)</c>) are supported when fingerprint implementations are provided.
 /// Includes Trefunge 3-D direction instructions (<c>h</c>/<c>l</c>/<c>m</c>).
 /// </summary>
 /// <remarks>
@@ -19,10 +19,12 @@ namespace Esolang.Funge.Processor;
 /// <param name="space">The parsed Funge-98 program space.</param>
 /// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
 /// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
+/// <param name="fingerprints">Optional fingerprint implementations to load on demand via <c>(</c>/<c>)</c>.</param>
 public sealed partial class FungeProcessor(
     FungeSpace space,
     IEnumerable<string>? commandLineArguments = null,
-    IEnumerable<string>? environmentVariables = null)
+    IEnumerable<string>? environmentVariables = null,
+    IEnumerable<IFingerprint>? fingerprints = null)
 {
     readonly FungeSpace _space = space;
     readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
@@ -33,6 +35,9 @@ public sealed partial class FungeProcessor(
              ?? Environment.GetEnvironmentVariables()
             .Cast<DictionaryEntry>()
             .Select(static entry => $"{entry.Key}={entry.Value}")];
+    readonly Dictionary<int, IFingerprint> _fingerprintMap = fingerprints is not null
+        ? fingerprints.ToDictionary(static f => f.Handprint)
+        : [];
     readonly Random _random = new();
     int _nextIpId;
 
@@ -529,12 +534,25 @@ public sealed partial class FungeProcessor(
                     break;
                 }
 
-            // ── Fingerprints (stub) ──────────────────────────────────────────
+            // ── Fingerprints ─────────────────────────────────────────────────
             case '(': // Load Semantics
                 {
                     var n = ip.StackStack.Pop();
-                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
-                    ip.StackStack.Push(0); // Dummy fingerprint ID
+                    var handprint = 0;
+                    for (var i = 0; i < n; i++)
+                        handprint = (handprint << 8) | (ip.StackStack.Pop() & 0xFF);
+                    if (!_fingerprintMap.TryGetValue(handprint, out var fingerprint))
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+                    foreach (var (letter, instruction) in fingerprint.Instructions)
+                    {
+                        if (!ip.Semantics.TryGetValue(letter, out var stack))
+                            ip.Semantics[letter] = stack = new Stack<FingerprintInstruction>();
+                        stack.Push(instruction);
+                    }
+                    ip.StackStack.Push(handprint);
                     ip.StackStack.Push(1); // Success
                     break;
                 }
@@ -542,8 +560,20 @@ public sealed partial class FungeProcessor(
             case ')': // Unload Semantics
                 {
                     var n = ip.StackStack.Pop();
-                    for (var i = 0; i < n; i++) ip.StackStack.Pop();
-                    ip.StackStack.Push(0); // Dummy fingerprint ID
+                    var handprint = 0;
+                    for (var i = 0; i < n; i++)
+                        handprint = (handprint << 8) | (ip.StackStack.Pop() & 0xFF);
+                    if (!_fingerprintMap.TryGetValue(handprint, out var fingerprint))
+                    {
+                        ip.Delta = ip.Delta.Reflect();
+                        break;
+                    }
+                    foreach (var (letter, _) in fingerprint.Instructions)
+                    {
+                        if (ip.Semantics.TryGetValue(letter, out var stack) && stack.Count > 0)
+                            stack.Pop();
+                    }
+                    ip.StackStack.Push(handprint);
                     ip.StackStack.Push(1); // Success
                     break;
                 }
@@ -562,9 +592,15 @@ public sealed partial class FungeProcessor(
                 }
 
             default:
-                // A-Z: fingerprint-defined; reflect if not loaded
+                // A-Z: dispatch loaded fingerprint instruction, reflect if not loaded
                 if (cell is >= 'A' and <= 'Z')
-                    ip.Delta = ip.Delta.Reflect();
+                {
+                    var letter = (char)cell;
+                    if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
+                        semStack.Peek()(new FungeExecutionContext(ip));
+                    else
+                        ip.Delta = ip.Delta.Reflect();
+                }
                 // All other characters: no-op
                 break;
         }

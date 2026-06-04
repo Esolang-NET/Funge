@@ -21,6 +21,7 @@ partial class MethodGenerator
         RunValueTaskInt = 1 << 8,
         RunValueTaskString = 1 << 9,
         RunWithLogging = 1 << 10,
+        FingerprintSupport = 1 << 11,
     }
 
     static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features)
@@ -32,64 +33,67 @@ partial class MethodGenerator
     static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
     {
         var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
+        var fingerprintSupport = (features & RuntimeFacadeFeatures.FingerprintSupport) != 0;
         var loggingArgument = runWithLogging ? ", object? logger = null" : "";
         var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
+        var fingerprintArgument = fingerprintSupport ? ", global::System.Collections.Generic.IEnumerable<global::Esolang.Funge.IFingerprint>? fingerprints = null" : "";
+        var withFingerprintArgument = fingerprintSupport ? ", fingerprints: fingerprints" : "";
         var sb = new StringBuilder();
         if ((features & RuntimeFacadeFeatures.RunSync) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
-                    => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
+                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
         """);
         if ((features & RuntimeFacadeFeatures.RunString) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
                     using var output = new StringWriter();
-                    RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
+                    RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                     return output.ToString();
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunEnumerable) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}))
+                    foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}))
                         yield return b;
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunAsyncEnumerable) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}))
+                    await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}))
                         yield return b;
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunTask) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct);
+                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskInt) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct);
+                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskString) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
                     return Task.Run(() =>
                     {
                         using var output = new StringWriter();
-                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
+                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                         return output.ToString();
                     }, ct);
                 }
@@ -97,24 +101,24 @@ partial class MethodGenerator
         if ((features & RuntimeFacadeFeatures.RunValueTask) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct));
+                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskInt) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}), ct));
+                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskString) != 0)
             sb.Append($$"""
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}})
+                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
                     return new ValueTask<string>(Task.Run(() =>
                     {
                         using var output = new StringWriter();
-                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}});
+                        RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                         return output.ToString();
                     }, ct));
                 }
@@ -125,8 +129,13 @@ partial class MethodGenerator
     static string BuildRuntimeSource(RuntimeFacadeFeatures features)
     {
         var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
+        var fingerprintSupport = (features & RuntimeFacadeFeatures.FingerprintSupport) != 0;
         var loggingArgument = runWithLogging ? ", object? logger = null" : "";
         var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
+        var fingerprintArgument = fingerprintSupport
+            ? ", global::System.Collections.Generic.IEnumerable<global::Esolang.Funge.IFingerprint>? fingerprints = null"
+            : "";
+        var withFingerprintArgument = fingerprintSupport ? ", fingerprints: fingerprints" : "";
         var loggingCasts = runWithLogging ? """
                     var __logger = logger as global::Microsoft.Extensions.Logging.ILogger;
         """ : "";
@@ -200,6 +209,159 @@ partial class MethodGenerator
                 }
         """ : "";
 
+        // Pre-compute fingerprint case bodies to avoid nesting $$"""...""" templates
+        var fingerprintLoadCaseBody = (fingerprintSupport, runWithLogging) switch
+        {
+            (true, true) => """
+                                         int __n = ip.StackStack.Pop();
+                                         int __handprint = 0;
+                                         for (int i = 0; i < __n; i++)
+                                             __handprint = (__handprint << 8) | (ip.StackStack.Pop() & 0xFF);
+                                         if (!__fingerprintMap.TryGetValue(__handprint, out var __fp))
+                                         {
+                                             ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                             break;
+                                         }
+                                         foreach (var __kvp in __fp.Instructions)
+                                         {
+                                             Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
+                                             if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
+                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::Esolang.Funge.FingerprintInstruction>();
+                                             __semStack.Push(__kvp.Value);
+                                         }
+                                         Log.LogFingerprintLoaded(__logger, ip.Id, $"0x{__handprint:X8}");
+                                         ip.StackStack.Push(__handprint);
+                                         ip.StackStack.Push(1);
+                                     """,
+            (true, false) => """
+                                         int __n = ip.StackStack.Pop();
+                                         int __handprint = 0;
+                                         for (int i = 0; i < __n; i++)
+                                             __handprint = (__handprint << 8) | (ip.StackStack.Pop() & 0xFF);
+                                         if (!__fingerprintMap.TryGetValue(__handprint, out var __fp))
+                                         {
+                                             ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                             break;
+                                         }
+                                         foreach (var __kvp in __fp.Instructions)
+                                         {
+                                             Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
+                                             if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
+                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::Esolang.Funge.FingerprintInstruction>();
+                                             __semStack.Push(__kvp.Value);
+                                         }
+                                         ip.StackStack.Push(__handprint);
+                                         ip.StackStack.Push(1);
+                                     """,
+            (false, true) => """
+                                         int __n = ip.StackStack.Pop();
+                                         var __fpName = "";
+                                         for (int i = 0; i < __n; i++)
+                                         {
+                                             var __v = ip.StackStack.Pop();
+                                             if (__v >= 0x20 && __v <= 0x7E) __fpName += (char)__v;
+                                             else __fpName += "\\x" + __v.ToString("X2");
+                                         }
+                                         Log.LogFingerprintLoaded(__logger, ip.Id, __fpName);
+                                         ip.StackStack.Push(0);
+                                         ip.StackStack.Push(1);
+                                     """,
+            _ => """
+                                         int __n = ip.StackStack.Pop();
+                                         for (int i = 0; i < __n; i++)
+                                             ip.StackStack.Pop();
+                                         ip.StackStack.Push(0);
+                                         ip.StackStack.Push(1);
+                                     """,
+        };
+
+        var fingerprintUnloadCaseBody = (fingerprintSupport, runWithLogging) switch
+        {
+            (true, true) => """
+                                         int __n = ip.StackStack.Pop();
+                                         int __handprint = 0;
+                                         for (int i = 0; i < __n; i++)
+                                             __handprint = (__handprint << 8) | (ip.StackStack.Pop() & 0xFF);
+                                         if (!__fingerprintMap.TryGetValue(__handprint, out var __fp))
+                                         {
+                                             ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                             break;
+                                         }
+                                         foreach (var __kvp in __fp.Instructions)
+                                         {
+                                             if (ip.Semantics.TryGetValue(__kvp.Key, out var __semStack) && __semStack.Count > 0)
+                                                 __semStack.Pop();
+                                         }
+                                         Log.LogFingerprintUnloaded(__logger, ip.Id, $"0x{__handprint:X8}");
+                                         ip.StackStack.Push(__handprint);
+                                         ip.StackStack.Push(1);
+                                     """,
+            (true, false) => """
+                                         int __n = ip.StackStack.Pop();
+                                         int __handprint = 0;
+                                         for (int i = 0; i < __n; i++)
+                                             __handprint = (__handprint << 8) | (ip.StackStack.Pop() & 0xFF);
+                                         if (!__fingerprintMap.TryGetValue(__handprint, out var __fp))
+                                         {
+                                             ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                             break;
+                                         }
+                                         foreach (var __kvp in __fp.Instructions)
+                                         {
+                                             if (ip.Semantics.TryGetValue(__kvp.Key, out var __semStack) && __semStack.Count > 0)
+                                                 __semStack.Pop();
+                                         }
+                                         ip.StackStack.Push(__handprint);
+                                         ip.StackStack.Push(1);
+                                     """,
+            (false, true) => """
+                                         int __n = ip.StackStack.Pop();
+                                         var __fpName = "";
+                                         for (int i = 0; i < __n; i++)
+                                         {
+                                             var __v = ip.StackStack.Pop();
+                                             if (__v >= 0x20 && __v <= 0x7E) __fpName += (char)__v;
+                                             else __fpName += "\\x" + __v.ToString("X2");
+                                         }
+                                         Log.LogFingerprintUnloaded(__logger, ip.Id, __fpName);
+                                         ip.StackStack.Push(0);
+                                         ip.StackStack.Push(1);
+                                     """,
+            _ => """
+                                         int __n = ip.StackStack.Pop();
+                                         for (int i = 0; i < __n; i++)
+                                             ip.StackStack.Pop();
+                                         ip.StackStack.Push(0);
+                                         ip.StackStack.Push(1);
+                                     """,
+        };
+
+        var fingerprintAZDispatch = fingerprintSupport
+            ? """
+                                 if (cell >= 'A' && cell <= 'Z')
+                                 {
+                                     var __letter = (char)cell;
+                                     Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
+                                     if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0)
+                                         __semStack.Peek()(new RuntimeFungeExecutionContext(ip));
+                                     else
+                                         ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                 }
+              """
+            : "                                 if (cell >= 'A' && cell <= 'Z') ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);";
+
+        var runtimeExecutionContext = fingerprintSupport ? """
+                private sealed class RuntimeFungeExecutionContext : global::Esolang.Funge.IFungeExecutionContext
+                {
+                    readonly RuntimeIp _ip;
+                    internal RuntimeFungeExecutionContext(RuntimeIp ip) => _ip = ip;
+                    public void Push(int value) => _ip.StackStack.Push(value);
+                    public int Pop() => _ip.StackStack.Pop();
+                    public int Peek() => _ip.StackStack.TOSS.Count > 0 ? _ip.StackStack.TOSS.Peek() : 0;
+                    public void Reflect() => _ip.Delta = (-_ip.Delta.X, -_ip.Delta.Y, -_ip.Delta.Z);
+                }
+        """ : "";
+
         return $$"""
         // <auto-generated/>
         #nullable enable
@@ -258,31 +420,36 @@ partial class MethodGenerator
                     internal RuntimeStackStack StackStack;
                     internal bool StringMode;
                     internal bool IsStopped;
+        {{(fingerprintSupport ? "            internal Dictionary<char, Stack<global::Esolang.Funge.FingerprintInstruction>> Semantics = new Dictionary<char, Stack<global::Esolang.Funge.FingerprintInstruction>>();" : "")}}
                     internal RuntimeIp CreateChild(int newId)
                     {
-                        return new RuntimeIp(newId) { Position = Position, Delta = (-Delta.X, -Delta.Y, -Delta.Z), Offset = Offset, StackStack = StackStack.Clone(), StringMode = StringMode };
+                        var child = new RuntimeIp(newId) { Position = Position, Delta = (-Delta.X, -Delta.Y, -Delta.Z), Offset = Offset, StackStack = StackStack.Clone(), StringMode = StringMode };
+        {{(fingerprintSupport ? """
+                        foreach (var __kvp in Semantics)
+                            child.Semantics[__kvp.Key] = new Stack<global::Esolang.Funge.FingerprintInstruction>(__kvp.Value);
+        """ : "")}}                        return child;
                     }
                 }
 
-                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
+                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct, args, envs{{withLoggingArgument}});
+                    return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                 }
 
-                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
+                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
                     var output = new System.Collections.Generic.List<byte>();
-                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs{{withLoggingArgument}});
+                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                     return output;
                 }
 
-                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
+                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
                     var buffer = new System.Collections.Concurrent.ConcurrentQueue<byte>();
                     var tcs = new TaskCompletionSource<int>();
                     await Task.Run(() => {
                         try {
-                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs{{withLoggingArgument}});
+                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                             tcs.SetResult(0);
                         } catch (Exception ex) { tcs.SetException(ex); }
                     }, ct);
@@ -295,9 +462,15 @@ partial class MethodGenerator
                     await tcs.Task;
                 }
 
-                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}})
+                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
         {{loggingCasts}}
+        {{(fingerprintSupport ? """
+                    var __fingerprintMap = new Dictionary<int, global::Esolang.Funge.IFingerprint>();
+                    if (fingerprints != null)
+                        foreach (var __fp0 in fingerprints)
+                            __fingerprintMap[__fp0.Handprint] = __fp0;
+        """ : "")}}
                     var rng = new Random();
 
                     int exitCode = 0;
@@ -497,20 +670,6 @@ partial class MethodGenerator
                         int cell = overrideCell ?? GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z);
         {{logInstructionCall}}
 
-                        {{(runWithLogging ? """
-                        string ExtractFingerprint(int n)
-                        {
-                            var fingerprint = "";
-                            var snapshot = ip.StackStack.TOSS.ToArray();
-                            for (int i = 0; i < n && i < snapshot.Length; i++)
-                            {
-                                var v = snapshot[i];
-                                if (v >= 0x20 && v <= 0x7E) fingerprint += (char)v;
-                                else fingerprint += $"\\x{v:X2}";
-                            }
-                            return fingerprint;
-                        }
-                        """ : "")}}
                         if (ip.StringMode)
                         {
                             if (cell == '"') ip.StringMode = false;
@@ -930,44 +1089,15 @@ partial class MethodGenerator
                                 }
                             case '(':
                                  {
-                                     int n = ip.StackStack.Pop();
-                                     {{(runWithLogging ? """
-                                         var fingerprint = "";
-                                         for (int i = 0; i < n; i++)
-                                         {
-                                             var v = ip.StackStack.Pop();
-                                             if (v >= 0x20 && v <= 0x7E) fingerprint += (char)v;
-                                             else fingerprint += $"\\x{v:X2}";
-                                         }
-                                         Log.LogFingerprintLoaded(__logger, ip.Id, fingerprint);
-                                     """ : """
-                                         for (int i = 0; i < n; i++)
-                                             ip.StackStack.Pop();
-                                     """)}}
-                                     ip.StackStack.Push(0); // Dummy fingerprint ID
-                                     ip.StackStack.Push(1); // Success
+                                     {{fingerprintLoadCaseBody}}
                                      break;
                                  }
                              case ')':
                                  {
-                                     int n = ip.StackStack.Pop();
-                                     {{(runWithLogging ? """
-                                         var fingerprint = "";
-                                         for (int i = 0; i < n; i++)
-                                         {
-                                             var v = ip.StackStack.Pop();
-                                             if (v >= 0x20 && v <= 0x7E) fingerprint += (char)v;
-                                             else fingerprint += $"\\x{v:X2}";
-                                         }
-                                         Log.LogFingerprintUnloaded(__logger, ip.Id, fingerprint);
-                                     """ : """
-                                         for (int i = 0; i < n; i++)
-                                             ip.StackStack.Pop();
-                                     """)}}
-                                     ip.StackStack.Push(0); // Dummy fingerprint ID
-                                     ip.StackStack.Push(1); // Success
+                                     {{fingerprintUnloadCaseBody}}
                                      break;
-                                 }                            case '=':
+                                 }
+                             case '=':
                                 {
                                     if (!TryPopZeroTerminatedString(ip.StackStack, out var cmd))
                                     {
@@ -977,10 +1107,9 @@ partial class MethodGenerator
                                     ip.StackStack.Push(ExecuteSystemCommand(cmd));
                                     break;
                                 }
-                            default:
-                                if (cell >= 'A' && cell <= 'Z')
-                                    ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
-                                break;
+                             default:
+                                 {{fingerprintAZDispatch}}
+                                 break;
                         }
                     }
 
@@ -1004,6 +1133,7 @@ partial class MethodGenerator
                     }
                     return exitCode;
                 }
+        {{runtimeExecutionContext}}
             }
         }
         """;

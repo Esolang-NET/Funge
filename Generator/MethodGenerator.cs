@@ -38,6 +38,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         MethodSignatureBinding Binding,
         string? ArgsExpression = null,
         string? EnvsExpression = null,
+        string? FingerprintsExpression = null,
         BindingError? FungeError = null)
     {
         [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(false, nameof(FungeError))]
@@ -70,6 +71,12 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         /// Inline Funge-98 source code. When non-empty, <c>sourcePath</c> is ignored.
                         /// </summary>
                         public string InlineSource = "";
+                        /// <summary>
+                        /// Name of a method or property on the containing type that returns
+                        /// <see cref="System.Collections.Generic.IEnumerable{T}"/> of <c>Esolang.Funge.IFingerprint</c>
+                        /// instances to register with the runtime.
+                        /// </summary>
+                        public string FingerprintsProvider = "";
                     }
                 }
                 """));
@@ -164,25 +171,31 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
                 // Check for inline source (named argument takes priority over file path)
                 string? inlineSource = null;
+                string? fingerprintsProviderName = null;
                 foreach (var namedArg in attrData.NamedArguments)
                 {
                     if (namedArg.Key == "InlineSource")
-                    {
                         inlineSource = namedArg.Value.Value as string;
-                        break;
-                    }
+                    else if (namedArg.Key == "FingerprintsProvider")
+                        fingerprintsProviderName = namedArg.Value.Value as string;
                 }
 
-                if (inlineSource == null)
+                if (inlineSource == null || fingerprintsProviderName == null)
                 {
                     var attributeSyntax = attrData.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
                     if (attributeSyntax?.ArgumentList != null)
                     {
                         foreach (var arg in attributeSyntax.ArgumentList.Arguments)
                         {
-                            if (arg.NameEquals?.Name.Identifier.ValueText == "InlineSource" && arg.Expression is LiteralExpressionSyntax lit)
+                            if (arg.NameEquals?.Name.Identifier.ValueText == "InlineSource"
+                                && arg.Expression is LiteralExpressionSyntax lit1)
                             {
-                                inlineSource = lit.Token.ValueText;
+                                inlineSource ??= lit1.Token.ValueText;
+                            }
+                            else if (arg.NameEquals?.Name.Identifier.ValueText == "FingerprintsProvider"
+                                && arg.Expression is LiteralExpressionSyntax lit2)
+                            {
+                                fingerprintsProviderName ??= lit2.Token.ValueText;
                             }
                         }
                     }
@@ -198,7 +211,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
                 // Bind the method signature
-                var binding = BindExecutionSignature(symbol, method, types);
+                var binding = BindExecutionSignature(symbol, method, types, fingerprintsProviderName, symbol, ctx);
                 if (!binding.IsValid)
                 {
                     var error = binding.FungeError ?? binding.Binding.Error!;
@@ -248,8 +261,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                             : normalizedFile;
                         if (string.Equals(compareFile, normalizedSource, StringComparison.OrdinalIgnoreCase)
                             || compareFile.EndsWith("/" + normalizedSource, StringComparison.OrdinalIgnoreCase)
-                            || string.Equals(System.IO.Path.GetFileName(compareFile),
-                                   System.IO.Path.GetFileName(normalizedSource), StringComparison.OrdinalIgnoreCase))
+                            || string.Equals(Path.GetFileName(compareFile),
+                                   Path.GetFileName(normalizedSource), StringComparison.OrdinalIgnoreCase))
                         {
                             sourceText = fileText;
                             break;
@@ -291,6 +304,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 runtimeFeatures |= GetRuntimeFacadeFeatures(binding.Binding.ReturnKind);
                 if (binding.Binding.LoggerExpression is not null)
                     runtimeFeatures |= RuntimeFacadeFeatures.RunWithLogging;
+                if (binding.FingerprintsExpression is not null)
+                    runtimeFeatures |= RuntimeFacadeFeatures.FingerprintSupport;
             }
 
             if (emittedCount > 0)
@@ -319,7 +334,13 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     // Signature binding
     // -----------------------------------------------------------------------
 
-    static FungeExecutionBinding BindExecutionSignature(IMethodSymbol method, MethodDeclarationSyntax syntax, KnownTypes types)
+    static FungeExecutionBinding BindExecutionSignature(
+        IMethodSymbol method,
+        MethodDeclarationSyntax syntax,
+        KnownTypes types,
+        string? fingerprintsProviderName = null,
+        IMethodSymbol? contextSymbol = null,
+        Microsoft.CodeAnalysis.SourceProductionContext? ctx = null)
     {
         var binding = MethodSignatureBinder.Bind(method, types);
         if (!binding.IsValid)
@@ -369,7 +390,60 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             return new(binding, FungeError: new InvalidParameterModifier(p, p.Locations.FirstOrDefault()));
         }
 
-        return new(binding, argsExpr, envsExpr);
+        // Resolve FingerprintsProvider
+        string? fingerprintsExpr = null;
+        if (!string.IsNullOrWhiteSpace(fingerprintsProviderName) && contextSymbol is not null)
+        {
+            fingerprintsExpr = ResolveFingerprintsProvider(fingerprintsProviderName!, contextSymbol, method.IsStatic);
+            if (fingerprintsExpr is null && ctx.HasValue)
+            {
+                ctx.Value.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.InvalidFingerprintsProvider,
+                    contextSymbol.Locations.FirstOrDefault(),
+                    fingerprintsProviderName,
+                    contextSymbol.Name));
+            }
+        }
+
+        return new(binding, argsExpr, envsExpr, fingerprintsExpr);
+    }
+
+    /// <summary>
+    /// Resolves a member name to an expression that returns
+    /// <c>IEnumerable&lt;IFingerprint&gt;</c> from the containing type.
+    /// Returns <c>null</c> if the member is not found or not valid.
+    /// </summary>
+    static string? ResolveFingerprintsProvider(string memberName, IMethodSymbol contextSymbol, bool isStatic)
+    {
+        var containingType = contextSymbol.ContainingType;
+        var members = containingType.GetMembers(memberName);
+        foreach (var member in members)
+        {
+            switch (member)
+            {
+                case IMethodSymbol m when m.Parameters.IsEmpty:
+                    {
+                        var qualifier = m.IsStatic ? GetFullyQualifiedTypeName(containingType) : (isStatic ? null : "this");
+                        if (qualifier is null && !m.IsStatic) return null; // instance member in static context
+                        return qualifier is not null ? $"{qualifier}.{memberName}()" : $"{memberName}()";
+                    }
+                case IPropertySymbol p:
+                    {
+                        var qualifier = p.IsStatic ? GetFullyQualifiedTypeName(containingType) : (isStatic ? null : "this");
+                        if (qualifier is null && !p.IsStatic) return null;
+                        return qualifier is not null ? $"{qualifier}.{memberName}" : memberName;
+                    }
+            }
+        }
+        return null;
+    }
+
+    static string GetFullyQualifiedTypeName(INamedTypeSymbol type)
+    {
+        var ns = type.ContainingNamespace?.IsGlobalNamespace == false
+            ? type.ContainingNamespace.ToDisplayString() + "."
+            : "";
+        return "global::" + ns + type.Name;
     }
 
     // -----------------------------------------------------------------------
@@ -458,6 +532,10 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             loggerExpr = $", logger: {prefix}{binding.LoggerExpression}";
         }
 
+        var fingerprintsExpr = fungeBinding.FingerprintsExpression is not null
+            ? $", fingerprints: {fungeBinding.FingerprintsExpression}"
+            : "";
+
         switch (binding.ReturnKind)
         {
             case MethodReturnKind.Void:
@@ -467,7 +545,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
                 global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                     }
                     else
@@ -477,7 +555,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                             : "global::System.IO.TextWriter.Null";
                         sb.AppendLine($"""
                 global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                     }
                     break;
@@ -489,7 +567,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 }
                 else
@@ -499,7 +577,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         : "global::System.IO.TextWriter.Null";
                     sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunSync(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 }
                 break;
@@ -508,7 +586,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             case MethodReturnKind.NullableString:
                 sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunString(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 break;
 
@@ -519,7 +597,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunTask(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                     }
                     else
@@ -529,7 +607,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                             : "global::System.IO.TextWriter.Null";
                         sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunTask(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                     }
                     break;
@@ -545,7 +623,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 {
                     using var __fungeOutput = new global::System.IO.StreamWriter({{binding.OutputExpression}}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
                     return await global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(
-                        __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {{inputExpr}}, __fungeOutput, {{(binding.HasExplicitInput ? "true" : "false")}}, {{(binding.HasExplicitOutput ? "true" : "false")}}, {{cancellationTokenExpr}}, {{argsExpr}}, {{envsExpr}}{{loggerExpr}});
+                        __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {{inputExpr}}, __fungeOutput, {{(binding.HasExplicitInput ? "true" : "false")}}, {{(binding.HasExplicitOutput ? "true" : "false")}}, {{cancellationTokenExpr}}, {{argsExpr}}, {{envsExpr}}{{loggerExpr}}{{fingerprintsExpr}});
                 }
         """);
                 }
@@ -556,7 +634,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         : "global::System.IO.TextWriter.Null";
                     sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskInt(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 }
                 break;
@@ -565,7 +643,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             case MethodReturnKind.TaskNullableString:
                 sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunTaskString(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 break;
 
@@ -576,7 +654,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         sb.AppendLine($"""
                 using var __fungeOutput = new global::System.IO.StreamWriter({binding.OutputExpression}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTask(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, __fungeOutput, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                     }
                     else
@@ -586,7 +664,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                             : "global::System.IO.TextWriter.Null";
                         sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTask(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                     }
                     break;
@@ -602,7 +680,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 {
                     using var __fungeOutput = new global::System.IO.StreamWriter({{binding.OutputExpression}}.AsStream(), global::System.Text.Encoding.UTF8, 1024, leaveOpen: true);
                     return await global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(
-                        __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {{inputExpr}}, __fungeOutput, {{(binding.HasExplicitInput ? "true" : "false")}}, {{(binding.HasExplicitOutput ? "true" : "false")}}, {{cancellationTokenExpr}}, {{argsExpr}}, {{envsExpr}}{{loggerExpr}});
+                        __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {{inputExpr}}, __fungeOutput, {{(binding.HasExplicitInput ? "true" : "false")}}, {{(binding.HasExplicitOutput ? "true" : "false")}}, {{cancellationTokenExpr}}, {{argsExpr}}, {{envsExpr}}{{loggerExpr}}{{fingerprintsExpr}});
                 }
         """);
                 }
@@ -613,7 +691,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         : "global::System.IO.TextWriter.Null";
                     sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskInt(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {outExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 }
                 break;
@@ -622,14 +700,14 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             case MethodReturnKind.ValueTaskNullableString:
                 sb.AppendLine($"""
                 return global::Esolang.Funge.__Generated.FungeRuntime.RunValueTaskString(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr});
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr});
         """);
                 break;
 
             case MethodReturnKind.IEnumerableByte:
                 sb.AppendLine($"""
                 foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunEnumerable(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}))
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr}))
                     yield return __b;
         """);
                 break;
@@ -637,7 +715,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             case MethodReturnKind.IAsyncEnumerableByte:
                 sb.AppendLine($"""
                 await foreach (var __b in global::Esolang.Funge.__Generated.FungeRuntime.RunAsyncEnumerable(
-                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}))
+                    __cells, __minX, __minY, __minZ, __maxX, __maxY, __maxZ, {inputExpr}, {(binding.HasExplicitInput ? "true" : "false")}, {(binding.HasExplicitOutput ? "true" : "false")}, {cancellationTokenExpr}, {argsExpr}, {envsExpr}{loggerExpr}{fingerprintsExpr}))
                     yield return __b;
         """);
                 break;
@@ -709,7 +787,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     static string MakeRelative(string baseDir, string fullPath)
     {
-        var sep = System.IO.Path.DirectorySeparatorChar.ToString();
+        var sep = Path.DirectorySeparatorChar.ToString();
         if (!baseDir.EndsWith(sep)) baseDir += sep;
         return fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase)
             ? fullPath[baseDir.Length..]

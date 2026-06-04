@@ -28,6 +28,13 @@ public sealed class InstructionPointer
     /// <summary>Gets or sets whether this IP has been stopped (by <c>@</c>).</summary>
     public bool IsStopped { get; set; }
 
+    /// <summary>
+    /// Gets the per-letter fingerprint instruction stacks for this IP.
+    /// Key: uppercase letter <c>'A'</c>–<c>'Z'</c>.
+    /// Value: stack of overrides, where the top is the currently active instruction.
+    /// </summary>
+    public Dictionary<char, Stack<FingerprintInstruction>> Semantics { get; } = [];
+
     /// <summary>Initializes an IP with the given ID and a new empty stack stack.</summary>
     public InstructionPointer(int id) : this(id, new StackStack()) { }
 
@@ -40,15 +47,21 @@ public sealed class InstructionPointer
     /// <summary>
     /// Creates a child IP for the <c>t</c> (Split) instruction.
     /// The child shares the same position, a deep copy of the stack stack,
-    /// and a reflected delta.
+    /// and a reflected delta. Loaded fingerprint semantics are also deep-copied.
     /// </summary>
     /// <param name="newId">Unique ID for the new child IP.</param>
     /// <returns>The new child IP.</returns>
-    public InstructionPointer CreateChild(int newId) => new(newId, StackStack.Clone())
+    public InstructionPointer CreateChild(int newId)
     {
-        Position = Position,
-        Delta = Delta.Reflect(),
-        Offset = Offset,
-        StringMode = StringMode,
-    };
+        var child = new InstructionPointer(newId, StackStack.Clone())
+        {
+            Position = Position,
+            Delta = Delta.Reflect(),
+            Offset = Offset,
+            StringMode = StringMode,
+        };
+        foreach (var (letter, stack) in Semantics)
+            child.Semantics[letter] = new Stack<FingerprintInstruction>(stack.Reverse());
+        return child;
+    }
 }
