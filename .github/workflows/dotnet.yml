@@ -80,19 +80,15 @@ jobs:
 
           dotnet tool run dotnet-funge -- --help
 
-          # hello-world.png → "Hello, world!" を検証
-          output1=$(dotnet tool run dotnet-funge -- samples/Generator.UseConsole/samples/hello-world.png)
+          # hello.b98 ファイルで実行 → "Hello, World!" を検証
+          output1=$(dotnet tool run dotnet-funge -- --path samples/Generator.UseConsole/Programs/hello.b98)
           echo "$output1"
-          test "$output1" = "Hello, world!"
-
-          # parse サブコマンドで ascii-piet テキストが出力されることを確認
-          output2=$(dotnet tool run dotnet-funge -- parse samples/Generator.UseConsole/samples/hello-world.png)
-          echo "$output2"
-          [ -n "$output2" ]
+          test "$output1" = "Hello, World!"
 
           # inline funge テキストで実行
-          output3=$(dotnet tool run dotnet-funge -- --source "64+\"!dlroW ,olleH\">:#,_@")
-          echo "$output3"
+          output2=$(dotnet tool run dotnet-funge -- --source "64+\"!dlroW ,olleH\">:#,_@")
+          echo "$output2"
+          test "$output2" = "Hello, World!"
 
           # 改行を含む inline funge テキストで実行
           inline_source=$(cat <<'EOF'
@@ -100,8 +96,8 @@ v
 >25*"!dlroW ,olleH",,,,@
 EOF
 )
-          output4=$(dotnet tool run dotnet-funge -- --source "$inline_source")
-          echo "$output4"
+          output3=$(dotnet tool run dotnet-funge -- --source "$inline_source")
+          echo "$output3"
 
           dotnet tool uninstall dotnet-funge
 
