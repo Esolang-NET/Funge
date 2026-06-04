@@ -253,6 +253,8 @@ csharp_style_pattern_matching_over_is_with_cast_check = true:warning
 dotnet_style_require_accessibility_modifiers = omit_if_default:warning
 # 未使用のプライベート メンバーを削除する (IDE0051)
 dotnet_diagnostic.IDE0051.severity = warning
+# メンバー アクセスを簡略化する (IDE0002)
+dotnet_diagnostic.IDE0002.severity = warning
 
 #region
 # CA2012: ValueTask を正しく使用する必要があります
