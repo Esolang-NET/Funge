@@ -26,16 +26,30 @@ public static class FungeInterpreterExtensions
             Description = "Inline Funge-98 source code. Newlines are supported.",
         };
 
+        var fingerprintNullOption = new Option<bool>(name: "--fingerprint-null")
+        {
+            Description = "Enable the NULL fingerprint (0x4E554C4C): all 26 instructions reflect.",
+        };
+
+        var fingerprintFileOption = new Option<bool>(name: "--fingerprint-file")
+        {
+            Description = "Enable the FILE fingerprint (0x46494C45): file I/O instructions C D G M O P R S W.",
+        };
+
         var rootCommand = new RootCommand("Run Funge-98 (Befunge-98) programs.")
         {
             pathOption,
             sourceOption,
+            fingerprintNullOption,
+            fingerprintFileOption,
         };
 
         rootCommand.SetAction(async (parseResult, cancellationToken) =>
         {
             var path = parseResult.GetValue(pathOption);
             var source = parseResult.GetValue(sourceOption);
+            var useNull = parseResult.GetValue(fingerprintNullOption);
+            var useFile = parseResult.GetValue(fingerprintFileOption);
 
             var hasPath = !string.IsNullOrWhiteSpace(path);
             var hasSource = source is not null;
@@ -52,10 +66,17 @@ public static class FungeInterpreterExtensions
                 .Cast<DictionaryEntry>()
                 .Select(static entry => $"{entry.Key}={entry.Value}");
             var inputArgument = hasPath ? path! : "<inline-source>";
+
+            using var fileFingerprint = useFile ? new FileFingerprint() : null;
+            List<IFingerprint> fingerprints = [];
+            if (useNull) fingerprints.Add(NullFingerprint.Instance);
+            if (useFile) fingerprints.Add(fileFingerprint!);
+
             var proc = new FungeProcessor(
                 space,
                 commandLineArguments: [inputArgument],
-                environmentVariables: env);
+                environmentVariables: env,
+                fingerprints: fingerprints.Count > 0 ? fingerprints : null);
 
             return await proc.RunToConsoleAsync(cancellationToken);
         });

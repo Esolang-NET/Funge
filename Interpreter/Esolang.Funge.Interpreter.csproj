@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Processor\Esolang.Funge.Processor.csproj" />
+    <ProjectReference Include="..\Fingerprints.File\Esolang.Funge.Fingerprints.File.csproj" />
   </ItemGroup>
 
   <ItemGroup>
