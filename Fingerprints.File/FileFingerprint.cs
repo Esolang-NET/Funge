@@ -62,7 +62,7 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
     static void Push0gnirts(IFungeExecutionContext ctx, string value)
     {
         ctx.Push(0);
-        for (var i = value.Length - 1; i >= 0; i--)
+        for (var i = 0; i < value.Length; i++)
             ctx.Push(value[i]);
     }
 

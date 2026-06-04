@@ -261,8 +261,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                             : normalizedFile;
                         if (string.Equals(compareFile, normalizedSource, StringComparison.OrdinalIgnoreCase)
                             || compareFile.EndsWith("/" + normalizedSource, StringComparison.OrdinalIgnoreCase)
-                            || string.Equals(System.IO.Path.GetFileName(compareFile),
-                                   System.IO.Path.GetFileName(normalizedSource), StringComparison.OrdinalIgnoreCase))
+                            || string.Equals(Path.GetFileName(compareFile),
+                                   Path.GetFileName(normalizedSource), StringComparison.OrdinalIgnoreCase))
                         {
                             sourceText = fileText;
                             break;
@@ -787,7 +787,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     static string MakeRelative(string baseDir, string fullPath)
     {
-        var sep = System.IO.Path.DirectorySeparatorChar.ToString();
+        var sep = Path.DirectorySeparatorChar.ToString();
         if (!baseDir.EndsWith(sep)) baseDir += sep;
         return fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase)
             ? fullPath[baseDir.Length..]
