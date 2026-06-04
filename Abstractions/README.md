@@ -80,6 +80,6 @@ partial class FungeSample
 
 ## Target Frameworks
 
-`netstandard2.0`
+`netstandard2.0` · `netstandard2.1` · `net10.0`
 
 AOT / trimming compatible.

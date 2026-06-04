@@ -109,7 +109,7 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Generator | netstandard2.0 |
 | Esolang.Funge.Parser | net8.0, net9.0, net10.0, netstandard2.0 |
 | Esolang.Funge.Processor | net8.0, net9.0, net10.0 |
-| Esolang.Funge.Abstractions | netstandard2.0 |
+| Esolang.Funge.Abstractions | netstandard2.0, netstandard2.1, net10.0 |
 | dotnet-funge | net8.0, net9.0, net10.0 |
 
 ## Changelog
