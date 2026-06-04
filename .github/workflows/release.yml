@@ -149,8 +149,8 @@ jobs:
           for pkg in "${ordered_nupkgs[@]}"; do
             push_nupkg "$pkg"
           done
-          # Then upload all snupkg files
-          for pkg in "${ordered_nupkgs[@]}"; do
+          # Then upload snupkg files for library packages only (AOT/RID-specific packages have no managed DLLs)
+          for pkg in artifacts/nuget/*.nupkg; do
             push_snupkg "$pkg"
           done
 
