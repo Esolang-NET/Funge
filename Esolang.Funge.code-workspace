@@ -5,6 +5,10 @@
 			"path": "."
 		},
 		{
+			"name": "Esolang.Funge.Abstractions",
+			"path": "Abstractions"
+		},
+		{
 			"name": "Esolang.Funge.Generator",
 			"path": "Generator"
 		},
@@ -39,6 +43,46 @@
 		{
 			"name": "Esolang.Funge.Processor.Tests",
 			"path": "Processor.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.File",
+			"path": "Fingerprints.File"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.File.Tests",
+			"path": "Fingerprints.File.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Modu",
+			"path": "Fingerprints.Modu"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Modu.Tests",
+			"path": "Fingerprints.Modu.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Roma",
+			"path": "Fingerprints.Roma"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Roma.Tests",
+			"path": "Fingerprints.Roma.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Strn",
+			"path": "Fingerprints.Strn"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Strn.Tests",
+			"path": "Fingerprints.Strn.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Time",
+			"path": "Fingerprints.Time"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Time.Tests",
+			"path": "Fingerprints.Time.Tests"
 		}
 	],
 	"settings": {
@@ -48,6 +92,7 @@
 			"**/.hg": true,
 			"**/.DS_Store": true,
 			"**/Thumbs.db": true,
+			"Abstractions": true,
 			"Generator": true,
 			"Generator.Tests": true,
 			"Interpreter": true,
@@ -56,6 +101,16 @@
 			"Parser.Tests": true,
 			"Processor": true,
 			"Processor.Tests": true,
+			"Fingerprints.File": true,
+			"Fingerprints.File.Tests": true,
+			"Fingerprints.Modu": true,
+			"Fingerprints.Modu.Tests": true,
+			"Fingerprints.Roma": true,
+			"Fingerprints.Roma.Tests": true,
+			"Fingerprints.Strn": true,
+			"Fingerprints.Strn.Tests": true,
+			"Fingerprints.Time": true,
+			"Fingerprints.Time.Tests": true,
 			"samples": true
 		}
 	},

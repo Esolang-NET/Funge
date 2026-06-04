@@ -1,4 +1,16 @@
 <Solution>
+  <Folder Name="/Esoalng.Funge.Fingerprints/">
+    <Project Path="Fingerprints.File.Tests/Esolang.Funge.Fingerprints.File.Tests.csproj" />
+    <Project Path="Fingerprints.File/Esolang.Funge.Fingerprints.File.csproj" />
+    <Project Path="Fingerprints.Modu.Tests/Esolang.Funge.Fingerprints.Modu.Tests.csproj" />
+    <Project Path="Fingerprints.Modu/Esolang.Funge.Fingerprints.Modu.csproj" />
+    <Project Path="Fingerprints.Roma.Tests/Esolang.Funge.Fingerprints.Roma.Tests.csproj" />
+    <Project Path="Fingerprints.Roma/Esolang.Funge.Fingerprints.Roma.csproj" />
+    <Project Path="Fingerprints.Strn.Tests/Esolang.Funge.Fingerprints.Strn.Tests.csproj" />
+    <Project Path="Fingerprints.Strn/Esolang.Funge.Fingerprints.Strn.csproj" />
+    <Project Path="Fingerprints.Time.Tests/Esolang.Funge.Fingerprints.Time.Tests.csproj" />
+    <Project Path="Fingerprints.Time/Esolang.Funge.Fingerprints.Time.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
@@ -6,8 +18,6 @@
     <File Path="CHANGELOG.md" />
   </Folder>
   <Project Path="Abstractions/Esolang.Funge.Abstractions.csproj" />
-  <Project Path="Fingerprints.File/Esolang.Funge.Fingerprints.File.csproj" />
-  <Project Path="Fingerprints.File.Tests/Esolang.Funge.Fingerprints.File.Tests.csproj" />
   <Project Path="Generator/Esolang.Funge.Generator.csproj" />
   <Project Path="Generator.Tests/Esolang.Funge.Generator.Tests.csproj" />
   <Project Path="samples/Generator.UseConsole/Esolang.Funge.Generator.UseConsole.csproj" />

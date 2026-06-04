@@ -71,6 +71,10 @@ Built-in fingerprints shipped with this repository:
 |---|---|---|---|
 | [`NULL`](./Abstractions/README.md) | `0x4E554C4C` | [Esolang.Funge.Abstractions](./Abstractions/README.md) | ✅ All 26 instructions reflect |
 | [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G M O P R S W |
+| `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.ROMA](./Fingerprints.ROMA) | ✅ C D I L M V X |
+| `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.MODU](./Fingerprints.MODU) | ✅ M R U |
+| `TIME` | `0x54494D45` | [Esolang.Funge.Fingerprints.TIME](./Fingerprints.TIME) | ✅ D G H M S T Y |
+| `STRN` | `0x5354524E` | [Esolang.Funge.Fingerprints.STRN](./Fingerprints.STRN) | ✅ A C L N R S |
 
 To register fingerprints with the Generator, use `[FingerprintsProvider]` — see [Generator README](./Generator/README.md).
 
@@ -92,6 +96,10 @@ dotnet tool install -g dotnet-funge
 | Execute Funge-98 in-process | Esolang.Funge.Processor |
 | Implement or use built-in fingerprints | Esolang.Funge.Abstractions |
 | Use FILE fingerprint (file I/O) | Esolang.Funge.Fingerprints.File |
+| Use ROMA fingerprint (Roman numerals) | Esolang.Funge.Fingerprints.ROMA |
+| Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.MODU |
+| Use TIME fingerprint (System time) | Esolang.Funge.Fingerprints.TIME |
+| Use STRN fingerprint (String manipulation) | Esolang.Funge.Fingerprints.STRN |
 | Run Funge-98 from CLI | dotnet-funge |
 
 ## NuGet
@@ -104,6 +112,10 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
 | [Esolang.Funge.Abstractions](./Abstractions/README.md) | [![NuGet: Esolang.Funge.Abstractions](https://img.shields.io/nuget/v/Esolang.Funge.Abstractions?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Abstractions/) | Fingerprint abstractions and built-in fingerprints. |
 | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | [![NuGet: Esolang.Funge.Fingerprints.File](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.File?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.File/) | FILE fingerprint (file I/O). |
+| [Esolang.Funge.Fingerprints.ROMA](./Fingerprints.ROMA/README.md) | [![NuGet: Esolang.Funge.Fingerprints.ROMA](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.ROMA?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.ROMA/) | ROMA fingerprint (Roman numerals). |
+| [Esolang.Funge.Fingerprints.MODU](./Fingerprints.MODU/README.md) | [![NuGet: Esolang.Funge.Fingerprints.MODU](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.MODU?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.MODU/) | MODU fingerprint (Modulo math). |
+| [Esolang.Funge.Fingerprints.TIME](./Fingerprints.TIME/README.md) | [![NuGet: Esolang.Funge.Fingerprints.TIME](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.TIME?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.TIME/) | TIME fingerprint (System time). |
+| [Esolang.Funge.Fingerprints.STRN](./Fingerprints.STRN/README.md) | [![NuGet: Esolang.Funge.Fingerprints.STRN](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.STRN?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.STRN/) | STRN fingerprint (String manipulation). |
 
 ## Framework Support
 
@@ -114,6 +126,10 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Processor | net8.0, net9.0, net10.0 |
 | Esolang.Funge.Abstractions | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.File | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.ROMA | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.MODU | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.TIME | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.STRN | netstandard2.0, netstandard2.1, net10.0 |
 | dotnet-funge | net8.0, net9.0, net10.0 |
 
 ## Changelog
