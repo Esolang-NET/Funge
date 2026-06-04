@@ -50,8 +50,8 @@ For runnable examples, see:
 | Core Funge-98 instructions | ✅ |
 | 3D navigation (`h` `l` `m`) | ✅ |
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
-| Fingerprint load/unload (`(` `)`) | ⚠️ Stub (accepted; no dispatch registered) |
-| Fingerprint instructions (`A`–`Z`) | ❌ Always reflects |
+| Fingerprint load/unload (`(` `)`) | ✅ Full dispatch (requires fingerprint registration) |
+| Fingerprint instructions (`A`–`Z`) | ✅ Dispatched when fingerprint loaded; reflects otherwise |
 | File I/O (`i` `o`) | ✅ |
 | System exec (`=`) | ✅ |
 | System info (`y`) | ✅ |
@@ -62,6 +62,16 @@ Details:
 - Runtime execution and instruction compliance: [Processor README](./Processor/README.md)
 - Generated runtime subset and limitations: [Generator README](./Generator/README.md)
 - CLI behavior and scope: [Interpreter README](./Interpreter/README.md)
+
+## Fingerprint Support
+
+Built-in fingerprints shipped with this repository:
+
+| Fingerprint | Handprint | Package | Status |
+|---|---|---|---|
+| [`NULL`](./Abstractions/README.md) | `0x4E554C4C` | [Esolang.Funge.Abstractions](./Abstractions/README.md) | ✅ All 26 instructions reflect |
+
+To register fingerprints with the Generator, use `[FingerprintsProvider]` — see [Generator README](./Generator/README.md).
 
 ## Install
 
@@ -79,6 +89,7 @@ dotnet tool install -g dotnet-funge
 | Generate C# methods from Funge-98 at compile time | Esolang.Funge.Generator |
 | Parse source into a `FungeSpace` | Esolang.Funge.Parser |
 | Execute Funge-98 in-process | Esolang.Funge.Processor |
+| Implement or use built-in fingerprints | Esolang.Funge.Abstractions |
 | Run Funge-98 from CLI | dotnet-funge |
 
 ## NuGet
@@ -89,6 +100,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Generator](./Generator/README.md) | [![NuGet: Esolang.Funge.Generator](https://img.shields.io/nuget/v/Esolang.Funge.Generator?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Generator/) | Funge-98 source generator. |
 | [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
 | [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
+| [Esolang.Funge.Abstractions](./Abstractions/README.md) | [![NuGet: Esolang.Funge.Abstractions](https://img.shields.io/nuget/v/Esolang.Funge.Abstractions?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Abstractions/) | Fingerprint abstractions and built-in fingerprints. |
 
 ## Framework Support
 
@@ -97,6 +109,7 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Generator | netstandard2.0 |
 | Esolang.Funge.Parser | net8.0, net9.0, net10.0, netstandard2.0 |
 | Esolang.Funge.Processor | net8.0, net9.0, net10.0 |
+| Esolang.Funge.Abstractions | netstandard2.0 |
 | dotnet-funge | net8.0, net9.0, net10.0 |
 
 ## Changelog
