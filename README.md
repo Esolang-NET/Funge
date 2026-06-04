@@ -50,7 +50,8 @@ For runnable examples, see:
 | Core Funge-98 instructions | ✅ |
 | 3D navigation (`h` `l` `m`) | ✅ |
 | Coordinates and storage space | ✅ 3D (`X`,`Y`,`Z`) |
-| Fingerprints (`(` `)` / `A`-`Z`) | ❌ Not implemented (reflect) |
+| Fingerprint load/unload (`(` `)`) | ⚠️ Stub (accepted; no dispatch registered) |
+| Fingerprint instructions (`A`–`Z`) | ❌ Always reflects |
 | File I/O (`i` `o`) | ✅ |
 | System exec (`=`) | ✅ |
 | System info (`y`) | ✅ |

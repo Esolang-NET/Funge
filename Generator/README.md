@@ -181,9 +181,18 @@ concurrency (`t`), and stack stack operations (`{` / `}` / `u`), while still exc
 | System info | `y` | ✅ |
 | File I/O | `i` `o` | ✅ |
 | System exec | `=` | ✅ |
-| Fingerprints | `(` `)` `A`–`Z` | ❌ reflects (not implemented) |
+| Fingerprint load/unload | `(` `)` | ⚠️ Stub (see below) |
+| Fingerprint instructions | `A`–`Z` | ❌ Always reflects |
 | 3D (Trefunge) | `h` `l` `m` | ✅ |
 | ND-generalized space | dimensions > 3 | ❌ not implemented |
+
+### Fingerprint support detail
+
+| Instruction | Status | Behaviour |
+| --- | --- | --- |
+| `(` Load Fingerprint | ⚠️ Stub | Pops count `n`, discards `n` chars; pushes fingerprint ID `0` and success flag `1`. No dispatch table is registered. |
+| `)` Unload Fingerprint | ⚠️ Stub | Pops count `n`, discards `n` chars; pushes fingerprint ID `0` and success flag `1`. No dispatch table is modified. |
+| `A`–`Z` Fingerprint Instructions | ❌ Reflects | Always reverses delta. No fingerprint dispatch table is maintained. |
 
 ## References
 
