@@ -91,11 +91,7 @@ jobs:
           test "$output2" = "Hello, World!"
 
           # 改行を含む inline funge テキストで実行
-          inline_source=$(cat <<'EOF'
-v
->25*"!dlroW ,olleH",,,,@
-EOF
-)
+          inline_source=$'v\n>25*"!dlroW ,olleH",,,,@'
           output3=$(dotnet tool run dotnet-funge -- --source "$inline_source")
           echo "$output3"
 
