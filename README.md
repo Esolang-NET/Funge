@@ -70,6 +70,7 @@ Built-in fingerprints shipped with this repository:
 | Fingerprint | Handprint | Package | Status |
 |---|---|---|---|
 | [`NULL`](./Abstractions/README.md) | `0x4E554C4C` | [Esolang.Funge.Abstractions](./Abstractions/README.md) | ✅ All 26 instructions reflect |
+| [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G M O P R S W |
 
 To register fingerprints with the Generator, use `[FingerprintsProvider]` — see [Generator README](./Generator/README.md).
 
@@ -90,6 +91,7 @@ dotnet tool install -g dotnet-funge
 | Parse source into a `FungeSpace` | Esolang.Funge.Parser |
 | Execute Funge-98 in-process | Esolang.Funge.Processor |
 | Implement or use built-in fingerprints | Esolang.Funge.Abstractions |
+| Use FILE fingerprint (file I/O) | Esolang.Funge.Fingerprints.File |
 | Run Funge-98 from CLI | dotnet-funge |
 
 ## NuGet
@@ -101,6 +103,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
 | [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
 | [Esolang.Funge.Abstractions](./Abstractions/README.md) | [![NuGet: Esolang.Funge.Abstractions](https://img.shields.io/nuget/v/Esolang.Funge.Abstractions?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Abstractions/) | Fingerprint abstractions and built-in fingerprints. |
+| [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | [![NuGet: Esolang.Funge.Fingerprints.File](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.File?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.File/) | FILE fingerprint (file I/O). |
 
 ## Framework Support
 
