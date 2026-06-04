@@ -129,4 +129,15 @@ public static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    /// <summary>
+    /// FG0012: Invalid fingerprints provider.
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidFingerprintsProvider = new(
+        id: "FG0012",
+        title: "Invalid fingerprints provider",
+        messageFormat: "The member '{0}' specified as FingerprintsProvider was not found or is not a valid method or property on type '{1}'",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

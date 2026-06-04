@@ -5,6 +5,7 @@
     <File Path="global.json" />
     <File Path="CHANGELOG.md" />
   </Folder>
+  <Project Path="Abstractions/Esolang.Funge.Abstractions.csproj" />
   <Project Path="Generator/Esolang.Funge.Generator.csproj" />
   <Project Path="Generator.Tests/Esolang.Funge.Generator.Tests.csproj" />
   <Project Path="samples/Generator.UseConsole/Esolang.Funge.Generator.UseConsole.csproj" />

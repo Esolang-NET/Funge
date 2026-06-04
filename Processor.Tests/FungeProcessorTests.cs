@@ -191,14 +191,6 @@ public class FungeProcessorTests(TestContext TestContext)
     }
 #pragma warning restore IDE0022
 
-    [TestMethod]
-    public void Fingerprint_StubSucceeds()
-        => Assert.AreEqual("1 ", Run("(1.@"));
-
-    [TestMethod]
-    public void Fingerprint_Unload_StubSucceeds()
-        => Assert.AreEqual("1 ", Run(")1.@"));
-
     // ── Additional coverage for ExecuteInstruction ────────────────────────
 
     [TestMethod]
