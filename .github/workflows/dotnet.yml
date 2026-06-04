@@ -31,10 +31,10 @@ jobs:
             rid: osx-arm64
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -110,7 +110,7 @@ EOF
           dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -p:ToolPackageRuntimeIdentifiers= -o artifacts/
           dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -p:PublishAot=false -p:ToolPackageRuntimeIdentifiers="" -o artifacts/
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           name: artifacts

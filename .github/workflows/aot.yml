@@ -36,10 +36,10 @@ jobs:
             rid: any
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -54,7 +54,7 @@ jobs:
           dotnet pack ${{ env.PROJECT_PATH }} -r ${{ matrix.rid }} -c Release -o artifacts/
 
       - name: Upload Artifact (CI)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: nupkg-ci-${{ matrix.rid }}
           path: artifacts/*
