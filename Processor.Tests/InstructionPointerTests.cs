@@ -1,5 +1,4 @@
 using Esolang.Funge.Parser;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Esolang.Funge.Processor.Tests;
 

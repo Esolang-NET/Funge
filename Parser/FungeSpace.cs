@@ -6,11 +6,11 @@ namespace Esolang.Funge.Parser;
 /// </summary>
 public sealed class FungeSpace
 {
-    private readonly Dictionary<FungeVector, int> _cells = new();
-    private int _minX, _minY, _minZ, _maxX, _maxY, _maxZ;
-    private bool _hasAny;
+    readonly Dictionary<FungeVector, int> _cells = [];
+    int _minX, _minY, _minZ, _maxX, _maxY, _maxZ;
+    bool _hasAny;
 
-    private void IncludeInBounds(FungeVector pos)
+    void IncludeInBounds(FungeVector pos)
     {
         if (!_hasAny)
         {
@@ -96,19 +96,19 @@ public sealed class FungeSpace
         var depth = _maxZ - _minZ + 1;
 
         if (nextX < _minX)
-            nextX = _maxX - ((_minX - nextX - 1) % width);
+            nextX = _maxX - (_minX - nextX - 1) % width;
         else if (nextX > _maxX)
-            nextX = _minX + ((nextX - _maxX - 1) % width);
+            nextX = _minX + (nextX - _maxX - 1) % width;
 
         if (nextY < _minY)
-            nextY = _maxY - ((_minY - nextY - 1) % height);
+            nextY = _maxY - (_minY - nextY - 1) % height;
         else if (nextY > _maxY)
-            nextY = _minY + ((nextY - _maxY - 1) % height);
+            nextY = _minY + (nextY - _maxY - 1) % height;
 
         if (nextZ < _minZ)
-            nextZ = _maxZ - ((_minZ - nextZ - 1) % depth);
+            nextZ = _maxZ - (_minZ - nextZ - 1) % depth;
         else if (nextZ > _maxZ)
-            nextZ = _minZ + ((nextZ - _maxZ - 1) % depth);
+            nextZ = _minZ + (nextZ - _maxZ - 1) % depth;
 
         return new FungeVector(nextX, nextY, nextZ);
     }

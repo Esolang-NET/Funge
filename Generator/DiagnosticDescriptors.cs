@@ -118,4 +118,15 @@ public static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Hidden,
         isEnabledByDefault: true);
+
+    /// <summary>
+    /// FG0011: Method must be partial.
+    /// </summary>
+    public static readonly DiagnosticDescriptor MethodMustBePartial = new(
+        id: "FG0011",
+        title: "Method must be partial",
+        messageFormat: "The method '{0}' must be declared as 'partial'",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

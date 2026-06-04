@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>dotnet-funge</AssemblyName>
     <Title>Funge-98 console interpreter.</Title>
     <PublishRelease>true</PublishRelease>
@@ -13,13 +13,11 @@
     <Description>Command-line interpreter for Funge-98 (Befunge-98) programs.</Description>
     <PackageId>dotnet-funge</PackageId>
     <PackageTags>esolang;funge;funge-98;befunge;interpreter;cli;dotnet-tool</PackageTags>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
-    <IsTrimmable>true</IsTrimmable>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
-    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
-    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <IsAotCompatible>true</IsAotCompatible>
+    <StripSymbols>false</StripSymbols>
+    <VerifyReferenceAotCompatibility>false</VerifyReferenceAotCompatibility>
+    <PublishAot Condition="'$(RuntimeIdentifier)' != '' and '$(RuntimeIdentifier)' != 'any'">true</PublishAot>
+    <ToolPackageRuntimeIdentifiers>win-x64;linux-x64;osx-arm64;any</ToolPackageRuntimeIdentifiers>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
@@ -29,6 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Esolang.Interpreter.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

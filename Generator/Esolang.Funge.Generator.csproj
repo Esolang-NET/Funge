@@ -18,6 +18,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Esolang.Generator.Abstractions" GeneratePathProperty="true" PrivateAssets="all" />
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +30,7 @@
     <None Include="../LICENSE" Pack="true" PackagePath="\" />
     <None Include="buildTransitive\Esolang.Funge.Generator.targets" Pack="true" PackagePath="buildTransitive\" />
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="Rules/*.md" Pack="true" PackagePath="Rules" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +44,8 @@
   <ItemGroup>
     <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     <None Include="$(OutputPath)\Esolang.Funge.Parser.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(PkgEsolang_Generator_Abstractions)\lib\netstandard2.0\*.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(PkgEsolang_Generator_Abstractions)\lib\netstandard2.0\*.xml" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

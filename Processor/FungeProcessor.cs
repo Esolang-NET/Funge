@@ -2,6 +2,7 @@ using Esolang.Funge.Parser;
 using Esolang.Processor;
 using System.Collections;
 using System.Diagnostics;
+using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor;
 
@@ -16,94 +17,30 @@ namespace Esolang.Funge.Processor;
 /// Initializes a new <see cref="FungeProcessor"/> with the given program space and optional I/O.
 /// </remarks>
 /// <param name="space">The parsed Funge-98 program space.</param>
-/// <param name="output">Output writer; defaults to <see cref="Console.Out"/>.</param>
-/// <param name="input">Input reader; defaults to <see cref="Console.In"/>.</param>
 /// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
 /// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
 public sealed partial class FungeProcessor(
     FungeSpace space,
-    TextWriter? output = null,
-    TextReader? input = null,
     IEnumerable<string>? commandLineArguments = null,
-    IEnumerable<string>? environmentVariables = null) : ITextProcessor<FungeSpace>
+    IEnumerable<string>? environmentVariables = null)
 {
-    private readonly FungeSpace _space = space;
-    private readonly TextWriter _output = output ?? Console.Out;
-    private readonly TextReader _input = input ?? Console.In;
-    private readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
+    readonly FungeSpace _space = space;
+    readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
 #pragma warning disable IDE0305 // コレクションの初期化を簡略化します
             .ToArray();
 #pragma warning restore IDE0305 // コレクションの初期化を簡略化します
-    private readonly string[] _environmentVariables = [.. environmentVariables
+    readonly string[] _environmentVariables = [.. environmentVariables
              ?? Environment.GetEnvironmentVariables()
             .Cast<DictionaryEntry>()
             .Select(static entry => $"{entry.Key}={entry.Value}")];
-    private readonly Random _random = new();
-    private int _nextIpId;
+    readonly Random _random = new();
+    int _nextIpId;
 
-    /// <inheritdoc/>
-    public FungeSpace Program => _space;
-
-    /// <summary>
-    /// Runs the Funge-98 program and returns the process exit code.
-    /// The program starts with a single IP at (0,0) moving East.
-    /// </summary>
-    /// <param name="cancellationToken">Token to cancel execution.</param>
-    /// <returns>Exit code: 0 unless the program used <c>q</c>.</returns>
-    public int Run(CancellationToken cancellationToken = default)
-        => RunToEnd(null, null, cancellationToken);
-
-    /// <inheritdoc/>
-    public int RunToEnd(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
-    {
-        var resolvedInput = input ?? _input;
-        var resolvedOutput = output ?? _output;
-
-        var ips = new LinkedList<InstructionPointer>();
-        ips.AddFirst(new InstructionPointer(_nextIpId++));
-        var exitCode = 0;
-        var quit = false;
-
-        while (ips.Count > 0 && !quit && !cancellationToken.IsCancellationRequested)
-        {
-            var node = ips.First!;
-            while (node is not null && !quit && !cancellationToken.IsCancellationRequested)
-            {
-                var nextNode = node.Next;
-                var ip = node.Value;
-
-                var suppressAdvance = false;
-                ExecuteInstruction(ip, ips, node, ref exitCode, ref quit, ref suppressAdvance, resolvedInput, resolvedOutput);
-
-                if (ip.IsStopped || quit)
-                {
-                    ips.Remove(node);
-                }
-                else if (!suppressAdvance)
-                {
-                    ip.Position = _space.Advance(ip.Position, ip.Delta);
-                }
-
-                node = nextNode;
-            }
-        }
-
-        return exitCode;
-    }
-
-    /// <inheritdoc/>
-    public ValueTask<int> RunToEndAsync(TextReader? input = null, TextWriter? output = null, CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(RunToEnd(input, output, cancellationToken));
-
-    private void ExecuteInstruction(
+    IEnumerable<IOEvent> ExecuteInstruction(
         InstructionPointer ip,
         LinkedList<InstructionPointer> ips,
         LinkedListNode<InstructionPointer> ipNode,
-        ref int exitCode,
-        ref bool quit,
-        ref bool suppressAdvance,
-        TextReader input,
-        TextWriter output,
+        FungeState state,
         int? overrideCell = null)
     {
         var cell = overrideCell ?? _space[ip.Position];
@@ -138,7 +75,7 @@ public sealed partial class FungeProcessor(
             {
                 ip.StackStack.Push(cell);
             }
-            return;
+            yield break;
         }
 
         switch (cell)
@@ -313,7 +250,7 @@ public sealed partial class FungeProcessor(
                     var dir = s >= 0 ? ip.Delta : ip.Delta.Reflect();
                     for (var i = 0; i < Math.Abs(s); i++)
                         ip.Position = _space.Advance(ip.Position, dir);
-                    suppressAdvance = true;
+                    state.SuppressAdvance = true;
                     break;
                 }
 
@@ -360,27 +297,31 @@ public sealed partial class FungeProcessor(
 
             // ── I/O ──────────────────────────────────────────────────────────
             case '.': // Output Integer
-                output.Write(ip.StackStack.Pop());
-                output.Write(' ');
+                yield return OutputInt(ip.StackStack.Pop());
+                yield return OutputChar(' ');
                 break;
 
             case ',': // Output Character
-                output.Write((char)ip.StackStack.Pop());
+                yield return OutputChar((char)ip.StackStack.Pop());
                 break;
 
             case '&': // Input Integer
                 {
-                    var line = input.ReadLine();
-                    if (line is null) { ip.Delta = ip.Delta.Reflect(); break; }
-                    ip.StackStack.Push(int.TryParse(line.Trim(), out var v) ? v : 0);
+                    int? input = null;
+                    var ev = InputInt(value => input = value);
+                    yield return ev;
+                    if (input.HasValue) ip.StackStack.Push(input.Value);
+                    else ip.Delta = ip.Delta.Reflect();
                     break;
                 }
 
             case '~': // Input Character
                 {
-                    var ch = input.Read();
-                    if (ch < 0) ip.Delta = ip.Delta.Reflect();
-                    else ip.StackStack.Push(ch);
+                    char? input = null;
+                    var ev = InputChar(value => input = value);
+                    yield return ev;
+                    if (input.HasValue) ip.StackStack.Push(input.Value);
+                    else ip.Delta = ip.Delta.Reflect();
                     break;
                 }
 
@@ -431,8 +372,8 @@ public sealed partial class FungeProcessor(
                 break;
 
             case 'q': // Quit program immediately
-                exitCode = ip.StackStack.Pop();
-                quit = true;
+                state.ExitCode = ip.StackStack.Pop();
+                state.Quit = true;
                 break;
 
             case 'k': // Iterate: execute next instruction n times
@@ -467,7 +408,7 @@ public sealed partial class FungeProcessor(
                     {
                         // n=0: skip the operand. IP moves to the position AFTER the operand.
                         ip.Position = _space.Advance(instrPos, ip.Delta);
-                        suppressAdvance = true;
+                        state.SuppressAdvance = true;
                     }
                     else
                     {
@@ -476,10 +417,13 @@ public sealed partial class FungeProcessor(
                         // After k finishes, normal advancement continues from the IP's current position,
                         // so position-changing operands such as [ and # behave "from k".
                         var operand = _space[instrPos];
-                        for (var i = 0; i < n && !ip.IsStopped && !quit; i++)
+                        for (var i = 0; i < n && !ip.IsStopped && !state.Quit; i++)
                         {
-                            var dummy = false;
-                            ExecuteInstruction(ip, ips, ipNode, ref exitCode, ref quit, ref dummy, input, output, operand);
+                            var subState = new FungeState { ExitCode = state.ExitCode, Quit = state.Quit, SuppressAdvance = false };
+                            foreach (var ev in ExecuteInstruction(ip, ips, ipNode, subState, operand))
+                                yield return ev;
+                            state.ExitCode = subState.ExitCode;
+                            state.Quit = subState.Quit;
                         }
                     }
                     break;
@@ -626,7 +570,7 @@ public sealed partial class FungeProcessor(
         }
     }
 
-    private static FungeVector PopVector(StackStack stack)
+    static FungeVector PopVector(StackStack stack)
     {
         var z = stack.Pop();
         var y = stack.Pop();
@@ -634,14 +578,14 @@ public sealed partial class FungeProcessor(
         return new FungeVector(x, y, z);
     }
 
-    private static void PushVector(StackStack stack, FungeVector vector)
+    static void PushVector(StackStack stack, FungeVector vector)
     {
         stack.Push(vector.X);
         stack.Push(vector.Y);
         stack.Push(vector.Z);
     }
 
-    private static bool TryPopZeroTerminatedString(StackStack stack, out string result)
+    static bool TryPopZeroTerminatedString(StackStack stack, out string result)
     {
         var chars = new List<char>();
         while (true)
@@ -663,7 +607,7 @@ public sealed partial class FungeProcessor(
         }
     }
 
-    private bool TryInputFile(FungeVector leastPoint, string fileName, bool binaryMode, out FungeVector size)
+    bool TryInputFile(FungeVector leastPoint, string fileName, bool binaryMode, out FungeVector size)
     {
         size = new FungeVector(0, 0, 0);
 
@@ -727,7 +671,7 @@ public sealed partial class FungeProcessor(
         return true;
     }
 
-    private bool TryOutputFile(FungeVector leastPoint, FungeVector size, string fileName, bool linearText)
+    bool TryOutputFile(FungeVector leastPoint, FungeVector size, string fileName, bool linearText)
     {
         var sx = Math.Max(0, size.X);
         var sy = Math.Max(0, size.Y);
@@ -773,7 +717,7 @@ public sealed partial class FungeProcessor(
         }
     }
 
-    private static int ExecuteSystemCommand(string command)
+    static int ExecuteSystemCommand(string command)
     {
         try
         {
@@ -816,7 +760,7 @@ public sealed partial class FungeProcessor(
     /// If <paramref name="c"/> is greater than zero, only item <paramref name="c"/>
     /// (1-indexed from top) is left on the stack.
     /// </summary>
-    private void PushSysInfo(InstructionPointer ip, int _, int c)
+    void PushSysInfo(InstructionPointer ip, int _, int c)
     {
         // Build list of items in order: items[0] will be last-pushed (item 1 from top)
         List<int> items = [];
@@ -862,9 +806,9 @@ public sealed partial class FungeProcessor(
 
         var now = DateTime.Now;
         // 20. Current date: (year-1900)*256*256 + month*256 + day
-        items.Add(((now.Year - 1900) * 256 * 256) + (now.Month * 256) + now.Day);
+        items.Add((now.Year - 1900) * 256 * 256 + now.Month * 256 + now.Day);
         // 21. Current time: HH*256*256 + MM*256 + SS
-        items.Add((now.Hour * 256 * 256) + (now.Minute * 256) + now.Second);
+        items.Add(now.Hour * 256 * 256 + now.Minute * 256 + now.Second);
         // 22. Number of stacks in stack stack
         items.Add(ip.StackStack.StackCount);
         // 23+. Size of each stack (TOSS first)

@@ -1,31 +1,60 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor.Tests;
 
 [TestClass]
 public class FungeProcessorTests(TestContext TestContext)
 {
-    CancellationToken TestCancellationToken => TestContext.CancellationTokenSource.Token;
-    private string Run(string source, string? input = null)
+    CancellationToken TestCancellationToken => TestContext.CancellationToken;
+    string Run(string source, string? input = null)
     {
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
-        var proc = new FungeProcessor(space, output, reader);
-        proc.Run(TestCancellationToken);
+        var proc = new FungeProcessor(space);
+        _ = RunToEnd(proc, reader, output, TestCancellationToken);
         return output.ToString();
     }
 
-    private int RunGetExitCode(string source)
+    static int RunToEnd(FungeProcessor proc, TextReader input, TextWriter output, CancellationToken ct)
+    {
+        var task = Task.Run(async () =>
+        {
+            var exitCode = 0;
+            await foreach (var ev in proc.RunAsyncEnumerable(ct))
+            {
+                switch (ev)
+                {
+                    case OutputCharEvent oce: output.Write(oce.Output); break;
+                    case OutputIntEvent oie: output.Write(oie.Output); break;
+                    case InputCharEvent ice:
+                        var c = input.Read();
+                        if (c != -1) ice.Write((char)c);
+                        break;
+                    case InputIntEvent iie:
+                        var line = input.ReadLine();
+                        if (int.TryParse(line, out var val)) iie.Write(val);
+                        break;
+                    case EndEvent ee:
+                        exitCode = ee.ExitCode;
+                        break;
+                }
+            }
+            return exitCode;
+        }, ct);
+        return task.GetAwaiter().GetResult();
+    }
+
+    int RunGetExitCode(string source)
     {
         var space = Parser.FungeParser.Parse(source);
-        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
-        return proc.Run(TestCancellationToken);
+        var proc = new FungeProcessor(space);
+        return RunToEnd(proc, TextReader.Null, TextWriter.Null, TestCancellationToken);
     }
 
     [TestMethod]
     [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task TestDirectionalInstructions()
+    public void TestDirectionalInstructions()
     {
         var space = new Parser.FungeSpace();
         var pos1 = new Parser.FungeVector(0, 0, 0);
@@ -40,14 +69,14 @@ public class FungeProcessorTests(TestContext TestContext)
         space[pos4] = 'v';
         space[pos5] = '@';
 
-        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
+        var proc = new FungeProcessor(space);
         var token = TestCancellationToken;
 
-        await proc.RunToEndAsync(null, null, token);
+        RunToEnd(proc, TextReader.Null, TextWriter.Null, token);
     }
 
-    private static string EncodeZeroGnirts(string value)
-        => $"0\"{new string(value.Reverse().ToArray())}\"";
+    static string EncodeZeroGnirts(string value)
+        => $"0\"{new string([.. value.Reverse()])}\"";
 
     // ── Termination ────────────────────────────────────────────────────────
 
@@ -375,21 +404,21 @@ public class FungeProcessorTests(TestContext TestContext)
         var space = Parser.FungeParser.Parse("&.@");
         var output = new StringWriter();
         var input = new StringReader("42\n");
-        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
+        var proc = new FungeProcessor(space);
 
-        var exitCode = proc.RunToEnd(input, output, TestCancellationToken);
+        var exitCode = RunToEnd(proc, input, output, TestCancellationToken);
 
         Assert.AreEqual(0, exitCode);
         Assert.AreEqual("42 ", output.ToString());
     }
 
     [TestMethod]
-    public async Task RunToEndAsync_ReturnsExitCode()
+    public void RunToEndAsync_ReturnsExitCode()
     {
         var space = Parser.FungeParser.Parse("7q");
-        var proc = new FungeProcessor(space, TextWriter.Null, TextReader.Null);
+        var proc = new FungeProcessor(space);
 
-        var exitCode = await proc.RunToEndAsync(cancellationToken: TestCancellationToken);
+        var exitCode = RunToEnd(proc, TextReader.Null, TextWriter.Null, TestCancellationToken);
 
         Assert.AreEqual(7, exitCode);
     }

@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-03
+
+### Added
+
+- `Esolang.Funge.Interpreter`: added `--path` / `-p` for file input and `--source` / `-s` for inline Funge-98 source, including multiline source text.
+- `.github/workflows/dotnet.yml`: updated the CI tool E2E step to exercise the interpreter's new inline-source execution path.
+- `Esolang.Funge.Generator`: documented the argument-binding heuristics for `string[]` / `IEnumerable<string>` parameters, including the `arg` / `env` name conventions used for `y`.
+- `Esolang.Funge.Generator`: Added FG0011 diagnostic for enforcing partial method declaration.
+
 ## [1.1.1] - 2026-05-25
 
 - `Esolang.Funge.Generator`: Implement logging support for runtime instructions and events (instruction execution, fingerprint operations).
@@ -93,7 +102,8 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: `FG0008` / `FG0009` severity changed from Warning to Info.
 - `Esolang.Funge.Generator`: runtime now throws when input/output instructions are executed without a declared input/output interface.
 
-[Unreleased]: https://github.com/Esolang-NET/Funge/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/Esolang-NET/Funge/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Esolang-NET/Funge/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/Esolang-NET/Funge/tree/v1.1.1
 [1.1.0]: https://github.com/Esolang-NET/Funge/tree/v1.1.0
 [1.0.1]: https://github.com/Esolang-NET/Funge/tree/v1.0.1

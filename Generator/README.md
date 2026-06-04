@@ -28,7 +28,7 @@ The generator reads the Funge-98 source (from a file or inline) and emits a comp
 | Parameter type | Role |
 | --- | --- |
 | `string` | Input fed to the program (`&` / `~`) |
-| `string[]` or `IEnumerable<string>` | Command-line arguments or environment variables (detected by name: `args`, `envs`, etc.). Reported by `y`. |
+| `string[]` or `IEnumerable<string>` | Command-line arguments or environment variables. The generator binds these by both type and name heuristics: parameter names containing `arg` map to command-line arguments, and names containing `env` map to environment variables. Reported by `y`. |
 | `System.IO.TextReader` | Input reader |
 | `System.IO.Pipelines.PipeReader` | Input as pipe |
 | `System.IO.TextWriter` | Explicit output sink for methods that do not return output text/bytes (including `void`, `int`, `Task`, `Task<int>`, `ValueTask`, `ValueTask<int>`) |
@@ -64,7 +64,8 @@ partial class MyPrograms
     [GenerateFungeMethod("Programs/hello.b98")]
     public static partial string HelloWorld();
 
-    // With custom arguments and environment variables (reported by 'y' instruction)
+    // With custom arguments and environment variables (reported by 'y' instruction).
+    // Parameter names matter here: names containing 'arg' bind as args, and names containing 'env' bind as envs.
     [GenerateFungeMethod("Programs/sysinfo.b98")]
     public static partial int RunWithArgs(string[] args, string[] envs);
 
@@ -144,16 +145,17 @@ public partial class MyPrograms(ILogger<MyPrograms> logger)
 
 | ID | Severity | Description |
 | --- | --- | --- |
-| FG0001 | Error | `sourcePath` is empty and `InlineSource` is not set |
-| FG0002 | Error | Unsupported return type |
-| FG0003 | Error | Unsupported parameter type |
-| FG0004 | Error | Source file not found in `AdditionalFiles` |
-| FG0005 | Warning | C# language version is too low (requires ≥ C# 8) |
-| FG0006 | Error | Duplicate input/output parameter |
-| FG0007 | Error | Return type conflicts with explicit output parameter |
-| FG0008 | Info | Program appears to use output (`.`/`,`) but no output parameter or output return type is declared (static best-effort scan; runtime throws if reached) |
-| FG0009 | Info | Program appears to use input (`&`/`~`) but no input parameter is declared (static best-effort scan; runtime throws if reached) |
-| FG0010 | Hidden | Input parameter declared but program never reads input |
+| [FG0001](Rules/FG0001.md) | Error | `sourcePath` is empty and `InlineSource` is not set |
+| [FG0002](Rules/FG0002.md) | Error | Unsupported return type |
+| [FG0003](Rules/FG0003.md) | Error | Unsupported parameter type |
+| [FG0004](Rules/FG0004.md) | Error | Source file not found in `AdditionalFiles` |
+| [FG0005](Rules/FG0005.md) | Warning | C# language version is too low (requires ≥ C# 8) |
+| [FG0006](Rules/FG0006.md) | Error | Duplicate input/output parameter |
+| [FG0007](Rules/FG0007.md) | Error | Return type conflicts with explicit output parameter |
+| [FG0008](Rules/FG0008.md) | Info | Program appears to use output (`.`/`,`) but no output parameter or output return type is declared (static best-effort scan; runtime throws if reached) |
+| [FG0009](Rules/FG0009.md) | Info | Program appears to use input (`&`/`~`) but no input parameter is declared (static best-effort scan; runtime throws if reached) |
+| [FG0010](Rules/FG0010.md) | Hidden | Input parameter declared but program never reads input |
+| [FG0011](Rules/FG0011.md) | Error | Method must be partial |
 
 ## Funge-98 Compliance
 

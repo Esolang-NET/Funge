@@ -31,7 +31,7 @@ public sealed class InstructionPointer
     /// <summary>Initializes an IP with the given ID and a new empty stack stack.</summary>
     public InstructionPointer(int id) : this(id, new StackStack()) { }
 
-    private InstructionPointer(int id, StackStack stackStack)
+    InstructionPointer(int id, StackStack stackStack)
     {
         Id = id;
         StackStack = stackStack;

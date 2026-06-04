@@ -11,17 +11,30 @@ dotnet tool install -g dotnet-funge
 ## Usage
 
 ```bash
-dotnet-funge <path>
+dotnet-funge --path <path>
 ```
 
-| Argument | Description |
+| Option | Description |
 | --- | --- |
-| `<path>` | Path to a Funge-98 source file (`.b98`) |
+| `--path`, `-p` | Path to a Funge-98 source file (`.b98`) |
+| `--source`, `-s` | Inline Funge-98 source code (supports newlines) |
+
+Specify exactly one of `--path` or `--source`.
 
 ### Example
 
 ```bash
-dotnet-funge hello.b98
+dotnet-funge --path hello.b98
+```
+
+### Inline Source Example (PowerShell)
+
+```powershell
+$source = @'
+v
+>25*"!dlroW ,olleH",,,,@
+'@
+dotnet-funge --source $source
 ```
 
 Standard input / output are connected to the running program (`~` / `&` for input, `,` / `.` for output).

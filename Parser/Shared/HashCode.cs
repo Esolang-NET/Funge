@@ -2,7 +2,7 @@
 // Minimal HashCode polyfill for netstandard2.0
 namespace System;
 
-internal static class HashCode
+static class HashCode
 {
     public static int Combine<T1, T2>(T1 v1, T2 v2)
     {
