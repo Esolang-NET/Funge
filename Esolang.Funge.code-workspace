@@ -45,6 +45,14 @@
 			"path": "Processor.Tests"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Arry",
+			"path": "Fingerprints.Arry"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Arry.Tests",
+			"path": "Fingerprints.Arry.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.Base",
 			"path": "Fingerprints.Base"
 		},
@@ -61,12 +69,44 @@
 			"path": "Fingerprints.Bool.Tests"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Date",
+			"path": "Fingerprints.Date"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Date.Tests",
+			"path": "Fingerprints.Date.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.File",
 			"path": "Fingerprints.File"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Frth",
+			"path": "Fingerprints.Frth"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Frth.Tests",
+			"path": "Fingerprints.Frth.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.File.Tests",
 			"path": "Fingerprints.File.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Imth",
+			"path": "Fingerprints.Imth"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Imth.Tests",
+			"path": "Fingerprints.Imth.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Long",
+			"path": "Fingerprints.Long"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Long.Tests",
+			"path": "Fingerprints.Long.Tests"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Modu",
@@ -83,6 +123,14 @@
 		{
 			"name": "Esolang.Funge.Fingerprints.Roma.Tests",
 			"path": "Fingerprints.Roma.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Stck",
+			"path": "Fingerprints.Stck"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Stck.Tests",
+			"path": "Fingerprints.Stck.Tests"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Strn",
@@ -117,16 +165,28 @@
 			"Parser.Tests": true,
 			"Processor": true,
 			"Processor.Tests": true,
+			"Fingerprints.Arry": true,
+			"Fingerprints.Arry.Tests": true,
 			"Fingerprints.Base": true,
 			"Fingerprints.Base.Tests": true,
 			"Fingerprints.Bool": true,
 			"Fingerprints.Bool.Tests": true,
+			"Fingerprints.Date": true,
+			"Fingerprints.Date.Tests": true,
 			"Fingerprints.File": true,
 			"Fingerprints.File.Tests": true,
+			"Fingerprints.Frth": true,
+			"Fingerprints.Frth.Tests": true,
+			"Fingerprints.Imth": true,
+			"Fingerprints.Imth.Tests": true,
+			"Fingerprints.Long": true,
+			"Fingerprints.Long.Tests": true,
 			"Fingerprints.Modu": true,
 			"Fingerprints.Modu.Tests": true,
 			"Fingerprints.Roma": true,
 			"Fingerprints.Roma.Tests": true,
+			"Fingerprints.Stck": true,
+			"Fingerprints.Stck.Tests": true,
 			"Fingerprints.Strn": true,
 			"Fingerprints.Strn.Tests": true,
 			"Fingerprints.Time": true,

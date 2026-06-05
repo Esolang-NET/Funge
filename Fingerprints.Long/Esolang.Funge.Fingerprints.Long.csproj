@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <RootNamespace>Esolang.Funge.Fingerprints.Long</RootNamespace>
+    <Description>LONG fingerprint (0x4C4F4E47) for Funge-98: 2-cell signed integer helpers via IFingerprint.</Description>
+    <PackageId>Esolang.Funge.Fingerprints.Long</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>esolang;funge;funge-98;befunge;fingerprints;long-integer;math</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <StripSymbols>false</StripSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Abstractions/Esolang.Funge.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

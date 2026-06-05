@@ -77,6 +77,7 @@ Built-in fingerprints shipped with this repository:
 | [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G L O P R S W |
 | [`FRTH`](./Fingerprints.Frth/README.md) | `0x46525448` | [Esolang.Funge.Fingerprints.Frth](./Fingerprints.Frth/README.md) | ✅ D L O P R |
 | [`IMTH`](./Fingerprints.Imth/README.md) | `0x494D5448` | [Esolang.Funge.Fingerprints.Imth](./Fingerprints.Imth/README.md) | ✅ A B C D E F G H I L N R S T U X Z |
+| [`LONG`](./Fingerprints.Long/README.md) | `0x4C4F4E47` | [Esolang.Funge.Fingerprints.Long](./Fingerprints.Long/README.md) | ✅ A B D E L M N O P R S Z |
 | `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | ✅ M R U |
 | `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | ✅ C D I L M V X |
 | [`STCK`](./Fingerprints.Stck/README.md) | `0x5354434B` | [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | ✅ B C D G K N P R S T U W Z |
@@ -109,6 +110,7 @@ dotnet tool install -g dotnet-funge
 | Use FILE fingerprint (file I/O) | Esolang.Funge.Fingerprints.File |
 | Use FRTH fingerprint (Forth-style stack helpers) | Esolang.Funge.Fingerprints.Frth |
 | Use IMTH fingerprint (integer math helpers) | Esolang.Funge.Fingerprints.Imth |
+| Use LONG fingerprint (two-cell signed integers) | Esolang.Funge.Fingerprints.Long |
 | Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.Modu |
 | Use ROMA fingerprint (Roman numerals) | Esolang.Funge.Fingerprints.Roma |
 | Use STCK fingerprint (stack manipulation) | Esolang.Funge.Fingerprints.Stck |
@@ -132,6 +134,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | [![NuGet: Esolang.Funge.Fingerprints.File](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.File?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.File/) | FILE fingerprint (file I/O). |
 | [Esolang.Funge.Fingerprints.Frth](./Fingerprints.Frth/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Frth](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Frth?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Frth/) | FRTH fingerprint (Forth-style stack helpers). |
 | [Esolang.Funge.Fingerprints.Imth](./Fingerprints.Imth/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Imth](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Imth?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Imth/) | IMTH fingerprint (integer math helpers). |
+| [Esolang.Funge.Fingerprints.Long](./Fingerprints.Long/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Long](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Long?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Long/) | LONG fingerprint (two-cell signed integers). |
 | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Modu](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Modu?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Modu/) | MODU fingerprint (Modulo math). |
 | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Roma](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Roma?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Roma/) | ROMA fingerprint (Roman numerals). |
 | [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Stck](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Stck?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Stck/) | STCK fingerprint (stack manipulation). |
@@ -153,6 +156,7 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Fingerprints.File | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Frth | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Imth | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Long | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Modu | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Roma | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Stck | netstandard2.0, netstandard2.1, net10.0 |
