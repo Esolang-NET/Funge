@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
-    <RootNamespace>Esolang.Funge</RootNamespace>
+    <RootNamespace>Esolang.Funge.Fingerprints.Time</RootNamespace>
     <Description>Time fingerprint (0x54494D45) for Funge-98: system time and date via IFingerprint.</Description>
     <PackageId>Esolang.Funge.Fingerprints.Time</PackageId>
     <PackageTags>esolang;funge;funge-98;befunge;fingerprints;time;date</PackageTags>

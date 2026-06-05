@@ -1,4 +1,4 @@
-namespace Esolang.Funge.Fingerprints.Time.Tests;
+namespace Esolang.Funge.Fingerprints.Time;
 
 sealed class TestContext : IFungeExecutionContext
 {
@@ -32,7 +32,7 @@ public class TimeFingerprintTests
         var y = ctx.Pop();
         var m = ctx.Pop();
         var d = ctx.Pop();
-        var now = System.DateTime.Now;
+        var now = DateTime.Now;
         Assert.AreEqual(now.Year, y);
         Assert.AreEqual(now.Month, m);
         Assert.AreEqual(now.Day, d);
@@ -47,11 +47,11 @@ public class TimeFingerprintTests
         var h = ctx.Pop();
         var m = ctx.Pop();
         var s = ctx.Pop();
-        var now = System.DateTime.Now;
+        var now = DateTime.Now;
         Assert.AreEqual(now.Hour, h);
         Assert.AreEqual(now.Minute, m);
         // Second might change between now and execution, so we allow +/- 1
-        Assert.IsLessThanOrEqualTo(1, System.Math.Abs(now.Second - s));
+        Assert.IsLessThanOrEqualTo(1, Math.Abs(now.Second - s));
     }
 
     [TestMethod]
@@ -60,6 +60,6 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         Instruction(fp, 'Y')(ctx);
-        Assert.AreEqual(System.DateTime.Now.Year, ctx.Pop());
+        Assert.AreEqual(DateTime.Now.Year, ctx.Pop());
     }
 }

@@ -3,7 +3,8 @@
   <PropertyGroup>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net48;net8.0;net9.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0;net9.0;net10.0</TargetFrameworks>
-    <AssemblyName>Funge.Fingerprints.File.Tests</AssemblyName>
+    <AssemblyName>Esolang.Funge.Fingerprints.File.Tests</AssemblyName>
+    <RootNamespace>Esolang.Funge.Fingerprints.File</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

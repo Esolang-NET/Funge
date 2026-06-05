@@ -1,4 +1,4 @@
-namespace Esolang.Funge.Fingerprints.Roma.Tests;
+namespace Esolang.Funge.Fingerprints.Roma;
 
 sealed class TestContext : IFungeExecutionContext
 {

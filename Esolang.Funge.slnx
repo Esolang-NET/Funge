@@ -14,8 +14,13 @@
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
+    <File Path="dotnet-tools.json" />
     <File Path="global.json" />
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
     <File Path="CHANGELOG.md" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
   </Folder>
   <Project Path="Abstractions/Esolang.Funge.Abstractions.csproj" />
   <Project Path="Generator/Esolang.Funge.Generator.csproj" />

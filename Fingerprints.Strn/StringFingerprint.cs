@@ -1,4 +1,4 @@
-namespace Esolang.Funge;
+namespace Esolang.Funge.Fingerprints.Strn;
 
 /// <summary>
 /// Provides the standard Funge-98 <c>STRN</c> fingerprint (handprint <c>0x5354524E</c>).
@@ -49,7 +49,8 @@ public sealed class StringFingerprint : IFingerprint
     {
         var s1 = Pop0gnirts(ctx);
         var s2 = Pop0gnirts(ctx);
-        var res = System.String.CompareOrdinal(s1, s2);
+
+        var res = string.CompareOrdinal(s1, s2);
         ctx.Push(res > 0 ? 1 : (res < 0 ? -1 : 0));
     }
 
@@ -69,7 +70,8 @@ public sealed class StringFingerprint : IFingerprint
     {
         var s = Pop0gnirts(ctx);
         var chars = s.ToCharArray();
-        System.Array.Reverse(chars);
+
+        Array.Reverse(chars);
         Push0gnirts(ctx, new string(chars));
     }
 

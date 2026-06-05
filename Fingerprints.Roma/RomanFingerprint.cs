@@ -1,4 +1,4 @@
-namespace Esolang.Funge;
+namespace Esolang.Funge.Fingerprints.Roma;
 
 /// <summary>
 /// Provides the standard Funge-98 <c>ROMA</c> fingerprint (handprint <c>0x524F4D41</c>).

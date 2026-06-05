@@ -255,6 +255,8 @@ dotnet_style_require_accessibility_modifiers = omit_if_default:warning
 dotnet_diagnostic.IDE0051.severity = warning
 # メンバー アクセスを簡略化する (IDE0002)
 dotnet_diagnostic.IDE0002.severity = warning
+# 名前空間がフォルダー構造と一致しない (IDE0130)
+dotnet_diagnostic.IDE0130.severity = warning
 
 #region
 # CA2012: ValueTask を正しく使用する必要があります

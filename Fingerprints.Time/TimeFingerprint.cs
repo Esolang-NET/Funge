@@ -1,4 +1,4 @@
-namespace Esolang.Funge;
+namespace Esolang.Funge.Fingerprints.Time;
 
 /// <summary>
 /// Provides the standard Funge-98 <c>TIME</c> fingerprint (handprint <c>0x54494D45</c>).
@@ -16,16 +16,16 @@ public sealed class TimeFingerprint : IFingerprint
         Instructions = new FingerprintBuilder()
             .Add('D', GetDate)
             .Add('G', GetGmt)
-            .Add('H', static ctx => ctx.Push(System.DateTime.Now.Hour))
-            .Add('M', static ctx => ctx.Push(System.DateTime.Now.Minute))
-            .Add('S', static ctx => ctx.Push(System.DateTime.Now.Second))
+            .Add('H', static ctx => ctx.Push(DateTime.Now.Hour))
+            .Add('M', static ctx => ctx.Push(DateTime.Now.Minute))
+            .Add('S', static ctx => ctx.Push(DateTime.Now.Second))
             .Add('T', GetTime)
-            .Add('Y', static ctx => ctx.Push(System.DateTime.Now.Year))
+            .Add('Y', static ctx => ctx.Push(DateTime.Now.Year))
             .BuildInstructions();
 
     static void GetDate(IFungeExecutionContext ctx)
     {
-        var now = System.DateTime.Now;
+        var now = DateTime.Now;
         ctx.Push(now.Day);
         ctx.Push(now.Month);
         ctx.Push(now.Year);
@@ -33,7 +33,7 @@ public sealed class TimeFingerprint : IFingerprint
 
     static void GetGmt(IFungeExecutionContext ctx)
     {
-        var now = System.DateTime.UtcNow;
+        var now = DateTime.UtcNow;
         ctx.Push(now.Second);
         ctx.Push(now.Minute);
         ctx.Push(now.Hour);
@@ -44,7 +44,7 @@ public sealed class TimeFingerprint : IFingerprint
 
     static void GetTime(IFungeExecutionContext ctx)
     {
-        var now = System.DateTime.Now;
+        var now = DateTime.Now;
         ctx.Push(now.Second);
         ctx.Push(now.Minute);
         ctx.Push(now.Hour);

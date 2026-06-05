@@ -42,7 +42,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <IsPublishable>false</IsPublishable>
-    <NoWarn>$(NoWarn);RS1035;CS1591</NoWarn>
+    <NoWarn>$(NoWarn);RS1035;CS1591;IDE1006</NoWarn>
     <OutputType>Exe</OutputType>
     <EnableMSTestRunner>true</EnableMSTestRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>

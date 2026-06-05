@@ -1,4 +1,4 @@
-namespace Esolang.Funge;
+namespace Esolang.Funge.Fingerprints.Modu;
 
 /// <summary>
 /// Provides the standard Funge-98 <c>MODU</c> fingerprint (handprint <c>0x4D4F4455</c>).
@@ -49,6 +49,6 @@ public sealed class ModuloFingerprint : IFingerprint
             return;
         }
         var r = a % b;
-        ctx.Push(r < 0 ? r + System.Math.Abs(b) : r);
+        ctx.Push(r < 0 ? r + Math.Abs(b) : r);
     }
 }

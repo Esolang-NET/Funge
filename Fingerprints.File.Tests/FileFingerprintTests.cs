@@ -1,4 +1,4 @@
-namespace Esolang.Funge.Fingerprints.File.Tests;
+namespace Esolang.Funge.Fingerprints.File;
 
 /// <summary>Simple in-memory execution context for testing fingerprint instructions.</summary>
 sealed class TestContext : IFungeExecutionContext

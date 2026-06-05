@@ -1,6 +1,8 @@
 #if !NETSTANDARD2_1_OR_GREATER && !NET5_0_OR_GREATER
 // Minimal HashCode polyfill for netstandard2.0
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace System;
+#pragma warning restore IDE0130
 
 static class HashCode
 {

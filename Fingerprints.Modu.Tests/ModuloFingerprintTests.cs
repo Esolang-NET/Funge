@@ -1,4 +1,4 @@
-namespace Esolang.Funge.Fingerprints.Modu.Tests;
+namespace Esolang.Funge.Fingerprints.Modu;
 
 sealed class TestContext : IFungeExecutionContext
 {

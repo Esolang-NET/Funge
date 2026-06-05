@@ -1,4 +1,4 @@
-namespace Esolang.Funge;
+namespace Esolang.Funge.Fingerprints.File;
 
 /// <summary>
 /// Provides the standard Funge-98 <c>FILE</c> fingerprint (handprint <c>0x46494C45</c>).
@@ -198,7 +198,7 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
         var filename = Pop0gnirts(ctx);
         try
         {
-            File.Delete(filename);
+            System.IO.File.Delete(filename);
         }
         catch
         {
@@ -212,7 +212,7 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
         var src = Pop0gnirts(ctx);
         try
         {
-            File.Move(src, dest);
+            System.IO.File.Move(src, dest);
         }
         catch
         {
