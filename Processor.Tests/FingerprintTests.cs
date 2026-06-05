@@ -1,5 +1,6 @@
 using Esolang.Funge.Fingerprints.Arry;
 using Esolang.Funge.Fingerprints.Base;
+using Esolang.Funge.Fingerprints.Imth;
 using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor.Tests;
@@ -241,6 +242,22 @@ public class FingerprintTests(TestContext TestContext)
     public void BaseFingerprint_InputReflectsWithoutInputCapability()
     {
         var result = RunExitCode("\"ESAB\"4(2#@I1q", [new BaseFingerprint()], provideInput: false);
+        Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void ImthFingerprint_UnsignedOutputUsesExecutionContextIo()
+    {
+        var result = Run("\"HTMI\"4(5U@", [new IntegerMathFingerprint()]);
+        Assert.AreEqual("5 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void ImthFingerprint_UnsignedOutputReflectsWithoutOutputCapability()
+    {
+        var result = RunExitCode("\"HTMI\"4(5#@U1q", [new IntegerMathFingerprint()], provideOutput: false);
         Assert.AreEqual(0, result);
     }
 
