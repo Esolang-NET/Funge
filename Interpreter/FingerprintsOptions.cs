@@ -3,6 +3,7 @@ using Esolang.Funge.Fingerprints.Base;
 using Esolang.Funge.Fingerprints.Bool;
 using Esolang.Funge.Fingerprints.Date;
 using Esolang.Funge.Fingerprints.File;
+using Esolang.Funge.Fingerprints.Fixp;
 using Esolang.Funge.Fingerprints.Indv;
 using Esolang.Funge.Fingerprints.Modu;
 using Esolang.Funge.Fingerprints.Roma;
@@ -42,6 +43,7 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
         yield return Date;
         yield return Bool;
         yield return File;
+        yield return Fixp;
         yield return Indv;
         yield return Modu;
         yield return Roma;
@@ -98,6 +100,14 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     {
         Description = "Enable the FILE fingerprint (0x46494C45): file I/O instructions C D G M O P R S W.",
     }, _ => new FileFingerprint());
+
+    /// <summary>
+    /// Enable the FIXP fingerprint (0x46495850): fixed-point instructions A B C D I J N O P Q R S T U V X.
+    /// </summary>
+    readonly Pair Fixp = new(new(name: "--fingerprint-fixp")
+    {
+        Description = "Enable the FIXP fingerprint (0x46495850): fixed-point instructions A B C D I J N O P Q R S T U V X.",
+    }, _ => new FixedPointFingerprint());
 
     /// <summary>
     /// Enable the INDV fingerprint (0x494E4456): indirect vector instructions G P V W.

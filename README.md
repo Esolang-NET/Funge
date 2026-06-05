@@ -75,6 +75,7 @@ Built-in fingerprints shipped with this repository:
 | [`BOOL`](./Fingerprints.Bool/README.md) | `0x424F4F4C` | [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | ✅ A N O X |
 | [`DATE`](./Fingerprints.Date/README.md) | `0x44415445` | [Esolang.Funge.Fingerprints.Date](./Fingerprints.Date/README.md) | ✅ A C D J T W Y |
 | [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G L O P R S W |
+| [`FIXP`](./Fingerprints.Fixp/README.md) | `0x46495850` | [Esolang.Funge.Fingerprints.Fixp](./Fingerprints.Fixp/README.md) | ✅ A B C D I J N O P Q R S T U V X |
 | [`FRTH`](./Fingerprints.Frth/README.md) | `0x46525448` | [Esolang.Funge.Fingerprints.Frth](./Fingerprints.Frth/README.md) | ✅ D L O P R |
 | [`IMTH`](./Fingerprints.Imth/README.md) | `0x494D5448` | [Esolang.Funge.Fingerprints.Imth](./Fingerprints.Imth/README.md) | ✅ A B C D E F G H I L N R S T U X Z |
 | [`INDV`](./Fingerprints.Indv/README.md) | `0x494E4456` | [Esolang.Funge.Fingerprints.Indv](./Fingerprints.Indv/README.md) | ✅ G P V W |
@@ -109,6 +110,7 @@ dotnet tool install -g dotnet-funge
 | Use BOOL fingerprint (Boolean logic) | Esolang.Funge.Fingerprints.Bool |
 | Use DATE fingerprint (calendar arithmetic) | Esolang.Funge.Fingerprints.Date |
 | Use FILE fingerprint (file I/O) | Esolang.Funge.Fingerprints.File |
+| Use FIXP fingerprint (fixed-point math) | Esolang.Funge.Fingerprints.Fixp |
 | Use FRTH fingerprint (Forth-style stack helpers) | Esolang.Funge.Fingerprints.Frth |
 | Use IMTH fingerprint (integer math helpers) | Esolang.Funge.Fingerprints.Imth |
 | Use INDV fingerprint (indirect vector access) | Esolang.Funge.Fingerprints.Indv |
@@ -134,6 +136,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Bool](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Bool?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Bool/) | BOOL fingerprint (Boolean logic). |
 | [Esolang.Funge.Fingerprints.Date](./Fingerprints.Date/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Date](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Date?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Date/) | DATE fingerprint (calendar arithmetic). |
 | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | [![NuGet: Esolang.Funge.Fingerprints.File](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.File?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.File/) | FILE fingerprint (file I/O). |
+| [Esolang.Funge.Fingerprints.Fixp](./Fingerprints.Fixp/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Fixp](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Fixp?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Fixp/) | FIXP fingerprint (fixed-point math). |
 | [Esolang.Funge.Fingerprints.Frth](./Fingerprints.Frth/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Frth](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Frth?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Frth/) | FRTH fingerprint (Forth-style stack helpers). |
 | [Esolang.Funge.Fingerprints.Imth](./Fingerprints.Imth/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Imth](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Imth?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Imth/) | IMTH fingerprint (integer math helpers). |
 | [Esolang.Funge.Fingerprints.Indv](./Fingerprints.Indv/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Indv](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Indv?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Indv/) | INDV fingerprint (indirect vector access). |

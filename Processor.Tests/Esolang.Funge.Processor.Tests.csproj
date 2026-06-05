@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Fingerprints.Arry\Esolang.Funge.Fingerprints.Arry.csproj" />
     <ProjectReference Include="..\Fingerprints.Imth\Esolang.Funge.Fingerprints.Imth.csproj" />
+    <ProjectReference Include="..\Fingerprints.Fixp\Esolang.Funge.Fingerprints.Fixp.csproj" />
     <ProjectReference Include="..\Fingerprints.Indv\Esolang.Funge.Fingerprints.Indv.csproj" />
     <ProjectReference Include="..\Fingerprints.Long\Esolang.Funge.Fingerprints.Long.csproj" />
     <ProjectReference Include="..\Parser\Esolang.Funge.Parser.csproj" />

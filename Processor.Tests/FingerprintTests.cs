@@ -1,5 +1,6 @@
 using Esolang.Funge.Fingerprints.Arry;
 using Esolang.Funge.Fingerprints.Base;
+using Esolang.Funge.Fingerprints.Fixp;
 using Esolang.Funge.Fingerprints.Imth;
 using Esolang.Funge.Fingerprints.Indv;
 using Esolang.Funge.Fingerprints.Long;
@@ -279,6 +280,14 @@ public class FingerprintTests(TestContext TestContext)
     {
         var result = RunExitCode("\"GNOL\"4(0n5E#@P1q", [new LongIntegerFingerprint()], provideOutput: false);
         Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void FixpFingerprint_ComputesIntegerSquareRoot()
+    {
+        var result = Run("\"PXIF\"4(98*2*Q.@", [new FixedPointFingerprint()]);
+        Assert.AreEqual("12 ", result);
     }
 
     [TestMethod]

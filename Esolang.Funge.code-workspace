@@ -81,16 +81,24 @@
 			"path": "Fingerprints.File"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.File.Tests",
+			"path": "Fingerprints.File.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Fixp",
+			"path": "Fingerprints.Fixp"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Fixp.Tests",
+			"path": "Fingerprints.Fixp.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.Frth",
 			"path": "Fingerprints.Frth"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Frth.Tests",
 			"path": "Fingerprints.Frth.Tests"
-		},
-		{
-			"name": "Esolang.Funge.Fingerprints.File.Tests",
-			"path": "Fingerprints.File.Tests"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Imth",
@@ -183,6 +191,8 @@
 			"Fingerprints.Date.Tests": true,
 			"Fingerprints.File": true,
 			"Fingerprints.File.Tests": true,
+			"Fingerprints.Fixp": true,
+			"Fingerprints.Fixp.Tests": true,
 			"Fingerprints.Frth": true,
 			"Fingerprints.Frth.Tests": true,
 			"Fingerprints.Imth": true,

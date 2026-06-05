@@ -10,6 +10,7 @@ The format is based on Keep a Changelog.
 
 - `Esolang.Funge.Abstractions`: new package providing fingerprint abstractions (`IFingerprint`, `NullFingerprint`) targeting `netstandard2.0`, `netstandard2.1`, and `net10.0` with AOT compatibility.
 - `Esolang.Funge.Fingerprints.File`: new package implementing the `FILE` fingerprint (`0x46494C45`) with instructions `C` (close), `D` (delete), `G` (get binary), `M` (move), `O` (open), `P` (put string), `R` (read), `S` (size), `W` (write byte), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+- `Esolang.Funge.Fingerprints.Fixp`: new package implementing the `FIXP` fingerprint (`0x46495850`) with instructions `A`, `B`, `C`, `D`, `I`, `J`, `N`, `O`, `P`, `Q`, `R`, `S`, `T`, `U`, `V`, and `X`, targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Frth`: new package implementing the `FRTH` fingerprint (`0x46525448`) with instructions `D`, `L`, `O`, `P`, and `R`, targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Imth`: new package implementing the `IMTH` fingerprint (`0x494D5448`) with instructions `A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `L`, `N`, `R`, `S`, `T`, `U`, `X`, and `Z`, targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Indv`: new package implementing the `INDV` fingerprint (`0x494E4456`) with instructions `G`, `P`, `V`, and `W`, targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
