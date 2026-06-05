@@ -1,25 +1,25 @@
-# Esolang.Funge.Fingerprints.Bool
+# Esolang.Funge.Fingerprints.Base
 
 `BASE` fingerprint (handprint `0x42415345`) for [Funge-98](https://github.com/catseye/Funge-98/blob/master/doc/funge98.markdown).
 
 ## Overview
 
-Provides I/O for numbers in other bases.
+Provides numeric base conversion I/O instructions.
 
 ## Supported Instructions
 
 | Instruction | Behaviour |
 |---|---|
-| `B` |   |
-| `H` |   |
-| `I` |   |
-| `N` |   |
-| `O` |   |
+| `B` | Output the top stack value in binary. |
+| `H` | Output the top stack value in hexadecimal. |
+| `I` | Read one input line using the specified base and push the parsed value. |
+| `N` | Output `n` in base `b`. |
+| `O` | Output the top stack value in octal. |
 
 ## Installation
 
 ```bash
-dotnet add package Esolang.Funge.Fingerprints.Bool
+dotnet add package Esolang.Funge.Fingerprints.Base
 ```
 
 ## Usage
@@ -37,6 +37,6 @@ partial class FungeSample
 }
 ```
 
-## See also
+## References
 
-https://web.archive.org/web/20230617132045/https://rcfunge98.com/rcsfingers.html#BASE
+- https://web.archive.org/web/20230617132045/https://rcfunge98.com/rcsfingers.html#BASE

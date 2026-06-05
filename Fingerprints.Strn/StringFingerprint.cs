@@ -16,10 +16,17 @@ public sealed class StringFingerprint : IFingerprint
         Instructions = new FingerprintBuilder()
             .Add('A', Append)
             .Add('C', Compare)
-            .Add('L', Length)
-            .Add('N', NumberToString)
-            .Add('R', Reverse)
-            .Add('S', StringToNumber)
+            .Add('D', Display)
+            .Add('F', Search)
+            .Add('G', Get)
+            .Add('I', Input)
+            .Add('L', Left)
+            .Add('M', Slice)
+            .Add('N', Length)
+            .Add('P', Put)
+            .Add('R', Right)
+            .Add('S', NumberToString)
+            .Add('V', StringToNumber)
             .BuildInstructions();
 
     static string Pop0gnirts(IFungeExecutionContext ctx)
@@ -40,24 +47,174 @@ public sealed class StringFingerprint : IFingerprint
 
     static void Append(IFungeExecutionContext ctx)
     {
-        var s1 = Pop0gnirts(ctx);
-        var s2 = Pop0gnirts(ctx);
-        Push0gnirts(ctx, s2 + s1);
+        var upper = Pop0gnirts(ctx);
+        var lower = Pop0gnirts(ctx);
+        Push0gnirts(ctx, upper + lower);
     }
 
     static void Compare(IFungeExecutionContext ctx)
     {
-        var s1 = Pop0gnirts(ctx);
-        var s2 = Pop0gnirts(ctx);
+        var upper = Pop0gnirts(ctx);
+        var lower = Pop0gnirts(ctx);
+        ctx.Push(CompareStrings(upper, lower));
+    }
 
-        var res = string.CompareOrdinal(s1, s2);
-        ctx.Push(res > 0 ? 1 : (res < 0 ? -1 : 0));
+    static int CompareStrings(string upper, string lower)
+    {
+        var max = Math.Max(upper.Length, lower.Length);
+        for (var i = 0; i <= max; i++)
+        {
+            var upperChar = i < upper.Length ? upper[i] : '\0';
+            var lowerChar = i < lower.Length ? lower[i] : '\0';
+            var diff = upperChar - lowerChar;
+            if (diff != 0)
+                return diff;
+        }
+
+        return 0;
+    }
+
+    static void Display(IFungeExecutionContext ctx)
+    {
+        if (ctx is not IFungeOutputContext output)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        output.WriteString(Pop0gnirts(ctx));
+    }
+
+    static void Search(IFungeExecutionContext ctx)
+    {
+        var upper = Pop0gnirts(ctx);
+        var lower = Pop0gnirts(ctx);
+        var index = upper.IndexOf(lower, StringComparison.Ordinal);
+        Push0gnirts(ctx, index >= 0 ? upper[index..] : string.Empty);
+    }
+
+    static bool TryGetOffsetSpaceVectorContexts(
+        IFungeExecutionContext ctx,
+        out IFungeVectorContext vector,
+        out IFungeSpaceContext space,
+        out IFungeStorageOffsetContext offset)
+    {
+        if (ctx is not IFungeVectorContext foundVector
+            || ctx is not IFungeSpaceContext foundSpace
+            || ctx is not IFungeStorageOffsetContext foundOffset)
+        {
+            vector = null!;
+            space = null!;
+            offset = null!;
+            ctx.Reflect();
+            return false;
+        }
+
+        vector = foundVector;
+        space = foundSpace;
+        offset = foundOffset;
+        return true;
+    }
+
+    static void Get(IFungeExecutionContext ctx)
+    {
+        if (!TryGetOffsetSpaceVectorContexts(ctx, out var vector, out var space, out var offset))
+            return;
+
+        var (x, y, z) = vector.PopVector();
+        var (offsetX, offsetY, offsetZ) = offset.StorageOffset;
+        List<char> chars = [];
+        while (true)
+        {
+            var value = space.GetCell(x + offsetX, y + offsetY, z + offsetZ);
+            if (value == 0)
+                break;
+
+            chars.Add((char)value);
+            x++;
+        }
+
+        Push0gnirts(ctx, new string([.. chars]));
+    }
+
+    static void Input(IFungeExecutionContext ctx)
+    {
+        if (ctx is not IFungeInputContext input)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        var line = input.ReadLine();
+        if (line is null)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        Push0gnirts(ctx, line);
+    }
+
+    static void Left(IFungeExecutionContext ctx)
+    {
+        var n = ctx.Pop();
+        var s = Pop0gnirts(ctx);
+        if (n < 0)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        Push0gnirts(ctx, s[..Math.Min(n, s.Length)]);
+    }
+
+    static void Slice(IFungeExecutionContext ctx)
+    {
+        var count = ctx.Pop();
+        var start = ctx.Pop();
+        var s = Pop0gnirts(ctx);
+        if (start < 0 || count < 0 || start > s.Length)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        var actualCount = Math.Min(count, s.Length - start);
+        Push0gnirts(ctx, s.Substring(start, actualCount));
     }
 
     static void Length(IFungeExecutionContext ctx)
     {
         var s = Pop0gnirts(ctx);
+        Push0gnirts(ctx, s);
         ctx.Push(s.Length);
+    }
+
+    static void Put(IFungeExecutionContext ctx)
+    {
+        if (!TryGetOffsetSpaceVectorContexts(ctx, out var vector, out var space, out var offset))
+            return;
+
+        var (x, y, z) = vector.PopVector();
+        var (offsetX, offsetY, offsetZ) = offset.StorageOffset;
+        var s = Pop0gnirts(ctx);
+        for (var i = 0; i < s.Length; i++)
+            space.SetCell(x + offsetX + i, y + offsetY, z + offsetZ, s[i]);
+        space.SetCell(x + offsetX + s.Length, y + offsetY, z + offsetZ, 0);
+    }
+
+    static void Right(IFungeExecutionContext ctx)
+    {
+        var n = ctx.Pop();
+        var s = Pop0gnirts(ctx);
+        if (n < 0)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        var count = Math.Min(n, s.Length);
+        Push0gnirts(ctx, s[^count..]);
     }
 
     static void NumberToString(IFungeExecutionContext ctx)
@@ -66,25 +223,49 @@ public sealed class StringFingerprint : IFingerprint
         Push0gnirts(ctx, n.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    static void Reverse(IFungeExecutionContext ctx)
-    {
-        var s = Pop0gnirts(ctx);
-        var chars = s.ToCharArray();
-
-        Array.Reverse(chars);
-        Push0gnirts(ctx, new string(chars));
-    }
-
     static void StringToNumber(IFungeExecutionContext ctx)
     {
         var s = Pop0gnirts(ctx);
-        if (int.TryParse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var n))
+        ctx.Push(ParseAtoiLike(s));
+    }
+
+    static int ParseAtoiLike(string s)
+    {
+        var i = 0;
+        while (i < s.Length && char.IsWhiteSpace(s[i]))
+            i++;
+
+        var sign = 1;
+        if (i < s.Length && (s[i] == '+' || s[i] == '-'))
         {
-            ctx.Push(n);
+            sign = s[i] == '-' ? -1 : 1;
+            i++;
         }
-        else
+
+        long value = 0;
+        var foundDigit = false;
+        while (i < s.Length && char.IsDigit(s[i]))
         {
-            ctx.Reflect();
+            foundDigit = true;
+            var digit = s[i] - '0';
+            if (value > (long.MaxValue - digit) / 10)
+                return sign > 0 ? int.MaxValue : int.MinValue;
+            value = value * 10 + digit;
+            if (sign > 0 && value >= int.MaxValue)
+                return int.MaxValue;
+            if (sign < 0 && -value <= int.MinValue)
+                return int.MinValue;
+            i++;
         }
+
+        if (!foundDigit)
+            return 0;
+
+        value *= sign;
+        if (value > int.MaxValue)
+            return int.MaxValue;
+        if (value < int.MinValue)
+            return int.MinValue;
+        return (int)value;
     }
 }

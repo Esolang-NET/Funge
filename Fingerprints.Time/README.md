@@ -4,25 +4,32 @@
 
 ## Overview
 
-Provides instructions for retrieving the current system time and date.
+Provides instructions for retrieving the current system date/time fields, with a switch between local time and GMT.
 
 ## Supported Instructions
 
 | Instruction | Behaviour |
 |---|---|
-| `D` | Date. Pushes Day (1-31), Month (1-12), and Year. |
-| `G` | GMT. Pushes Seconds, Minutes, Hours, Day, Month, and Year in UTC. |
-| `H` | Hour. Pushes the current local Hour (0-23). |
-| `M` | Minute. Pushes the current local Minute (0-59). |
-| `S` | Second. Pushes the current local Second (0-59). |
-| `T` | Time. Pushes local Seconds, Minutes, and Hours. |
-| `Y` | Year. Pushes the current local Year. |
+| `D` | Push the current day of month. |
+| `F` | Push the current day of year, zero-based. |
+| `G` | Switch subsequent reads to GMT/UTC. |
+| `H` | Push the current hour. |
+| `L` | Switch subsequent reads to local time. |
+| `M` | Push the current minute. |
+| `O` | Push the current month. |
+| `S` | Push the current second. |
+| `W` | Push the current day of week (`1` = Sunday). |
+| `Y` | Push the current year. |
 
 ## Installation
 
 ```bash
 dotnet add package Esolang.Funge.Fingerprints.Time
 ```
+
+## References
+
+- https://web.archive.org/web/20230617132045/https://rcfunge98.com/rcsfingers.html#TIME
 
 ## Usage
 

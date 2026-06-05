@@ -105,17 +105,19 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
         var compilation = context.CompilationProvider;
         var knownTypes = compilation.Select(static (c, _) => new KnownTypes(c));
+        var knownFungeTypes = compilation.Select(static (c, _) => new KnownFungeTypes(c));
 
         var inputs = generatedTargets
             .Combine(additionalFiles)
             .Combine(languageVersion)
             .Combine(projectDirectory)
             .Combine(compilation)
-            .Combine(knownTypes);
+            .Combine(knownTypes)
+            .Combine(knownFungeTypes);
 
         context.RegisterSourceOutput(inputs, static (ctx, input) =>
         {
-            var (((((sources, files), langVersion), projDir), compilation), types) = input;
+            var ((((((sources, files), langVersion), projDir), compilation), types), fungeTypes) = input;
 
             if (sources.IsDefaultOrEmpty)
                 return;
@@ -211,7 +213,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
                 // Bind the method signature
-                var binding = BindExecutionSignature(symbol, method, types, fingerprintsProviderName, symbol, ctx);
+                var binding = BindExecutionSignature(symbol, method, compilation, types, fungeTypes, fingerprintsProviderName, symbol, ctx);
                 if (!binding.IsValid)
                 {
                     var error = binding.FungeError ?? binding.Binding.Error!;
@@ -311,7 +313,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             if (emittedCount > 0)
                 ctx.AddSource(GeneratedMethodsFileName, methodSb.ToString());
 
-            EmitRuntimeIfNeeded(ctx, runtimeFeatures);
+            EmitRuntimeIfNeeded(ctx, runtimeFeatures, fungeTypes);
         });
     }
 
@@ -337,7 +339,9 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     static FungeExecutionBinding BindExecutionSignature(
         IMethodSymbol method,
         MethodDeclarationSyntax syntax,
+        Compilation compilation,
         KnownTypes types,
+        KnownFungeTypes fungeTypes,
         string? fingerprintsProviderName = null,
         IMethodSymbol? contextSymbol = null,
         Microsoft.CodeAnalysis.SourceProductionContext? ctx = null)
@@ -394,7 +398,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         string? fingerprintsExpr = null;
         if (!string.IsNullOrWhiteSpace(fingerprintsProviderName) && contextSymbol is not null)
         {
-            fingerprintsExpr = ResolveFingerprintsProvider(fingerprintsProviderName!, contextSymbol, method.IsStatic);
+            fingerprintsExpr = ResolveFingerprintsProvider(fingerprintsProviderName!, contextSymbol, method.IsStatic, compilation, types, fungeTypes);
             if (fingerprintsExpr is null && ctx.HasValue)
             {
                 ctx.Value.ReportDiagnostic(Diagnostic.Create(
@@ -413,21 +417,31 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
     /// <c>IEnumerable&lt;IFingerprint&gt;</c> from the containing type.
     /// Returns <c>null</c> if the member is not found or not valid.
     /// </summary>
-    static string? ResolveFingerprintsProvider(string memberName, IMethodSymbol contextSymbol, bool isStatic)
+    static string? ResolveFingerprintsProvider(
+        string memberName,
+        IMethodSymbol contextSymbol,
+        bool isStatic,
+        Compilation compilation,
+        KnownTypes types,
+        KnownFungeTypes fungeTypes)
     {
+        if (types.IEnumerableT is null || fungeTypes.IFingerprint is null)
+            return null;
+
+        var expectedType = types.IEnumerableT.Construct(fungeTypes.IFingerprint);
         var containingType = contextSymbol.ContainingType;
         var members = containingType.GetMembers(memberName);
         foreach (var member in members)
         {
             switch (member)
             {
-                case IMethodSymbol m when m.Parameters.IsEmpty:
+                case IMethodSymbol m when m.Parameters.IsEmpty && IsValidFingerprintsProviderType(m.ReturnType, compilation, expectedType):
                     {
                         var qualifier = m.IsStatic ? GetFullyQualifiedTypeName(containingType) : (isStatic ? null : "this");
                         if (qualifier is null && !m.IsStatic) return null; // instance member in static context
                         return qualifier is not null ? $"{qualifier}.{memberName}()" : $"{memberName}()";
                     }
-                case IPropertySymbol p:
+                case IPropertySymbol p when !p.IsIndexer && IsValidFingerprintsProviderType(p.Type, compilation, expectedType):
                     {
                         var qualifier = p.IsStatic ? GetFullyQualifiedTypeName(containingType) : (isStatic ? null : "this");
                         if (qualifier is null && !p.IsStatic) return null;
@@ -436,6 +450,9 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             }
         }
         return null;
+
+        static bool IsValidFingerprintsProviderType(ITypeSymbol type, Compilation compilation, INamedTypeSymbol expectedType)
+            => compilation.ClassifyConversion(type, expectedType) is { Exists: true, IsImplicit: true };
     }
 
     static string GetFullyQualifiedTypeName(INamedTypeSymbol type)

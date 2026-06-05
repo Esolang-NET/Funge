@@ -19,43 +19,117 @@ public class TimeFingerprintTests
         return instr;
     }
 
+    static bool IsWithin(int value, int lower, int upper)
+        => lower <= upper
+            ? value >= lower && value <= upper
+            : value >= lower || value <= upper;
+
     [TestMethod]
     public void Handprint_IsCorrect()
         => Assert.AreEqual(0x54494D45, new TimeFingerprint().Handprint);
 
     [TestMethod]
-    public void D_Date_PushesCorrectOrder()
+    public void D_PushesDayOfMonth()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
+        var before = DateTime.Now.Day;
         Instruction(fp, 'D')(ctx);
-        var y = ctx.Pop();
-        var m = ctx.Pop();
-        var d = ctx.Pop();
-        var now = DateTime.Now;
-        Assert.AreEqual(now.Year, y);
-        Assert.AreEqual(now.Month, m);
-        Assert.AreEqual(now.Day, d);
+        var after = DateTime.Now.Day;
+
+        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
     }
 
     [TestMethod]
-    public void T_Time_PushesCorrectOrder()
+    public void F_PushesZeroBasedDayOfYear()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'T')(ctx);
-        var h = ctx.Pop();
-        var m = ctx.Pop();
-        var s = ctx.Pop();
-        var now = DateTime.Now;
-        Assert.AreEqual(now.Hour, h);
-        Assert.AreEqual(now.Minute, m);
-        // Second might change between now and execution, so we allow +/- 1
-        Assert.IsLessThanOrEqualTo(1, Math.Abs(now.Second - s));
+        var before = DateTime.Now.DayOfYear - 1;
+        Instruction(fp, 'F')(ctx);
+        var after = DateTime.Now.DayOfYear - 1;
+
+        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
     }
 
     [TestMethod]
-    public void Y_Year_IsReasonable()
+    public void G_And_L_SwitchBetweenGmtAndLocalMode()
+    {
+        var fp = new TimeFingerprint();
+        var ctx = new TestContext();
+
+        Instruction(fp, 'G')(ctx);
+        var utcYear = DateTime.UtcNow.Year;
+        Instruction(fp, 'Y')(ctx);
+        Assert.AreEqual(utcYear, ctx.Pop());
+
+        Instruction(fp, 'L')(ctx);
+        var localYear = DateTime.Now.Year;
+        Instruction(fp, 'Y')(ctx);
+        Assert.AreEqual(localYear, ctx.Pop());
+    }
+
+    [TestMethod]
+    public void H_PushesHour()
+    {
+        var fp = new TimeFingerprint();
+        var ctx = new TestContext();
+        var before = DateTime.Now.Hour;
+        Instruction(fp, 'H')(ctx);
+        var after = DateTime.Now.Hour;
+
+        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+    }
+
+    [TestMethod]
+    public void M_PushesMinute()
+    {
+        var fp = new TimeFingerprint();
+        var ctx = new TestContext();
+        var before = DateTime.Now.Minute;
+        Instruction(fp, 'M')(ctx);
+        var after = DateTime.Now.Minute;
+
+        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+    }
+
+    [TestMethod]
+    public void O_PushesMonth()
+    {
+        var fp = new TimeFingerprint();
+        var ctx = new TestContext();
+        var before = DateTime.Now.Month;
+        Instruction(fp, 'O')(ctx);
+        var after = DateTime.Now.Month;
+
+        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+    }
+
+    [TestMethod]
+    public void S_PushesSecond()
+    {
+        var fp = new TimeFingerprint();
+        var ctx = new TestContext();
+        var before = DateTime.Now.Second;
+        Instruction(fp, 'S')(ctx);
+        var after = DateTime.Now.Second;
+
+        Assert.IsTrue(IsWithin(ctx.Pop(), before, after));
+    }
+
+    [TestMethod]
+    public void W_PushesSundayBasedDayOfWeek()
+    {
+        var fp = new TimeFingerprint();
+        var ctx = new TestContext();
+
+        Instruction(fp, 'W')(ctx);
+
+        Assert.AreEqual((int)DateTime.Now.DayOfWeek + 1, ctx.Pop());
+    }
+
+    [TestMethod]
+    public void Y_PushesYear()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();

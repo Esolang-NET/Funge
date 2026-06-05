@@ -358,6 +358,7 @@ public class FungeMethodGeneratorTests
         out ImmutableArray<Diagnostic> diagnostics,
         IEnumerable<(string path, string content)>? additionalFiles = null,
         LanguageVersion languageVersion = LanguageVersion.CSharp11,
+        bool includeFungeAbstractionsReference = true,
         CancellationToken cancellationToken = default)
     {
         var parseOptions = new CSharpParseOptions(languageVersion);
@@ -369,9 +370,13 @@ public class FungeMethodGeneratorTests
             driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true)
         ).WithUpdatedParseOptions(parseOptions);
 
-        var compilation = baseCompilation.AddSyntaxTrees(
+        var compilation = (includeFungeAbstractionsReference
+                ? baseCompilation
+                : baseCompilation.RemoveReferences(baseCompilation.References.Where(static reference =>
+                    string.Equals(reference.Display, typeof(IFingerprint).Assembly.Location, StringComparison.OrdinalIgnoreCase))))
+            .AddSyntaxTrees(
             CSharpSyntaxTree.ParseText(source, parseOptions, path: "input.cs",
-                encoding: Encoding.UTF8, cancellationToken: cancellationToken));
+                 encoding: Encoding.UTF8, cancellationToken: cancellationToken));
 
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out outputCompilation, out diagnostics, cancellationToken);
     }
@@ -2580,6 +2585,32 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
+    public void FingerprintsProvider_InvalidReturnType_EmitsFG0012()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public static int GetFingerprints() => 42;
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "GetFingerprints")]
+                public static partial void Run();
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for invalid FingerprintsProvider return type");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
     public void FingerprintsProvider_EnablesFingerprintSupportRuntime()
     {
         // When FingerprintsProvider is set, the generated runtime should include RuntimeFungeExecutionContext.
@@ -2602,6 +2633,68 @@ public class FungeMethodGeneratorTests
 
             var runtime = string.Join("\n", comp.SyntaxTrees.Select(static t => t.ToString()));
             Assert.Contains("RuntimeFungeExecutionContext", runtime);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    public void FingerprintsProvider_Runtime_GatesOptionalCapabilityInterfaces_WhenAbstractionsTypesAreMissing()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System;
+            using System.Collections.Generic;
+
+            namespace Esolang.Funge
+            {
+                public delegate void FingerprintInstruction(IFungeExecutionContext ctx);
+
+                public interface IFingerprint
+                {
+                    int Handprint { get; }
+                    IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+                }
+
+                public interface IFungeExecutionContext
+                {
+                    void Push(int value);
+                    int Pop();
+                    int Peek();
+                    void Reflect();
+                }
+            }
+
+            namespace TestProject;
+
+            partial class TestClass
+            {
+                public static IEnumerable<IFingerprint> GetFingerprints() => Array.Empty<IFingerprint>();
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "GetFingerprints")]
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(
+            source,
+            out var comp,
+            out var diag,
+            includeFungeAbstractionsReference: false,
+            cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var runtime = string.Join("\n", comp.SyntaxTrees.Select(static t => t.ToString()));
+            Assert.Contains("global::Esolang.Funge.IFungeExecutionContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeInputContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeOutputContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeVectorContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeSpaceContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeStorageOffsetContext", runtime);
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
@@ -2634,6 +2727,66 @@ public class FungeMethodGeneratorTests
                     public int Handprint => FingerprintHandprint.Compute("PEST");
                     public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
                         = new Dictionary<char, FingerprintInstruction> { ['A'] = ctx => ctx.Push(42) };
+                }
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (string?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual("42 ", result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public async Task FingerprintsProvider_Functional_VectorAndSpaceCapabilities_UseGeneratedRuntimeCapabilities()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public static IEnumerable<IFingerprint> GetFingerprints()
+                    => new IFingerprint[] { new PestFingerprint() };
+
+                [GenerateFungeMethod(InlineSource = "\"TSEP\"4(A.@", FingerprintsProvider = "GetFingerprints")]
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
+
+                sealed class PestFingerprint : IFingerprint
+                {
+                    public int Handprint => FingerprintHandprint.Compute("PEST");
+                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+                        = new Dictionary<char, FingerprintInstruction>
+                        {
+                            ['A'] = static ctx =>
+                            {
+                                if (ctx is not IFungeVectorContext vector || ctx is not IFungeSpaceContext space)
+                                {
+                                    ctx.Reflect();
+                                    return;
+                                }
+
+                                var (x, y, z) = vector.PopVector();
+                                space.SetCell(x + 2, y, z, 42);
+                                vector.PushVector(x, y, z);
+                                ctx.Push(space.GetCell(x + 2, y, z));
+                            },
+                        };
                 }
             }
             """;

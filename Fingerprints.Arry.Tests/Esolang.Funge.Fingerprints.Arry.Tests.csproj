@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-    <AssemblyName>Funge.Processor.Tests</AssemblyName>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net48;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0;net9.0;net10.0</TargetFrameworks>
+    <AssemblyName>Esolang.Funge.Fingerprints.Arry.Tests</AssemblyName>
+    <RootNamespace>Esolang.Funge.Fingerprints.Arry</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,15 +17,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fingerprints.Arry\Esolang.Funge.Fingerprints.Arry.csproj" />
-    <ProjectReference Include="..\Parser\Esolang.Funge.Parser.csproj" />
-    <ProjectReference Include="..\Processor\Esolang.Funge.Processor.csproj" />
-    <ProjectReference Include="..\Abstractions\Esolang.Funge.Abstractions.csproj" />
-    <ProjectReference Include="..\Fingerprints.Base\Esolang.Funge.Fingerprints.Base.csproj" />
   </ItemGroup>
-
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
     <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
   </ItemGroup>
-
 </Project>

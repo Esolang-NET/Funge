@@ -20,6 +20,10 @@ Provides specialized modulo arithmetic instructions.
 dotnet add package Esolang.Funge.Fingerprints.Modu
 ```
 
+## References
+
+- https://web.archive.org/web/20230617132045/https://rcfunge98.com/rcsfingers.html#MODU
+
 ## Usage
 
 ```csharp

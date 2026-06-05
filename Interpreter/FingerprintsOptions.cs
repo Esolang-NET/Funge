@@ -1,3 +1,4 @@
+using Esolang.Funge.Fingerprints.Arry;
 using Esolang.Funge.Fingerprints.Base;
 using Esolang.Funge.Fingerprints.Bool;
 using Esolang.Funge.Fingerprints.Date;
@@ -36,6 +37,7 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     public IEnumerator<IOptionAndMakeFingerprintPair> GetEnumerator()
     {
         yield return Null;
+        yield return Arry;
         yield return Date;
         yield return Bool;
         yield return File;
@@ -54,6 +56,14 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     {
         Description = "Enable the NULL fingerprint (0x4E554C4C): all 26 instructions reflect.",
     }, _ => NullFingerprint.Instance);
+
+    /// <summary>
+    /// Enable the ARRY fingerprint (0x41525259): array instructions A B C D E F G.
+    /// </summary>
+    readonly Pair Arry = new(new(name: "--fingerprint-arry")
+    {
+        Description = "Enable the ARRY fingerprint (0x41525259): array instructions A B C D E F G.",
+    }, _ => new ArrayFingerprint());
 
     /// <summary>
     /// Enable the BASE fingerprint (0x42415345): base conversion instructions B H I N O.

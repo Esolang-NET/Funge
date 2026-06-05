@@ -1,3 +1,4 @@
+using Esolang.Funge.Fingerprints.Arry;
 using Esolang.Funge.Fingerprints.Base;
 using static Esolang.Processor.IOEvent;
 
@@ -14,6 +15,12 @@ file sealed class PushFingerprint(string name, char letter, int value) : IFinger
         {
             [letter] = ctx => ctx.Push(value),
         };
+}
+
+file sealed class CustomFingerprint(string name, IReadOnlyDictionary<char, FingerprintInstruction> instructions) : IFingerprint
+{
+    public int Handprint { get; } = FingerprintHandprint.Compute(name);
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } = instructions;
 }
 
 /// <summary>
@@ -222,6 +229,45 @@ public class FingerprintTests(TestContext TestContext)
     {
         var result = RunExitCode("\"ESAB\"4(2#@I1q", [new BaseFingerprint()], provideInput: false);
         Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void ArryFingerprint_G_ReportsMaximumDimensions()
+    {
+        var result = Run("\"YRRA\"4(G.@", [new ArrayFingerprint()]);
+        Assert.AreEqual("3 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void ArryFingerprint_StoresAndRetrievesFromAbsoluteSpace()
+    {
+        var result = Run("\"YRRA\"4($$01067*2A2B.@", [new ArrayFingerprint()]);
+        Assert.AreEqual("42 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void RuntimeContext_ExposesStorageOffsetCapability()
+    {
+        var fp = new CustomFingerprint(
+            "PEST",
+            new Dictionary<char, FingerprintInstruction>
+            {
+                ['A'] = ctx =>
+                {
+                    if (ctx is not IFungeStorageOffsetContext offset)
+                    {
+                        ctx.Reflect();
+                        return;
+                    }
+
+                    ctx.Push(offset.StorageOffset.X);
+                },
+            });
+        var result = Run("\"TSEP\"4(A.@", [fp]);
+        Assert.AreEqual("0 ", result);
     }
 
     // ── Multiple fingerprints ─────────────────────────────────────────────────

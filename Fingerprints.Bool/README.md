@@ -21,6 +21,10 @@ Provides instructions for Boolean logical operations.
 dotnet add package Esolang.Funge.Fingerprints.Bool
 ```
 
+## References
+
+- https://web.archive.org/web/20230617132045/https://rcfunge98.com/rcsfingers.html#BOOL
+
 ## Usage
 
 ```csharp

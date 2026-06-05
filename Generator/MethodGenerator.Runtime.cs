@@ -24,10 +24,10 @@ partial class MethodGenerator
         FingerprintSupport = 1 << 11,
     }
 
-    static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features)
+    static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
     {
         if (features == RuntimeFacadeFeatures.None) return;
-        ctx.AddSource(FungeRuntimeFileName, BuildRuntimeSource(features));
+        ctx.AddSource(FungeRuntimeFileName, BuildRuntimeSource(features, fungeTypes));
     }
 
     static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
@@ -126,7 +126,32 @@ partial class MethodGenerator
         return sb.ToString();
     }
 
-    static string BuildRuntimeSource(RuntimeFacadeFeatures features)
+    static string BuildInterfaceList(params string?[] interfaceNames)
+    {
+        var names = interfaceNames.Where(static name => !string.IsNullOrWhiteSpace(name)).ToArray();
+        if (names.Length == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder(" : ");
+        sb.Append(names[0]);
+        for (var i = 1; i < names.Length; i++)
+            sb.AppendLine(",").Append("                      ").Append(names[i]);
+        return sb.ToString();
+    }
+
+    static string BuildImplementedInterfaceSuffix(params string?[] interfaceNames)
+    {
+        var names = interfaceNames.Where(static name => !string.IsNullOrWhiteSpace(name)).ToArray();
+        if (names.Length == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < names.Length; i++)
+            sb.AppendLine(",").Append("                      ").Append(names[i]);
+        return sb.ToString();
+    }
+
+    static string BuildRuntimeSource(RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
     {
         var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
         var fingerprintSupport = (features & RuntimeFacadeFeatures.FingerprintSupport) != 0;
@@ -208,6 +233,19 @@ partial class MethodGenerator
                     }
                 }
         """ : "";
+
+        var runtimeExecutionContextInterfaces = BuildInterfaceList(
+            "global::Esolang.Funge.IFungeExecutionContext",
+            fungeTypes.IFungeVectorContext is not null ? "global::Esolang.Funge.IFungeVectorContext" : null,
+            fungeTypes.IFungeSpaceContext is not null ? "global::Esolang.Funge.IFungeSpaceContext" : null,
+            fungeTypes.IFungeStorageOffsetContext is not null ? "global::Esolang.Funge.IFungeStorageOffsetContext" : null);
+        var runtimeInputContextSuffix = BuildImplementedInterfaceSuffix(
+            fungeTypes.IFungeInputContext is not null ? "global::Esolang.Funge.IFungeInputContext" : null);
+        var runtimeOutputContextSuffix = BuildImplementedInterfaceSuffix(
+            fungeTypes.IFungeOutputContext is not null ? "global::Esolang.Funge.IFungeOutputContext" : null);
+        var runtimeIoContextSuffix = BuildImplementedInterfaceSuffix(
+            fungeTypes.IFungeInputContext is not null ? "global::Esolang.Funge.IFungeInputContext" : null,
+            fungeTypes.IFungeOutputContext is not null ? "global::Esolang.Funge.IFungeOutputContext" : null);
 
         // Pre-compute fingerprint case bodies to avoid nesting $$"""...""" templates
         var fingerprintLoadCaseBody = (fingerprintSupport, runWithLogging) switch
@@ -343,46 +381,68 @@ partial class MethodGenerator
                                          var __letter = (char)cell;
                                          Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
                                          if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0)
-                                             __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar));
+                                             __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell));
                                          else
                                              ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
                                      }
                """
             : "                                 if (cell >= 'A' && cell <= 'Z') ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);";
 
-        var runtimeExecutionContext = fingerprintSupport ? """
-                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputChar)
+        var runtimeExecutionContext = fingerprintSupport ? $$"""
+                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell)
                 {
                     if (hasInput && hasOutput)
-                        return new RuntimeFungeIoExecutionContext(ip, input, writeOutputChar);
+                        return new RuntimeFungeIoExecutionContext(ip, input, writeOutputChar, getCell, setCell);
                     if (hasInput)
-                        return new RuntimeFungeInputExecutionContext(ip, input);
+                        return new RuntimeFungeInputExecutionContext(ip, input, getCell, setCell);
                     if (hasOutput)
-                        return new RuntimeFungeOutputExecutionContext(ip, writeOutputChar);
-                    return new RuntimeFungeExecutionContext(ip);
+                        return new RuntimeFungeOutputExecutionContext(ip, writeOutputChar, getCell, setCell);
+                    return new RuntimeFungeExecutionContext(ip, getCell, setCell);
                 }
 
-                private class RuntimeFungeExecutionContext : global::Esolang.Funge.IFungeExecutionContext
+                private class RuntimeFungeExecutionContext{{runtimeExecutionContextInterfaces}}
                 {
                     readonly RuntimeIp _ip;
-                    internal RuntimeFungeExecutionContext(RuntimeIp ip) => _ip = ip;
+                    readonly Func<int, int, int, int> _getCell;
+                    readonly Action<int, int, int, int> _setCell;
+                    internal RuntimeFungeExecutionContext(RuntimeIp ip, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell)
+                    {
+                        _ip = ip;
+                        _getCell = getCell;
+                        _setCell = setCell;
+                    }
                     public void Push(int value) => _ip.StackStack.Push(value);
                     public int Pop() => _ip.StackStack.Pop();
                     public int Peek() => _ip.StackStack.TOSS.Count > 0 ? _ip.StackStack.TOSS.Peek() : 0;
+                    public (int X, int Y, int Z) PopVector()
+                    {
+                        int z = _ip.StackStack.Pop(), y = _ip.StackStack.Pop(), x = _ip.StackStack.Pop();
+                        return (x, y, z);
+                    }
+                    public void PushVector(int x, int y, int z)
+                    {
+                        _ip.StackStack.Push(x);
+                        _ip.StackStack.Push(y);
+                        _ip.StackStack.Push(z);
+                    }
+                    public int Dimensions => 3;
+                    public (int X, int Y, int Z) StorageOffset => (_ip.Offset.X, _ip.Offset.Y, _ip.Offset.Z);
+                    public int GetCell(int x, int y, int z) => _getCell(x, y, z);
+                    public void SetCell(int x, int y, int z, int value) => _setCell(x, y, z, value);
                     public void Reflect() => _ip.Delta = (-_ip.Delta.X, -_ip.Delta.Y, -_ip.Delta.Z);
                 }
 
-                private sealed class RuntimeFungeInputExecutionContext : RuntimeFungeExecutionContext, global::Esolang.Funge.IFungeInputContext
+                private sealed class RuntimeFungeInputExecutionContext : RuntimeFungeExecutionContext{{runtimeInputContextSuffix}}
                 {
                     readonly TextReader _input;
-                    internal RuntimeFungeInputExecutionContext(RuntimeIp ip, TextReader input) : base(ip) => _input = input;
+                    internal RuntimeFungeInputExecutionContext(RuntimeIp ip, TextReader input, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell) : base(ip, getCell, setCell) => _input = input;
                     public string? ReadLine() => _input.ReadLine();
                 }
 
-                private sealed class RuntimeFungeOutputExecutionContext : RuntimeFungeExecutionContext, global::Esolang.Funge.IFungeOutputContext
+                private sealed class RuntimeFungeOutputExecutionContext : RuntimeFungeExecutionContext{{runtimeOutputContextSuffix}}
                 {
                     readonly Action<int> _writeOutputChar;
-                    internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, Action<int> writeOutputChar) : base(ip) => _writeOutputChar = writeOutputChar;
+                    internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell) : base(ip, getCell, setCell) => _writeOutputChar = writeOutputChar;
                     public void WriteString(string value)
                     {
                         for (int i = 0; i < value.Length; i++)
@@ -390,11 +450,11 @@ partial class MethodGenerator
                     }
                 }
 
-                private sealed class RuntimeFungeIoExecutionContext : RuntimeFungeExecutionContext, global::Esolang.Funge.IFungeInputContext, global::Esolang.Funge.IFungeOutputContext
+                private sealed class RuntimeFungeIoExecutionContext : RuntimeFungeExecutionContext{{runtimeIoContextSuffix}}
                 {
                     readonly TextReader _input;
                     readonly Action<int> _writeOutputChar;
-                    internal RuntimeFungeIoExecutionContext(RuntimeIp ip, TextReader input, Action<int> writeOutputChar) : base(ip)
+                    internal RuntimeFungeIoExecutionContext(RuntimeIp ip, TextReader input, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell) : base(ip, getCell, setCell)
                     {
                         _input = input;
                         _writeOutputChar = writeOutputChar;

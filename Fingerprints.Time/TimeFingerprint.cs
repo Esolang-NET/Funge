@@ -5,6 +5,8 @@ namespace Esolang.Funge.Fingerprints.Time;
 /// </summary>
 public sealed class TimeFingerprint : IFingerprint
 {
+    bool _useGmt;
+
     /// <inheritdoc/>
     public int Handprint { get; } = FingerprintHandprint.Compute("TIME");
 
@@ -14,39 +16,37 @@ public sealed class TimeFingerprint : IFingerprint
     /// <summary>Initializes a new instance of <see cref="TimeFingerprint"/>.</summary>
     public TimeFingerprint() =>
         Instructions = new FingerprintBuilder()
-            .Add('D', GetDate)
-            .Add('G', GetGmt)
-            .Add('H', static ctx => ctx.Push(DateTime.Now.Hour))
-            .Add('M', static ctx => ctx.Push(DateTime.Now.Minute))
-            .Add('S', static ctx => ctx.Push(DateTime.Now.Second))
-            .Add('T', GetTime)
-            .Add('Y', static ctx => ctx.Push(DateTime.Now.Year))
+            .Add('D', GetDayOfMonth)
+            .Add('F', GetDayOfYear)
+            .Add('G', UseGmt)
+            .Add('H', GetHour)
+            .Add('L', UseLocalTime)
+            .Add('M', GetMinute)
+            .Add('O', GetMonth)
+            .Add('S', GetSecond)
+            .Add('W', GetDayOfWeek)
+            .Add('Y', GetYear)
             .BuildInstructions();
 
-    static void GetDate(IFungeExecutionContext ctx)
-    {
-        var now = DateTime.Now;
-        ctx.Push(now.Day);
-        ctx.Push(now.Month);
-        ctx.Push(now.Year);
-    }
+    DateTime CurrentTime => _useGmt ? DateTime.UtcNow : DateTime.Now;
 
-    static void GetGmt(IFungeExecutionContext ctx)
-    {
-        var now = DateTime.UtcNow;
-        ctx.Push(now.Second);
-        ctx.Push(now.Minute);
-        ctx.Push(now.Hour);
-        ctx.Push(now.Day);
-        ctx.Push(now.Month);
-        ctx.Push(now.Year);
-    }
+    void GetDayOfMonth(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Day);
 
-    static void GetTime(IFungeExecutionContext ctx)
-    {
-        var now = DateTime.Now;
-        ctx.Push(now.Second);
-        ctx.Push(now.Minute);
-        ctx.Push(now.Hour);
-    }
+    void GetDayOfYear(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.DayOfYear - 1);
+
+    void UseGmt(IFungeExecutionContext ctx) => _useGmt = true;
+
+    void GetHour(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Hour);
+
+    void UseLocalTime(IFungeExecutionContext ctx) => _useGmt = false;
+
+    void GetMinute(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Minute);
+
+    void GetMonth(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Month);
+
+    void GetSecond(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Second);
+
+    void GetDayOfWeek(IFungeExecutionContext ctx) => ctx.Push((int)CurrentTime.DayOfWeek + 1);
+
+    void GetYear(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Year);
 }

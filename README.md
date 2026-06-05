@@ -70,12 +70,15 @@ Built-in fingerprints shipped with this repository:
 | Fingerprint | Handprint | Package | Status |
 |---|---|---|---|
 | [`NULL`](./Abstractions/README.md) | `0x4E554C4C` | [Esolang.Funge.Abstractions](./Abstractions/README.md) | ✅ All 26 instructions reflect |
-| [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G M O P R S W |
-| `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | ✅ C D I L M V X |
+| [`ARRY`](./Fingerprints.Arry/README.md) | `0x41525259` | [Esolang.Funge.Fingerprints.Arry](./Fingerprints.Arry/README.md) | ✅ A B C D E F G |
+| [`BASE`](./Fingerprints.Base/README.md) | `0x42415345` | [Esolang.Funge.Fingerprints.Base](./Fingerprints.Base/README.md) | ✅ B H I N O |
+| [`BOOL`](./Fingerprints.Bool/README.md) | `0x424F4F4C` | [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | ✅ A N O X |
+| [`DATE`](./Fingerprints.Date/README.md) | `0x44415445` | [Esolang.Funge.Fingerprints.Date](./Fingerprints.Date/README.md) | ✅ A C D J T W Y |
+| [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G L O P R S W |
 | `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | ✅ M R U |
-| `TIME` | `0x54494D45` | [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | ✅ D G H M S T Y |
-| `STRN` | `0x5354524E` | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | ✅ A C L N R S |
-| `BOOL` | `0x424F4F4C` | [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | ✅ A N O X |
+| `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | ✅ C D I L M V X |
+| [`STRN`](./Fingerprints.Strn/README.md) | `0x5354524E` | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | ✅ A C D F G I L M N P R S V |
+| [`TIME`](./Fingerprints.Time/README.md) | `0x54494D45` | [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | ✅ D F G H L M O S W Y |
 
 To register fingerprints with the Generator, use `[FingerprintsProvider]` — see [Generator README](./Generator/README.md).
 
@@ -96,12 +99,15 @@ dotnet tool install -g dotnet-funge
 | Parse source into a `FungeSpace` | Esolang.Funge.Parser |
 | Execute Funge-98 in-process | Esolang.Funge.Processor |
 | Implement or use built-in fingerprints | Esolang.Funge.Abstractions |
-| Use FILE fingerprint (file I/O) | Esolang.Funge.Fingerprints.File |
-| Use ROMA fingerprint (Roman numerals) | Esolang.Funge.Fingerprints.ROMA |
-| Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.MODU |
-| Use TIME fingerprint (System time) | Esolang.Funge.Fingerprints.TIME |
-| Use STRN fingerprint (String manipulation) | Esolang.Funge.Fingerprints.STRN |
+| Use ARRY fingerprint (array-like space access) | Esolang.Funge.Fingerprints.Arry |
+| Use BASE fingerprint (base conversion I/O) | Esolang.Funge.Fingerprints.Base |
 | Use BOOL fingerprint (Boolean logic) | Esolang.Funge.Fingerprints.Bool |
+| Use DATE fingerprint (calendar arithmetic) | Esolang.Funge.Fingerprints.Date |
+| Use FILE fingerprint (file I/O) | Esolang.Funge.Fingerprints.File |
+| Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.Modu |
+| Use ROMA fingerprint (Roman numerals) | Esolang.Funge.Fingerprints.Roma |
+| Use STRN fingerprint (String manipulation) | Esolang.Funge.Fingerprints.Strn |
+| Use TIME fingerprint (System time) | Esolang.Funge.Fingerprints.Time |
 | Run Funge-98 from CLI | dotnet-funge |
 
 ## NuGet
@@ -113,12 +119,15 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Parser](./Parser/README.md) | [![NuGet: Esolang.Funge.Parser](https://img.shields.io/nuget/v/Esolang.Funge.Parser?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Parser/) | Funge-98 source parser. |
 | [Esolang.Funge.Processor](./Processor/README.md) | [![NuGet: Esolang.Funge.Processor](https://img.shields.io/nuget/v/Esolang.Funge.Processor?logo=nuget&label=2.0.0)](https://www.nuget.org/packages/Esolang.Funge.Processor/) | Funge-98 execution engine. |
 | [Esolang.Funge.Abstractions](./Abstractions/README.md) | [![NuGet: Esolang.Funge.Abstractions](https://img.shields.io/nuget/v/Esolang.Funge.Abstractions?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Abstractions/) | Fingerprint abstractions and built-in fingerprints. |
-| [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | [![NuGet: Esolang.Funge.Fingerprints.File](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.File?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.File/) | FILE fingerprint (file I/O). |
-| [Esolang.Funge.Fingerprints.ROMA](./Fingerprints.ROMA/README.md) | [![NuGet: Esolang.Funge.Fingerprints.ROMA](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.ROMA?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.ROMA/) | ROMA fingerprint (Roman numerals). |
-| [Esolang.Funge.Fingerprints.MODU](./Fingerprints.MODU/README.md) | [![NuGet: Esolang.Funge.Fingerprints.MODU](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.MODU?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.MODU/) | MODU fingerprint (Modulo math). |
-| [Esolang.Funge.Fingerprints.TIME](./Fingerprints.TIME/README.md) | [![NuGet: Esolang.Funge.Fingerprints.TIME](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.TIME?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.TIME/) | TIME fingerprint (System time). |
-| [Esolang.Funge.Fingerprints.STRN](./Fingerprints.STRN/README.md) | [![NuGet: Esolang.Funge.Fingerprints.STRN](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.STRN?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.STRN/) | STRN fingerprint (String manipulation). |
+| [Esolang.Funge.Fingerprints.Arry](./Fingerprints.Arry/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Arry](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Arry?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Arry/) | ARRY fingerprint (array-like space access). |
+| [Esolang.Funge.Fingerprints.Base](./Fingerprints.Base/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Base](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Base?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Base/) | BASE fingerprint (base conversion I/O). |
 | [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Bool](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Bool?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Bool/) | BOOL fingerprint (Boolean logic). |
+| [Esolang.Funge.Fingerprints.Date](./Fingerprints.Date/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Date](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Date?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Date/) | DATE fingerprint (calendar arithmetic). |
+| [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | [![NuGet: Esolang.Funge.Fingerprints.File](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.File?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.File/) | FILE fingerprint (file I/O). |
+| [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Modu](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Modu?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Modu/) | MODU fingerprint (Modulo math). |
+| [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Roma](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Roma?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Roma/) | ROMA fingerprint (Roman numerals). |
+| [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Strn](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Strn?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Strn/) | STRN fingerprint (String manipulation). |
+| [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Time](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Time?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Time/) | TIME fingerprint (System time). |
 
 ## Framework Support
 
@@ -128,12 +137,15 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Parser | net8.0, net9.0, net10.0, netstandard2.0 |
 | Esolang.Funge.Processor | net8.0, net9.0, net10.0 |
 | Esolang.Funge.Abstractions | netstandard2.0, netstandard2.1, net10.0 |
-| Esolang.Funge.Fingerprints.File | netstandard2.0, netstandard2.1, net10.0 |
-| Esolang.Funge.Fingerprints.ROMA | netstandard2.0, netstandard2.1, net10.0 |
-| Esolang.Funge.Fingerprints.MODU | netstandard2.0, netstandard2.1, net10.0 |
-| Esolang.Funge.Fingerprints.TIME | netstandard2.0, netstandard2.1, net10.0 |
-| Esolang.Funge.Fingerprints.STRN | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Arry | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Base | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Bool | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Date | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.File | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Modu | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Roma | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Strn | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Time | netstandard2.0, netstandard2.1, net10.0 |
 | dotnet-funge | net8.0, net9.0, net10.0 |
 
 ## Changelog

@@ -57,6 +57,14 @@ public class ProgramTests(TestContext TestContext)
     }
 
     [TestMethod]
+    public void Run_WithFingerprintArry_ReturnsZero()
+    {
+        const string source = "\"YRRA\"4(G3-q";
+        var exitCode = Run(["--source", source, "--fingerprint-arry"]);
+        Assert.AreEqual(0, exitCode);
+    }
+
+    [TestMethod]
     public void Run_WithFingerprintDate_ReturnsZero()
     {
         const string source = "\"ETAD\"4(.@";
