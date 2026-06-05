@@ -2012,7 +2012,7 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.IsTrue(diag.Any(d => d.Id == "FG0004"), "Expected FG0004");
+            Assert.Contains(d => d.Id == "FG0004", diag, "Expected FG0004");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
@@ -2039,7 +2039,7 @@ public class FungeMethodGeneratorTests
             cancellationToken: CancellationToken);
         try
         {
-            Assert.IsTrue(diag.Any(d => d.Id == "FG0006"), "Expected FG0006");
+            Assert.Contains(d => d.Id == "FG0006", diag, "Expected FG0006");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
@@ -2066,7 +2066,7 @@ public class FungeMethodGeneratorTests
             cancellationToken: CancellationToken);
         try
         {
-            Assert.IsTrue(diag.Any(d => d.Id == "FG0007"), "Expected FG0007");
+            Assert.Contains(d => d.Id == "FG0007", diag, "Expected FG0007");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
@@ -2575,7 +2575,7 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for unknown FingerprintsProvider member");
+            Assert.Contains(d => d.Id == "FG0012", diag, "Expected FG0012 for unknown FingerprintsProvider member");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
@@ -2601,7 +2601,7 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for invalid FingerprintsProvider return type");
+            Assert.Contains(d => d.Id == "FG0012", diag, "Expected FG0012 for invalid FingerprintsProvider return type");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
@@ -2627,7 +2627,7 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for invalid FingerprintsProvider property type");
+            Assert.Contains(d => d.Id == "FG0012", diag, "Expected FG0012 for invalid FingerprintsProvider property type");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
