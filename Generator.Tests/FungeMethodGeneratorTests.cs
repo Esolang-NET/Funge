@@ -2690,6 +2690,8 @@ public class FungeMethodGeneratorTests
 
             var runtime = string.Join("\n", comp.SyntaxTrees.Select(static t => t.ToString()));
             Assert.Contains("global::Esolang.Funge.IFungeExecutionContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeInstructionPointerContext", runtime);
+            Assert.DoesNotContain("global::Esolang.Funge.IFungeInstructionPointerLifecycle", runtime);
             Assert.DoesNotContain("global::Esolang.Funge.IFungeInputContext", runtime);
             Assert.DoesNotContain("global::Esolang.Funge.IFungeOutputContext", runtime);
             Assert.DoesNotContain("global::Esolang.Funge.IFungeVectorContext", runtime);
@@ -2802,6 +2804,63 @@ public class FungeMethodGeneratorTests
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
                 Assert.AreEqual("42 ", result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public async Task FingerprintsProvider_Functional_InstructionPointerCapability_UsesGeneratedRuntimeCapability()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public static IEnumerable<IFingerprint> GetFingerprints()
+                    => new IFingerprint[] { new IpFingerprint() };
+
+                [GenerateFungeMethod(InlineSource = "\"TSEP\"4(A.@", FingerprintsProvider = "GetFingerprints")]
+                public static partial string Run(System.Threading.CancellationToken cancellationToken);
+
+                sealed class IpFingerprint : IFingerprint
+                {
+                    public int Handprint => FingerprintHandprint.Compute("PEST");
+                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+                        = new Dictionary<char, FingerprintInstruction>
+                        {
+                            ['A'] = static ctx =>
+                            {
+                                if (ctx is not IFungeInstructionPointerContext instructionPointer)
+                                {
+                                    ctx.Reflect();
+                                    return;
+                                }
+
+                                ctx.Push(instructionPointer.InstructionPointerId);
+                            },
+                        };
+                }
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (string?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual("0 ", result);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
@@ -3046,6 +3105,63 @@ public class FungeMethodGeneratorTests
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, [CancellationToken]);
                 Assert.AreEqual(0, result);
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public async Task FingerprintsProvider_Functional_InstructionPointerLifecycle_NotifiesCloneAndTermination()
+    {
+        var source = """
+            using Esolang.Funge;
+            using System.Collections.Generic;
+            namespace TestProject;
+            partial class TestClass
+            {
+                static LifecycleFingerprint Fingerprint { get; } = new();
+                public static IEnumerable<IFingerprint> GetFingerprints()
+                    => new IFingerprint[] { Fingerprint };
+
+                [GenerateFungeMethod(InlineSource = "\"TSEP\"4(>tq", FingerprintsProvider = "GetFingerprints")]
+                public static partial int Run(System.Threading.CancellationToken cancellationToken);
+
+                sealed class LifecycleFingerprint : IFingerprint, IFungeInstructionPointerLifecycle
+                {
+                    public int Handprint => FingerprintHandprint.Compute("PEST");
+                    public List<string> Events { get; } = new();
+                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+                        = new Dictionary<char, FingerprintInstruction>();
+
+                    public void OnInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
+                        => Events.Add($"clone:{parentInstructionPointerId}->{childInstructionPointerId}");
+
+                    public void OnInstructionPointerTerminated(int instructionPointerId)
+                        => Events.Add($"term:{instructionPointerId}");
+                }
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            AssertNoErrors(diag, comp);
+
+            var asm = Emit(comp, CancellationToken);
+            await Task.Factory.StartNew(() =>
+            {
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run")!;
+                var result = (int?)m.Invoke(null, [CancellationToken]);
+                Assert.AreEqual(1, result);
+
+                var fingerprint = t.GetProperty("Fingerprint", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+                var events = (IEnumerable<string>)fingerprint.GetType().GetProperty("Events")!.GetValue(fingerprint)!;
+                CollectionAssert.AreEqual(new[] { "clone:0->1", "term:0", "term:1" }, events.ToArray());
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)

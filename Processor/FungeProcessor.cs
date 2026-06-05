@@ -47,6 +47,18 @@ public sealed partial class FungeProcessor(
     readonly Random _random = new();
     int _nextIpId;
 
+    void NotifyInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
+    {
+        foreach (var fingerprint in _fingerprintMap.Values.OfType<IFungeInstructionPointerLifecycle>())
+            fingerprint.OnInstructionPointerCloned(parentInstructionPointerId, childInstructionPointerId);
+    }
+
+    void NotifyInstructionPointerTerminated(int instructionPointerId)
+    {
+        foreach (var fingerprint in _fingerprintMap.Values.OfType<IFungeInstructionPointerLifecycle>())
+            fingerprint.OnInstructionPointerTerminated(instructionPointerId);
+    }
+
     IEnumerable<IOEvent> ExecuteInstruction(
         InstructionPointer ip,
         LinkedList<InstructionPointer> ips,
@@ -444,6 +456,7 @@ public sealed partial class FungeProcessor(
             case 't': // Split: create child IP with reflected delta
                 {
                     var child = ip.CreateChild(_nextIpId++);
+                    NotifyInstructionPointerCloned(ip.Id, child.Id);
                     ips.AddAfter(ipNode, child);
                     break;
                 }

@@ -26,30 +26,42 @@ public sealed partial class FungeProcessor : IEventProcessor
         ips.AddFirst(new InstructionPointer(_nextIpId++));
         var state = new FungeState();
 
-        while (ips.Count > 0 && !state.Quit && !cancellationToken.IsCancellationRequested)
+        try
         {
-            var node = ips.First;
-            while (node is not null && !state.Quit && !cancellationToken.IsCancellationRequested)
+            while (ips.Count > 0 && !state.Quit && !cancellationToken.IsCancellationRequested)
             {
-                var nextNode = node.Next;
-                var ip = node.Value;
-
-                state.SuppressAdvance = false;
-                foreach (var ev in ExecuteInstruction(ip, ips, node, state))
+                var node = ips.First;
+                while (node is not null && !state.Quit && !cancellationToken.IsCancellationRequested)
                 {
-                    yield return ev;
-                }
+                    var nextNode = node.Next;
+                    var ip = node.Value;
 
-                if (ip.IsStopped || state.Quit)
-                {
-                    ips.Remove(node);
-                }
-                else if (!state.SuppressAdvance)
-                {
-                    ip.Position = _space.Advance(ip.Position, ip.Delta);
-                }
+                    state.SuppressAdvance = false;
+                    foreach (var ev in ExecuteInstruction(ip, ips, node, state))
+                    {
+                        yield return ev;
+                    }
 
-                node = nextNode;
+                    if (ip.IsStopped || state.Quit)
+                    {
+                        NotifyInstructionPointerTerminated(ip.Id);
+                        ips.Remove(node);
+                    }
+                    else if (!state.SuppressAdvance)
+                    {
+                        ip.Position = _space.Advance(ip.Position, ip.Delta);
+                    }
+
+                    node = nextNode;
+                }
+            }
+        }
+        finally
+        {
+            while (ips.Count > 0)
+            {
+                NotifyInstructionPointerTerminated(ips.First!.Value.Id);
+                ips.RemoveFirst();
             }
         }
 

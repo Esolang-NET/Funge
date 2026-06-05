@@ -236,6 +236,7 @@ partial class MethodGenerator
 
         var runtimeExecutionContextInterfaces = BuildInterfaceList(
             "global::Esolang.Funge.IFungeExecutionContext",
+            fungeTypes.IFungeInstructionPointerContext is not null ? "global::Esolang.Funge.IFungeInstructionPointerContext" : null,
             fungeTypes.IFungeVectorContext is not null ? "global::Esolang.Funge.IFungeVectorContext" : null,
             fungeTypes.IFungeSpaceContext is not null ? "global::Esolang.Funge.IFungeSpaceContext" : null,
             fungeTypes.IFungeStorageOffsetContext is not null ? "global::Esolang.Funge.IFungeStorageOffsetContext" : null);
@@ -246,6 +247,21 @@ partial class MethodGenerator
         var runtimeIoContextSuffix = BuildImplementedInterfaceSuffix(
             fungeTypes.IFungeInputContext is not null ? "global::Esolang.Funge.IFungeInputContext" : null,
             fungeTypes.IFungeOutputContext is not null ? "global::Esolang.Funge.IFungeOutputContext" : null);
+        var lifecycleHelpers = fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? """
+                    void NotifyInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
+                    {
+                        foreach (var __fingerprint in __fingerprintMap.Values)
+                            if (__fingerprint is global::Esolang.Funge.IFungeInstructionPointerLifecycle __lifecycle)
+                                __lifecycle.OnInstructionPointerCloned(parentInstructionPointerId, childInstructionPointerId);
+                    }
+
+                    void NotifyInstructionPointerTerminated(int instructionPointerId)
+                    {
+                        foreach (var __fingerprint in __fingerprintMap.Values)
+                            if (__fingerprint is global::Esolang.Funge.IFungeInstructionPointerLifecycle __lifecycle)
+                                __lifecycle.OnInstructionPointerTerminated(instructionPointerId);
+                    }
+        """ : "";
 
         // Pre-compute fingerprint case bodies to avoid nesting $$"""...""" templates
         var fingerprintLoadCaseBody = (fingerprintSupport, runWithLogging) switch
@@ -414,6 +430,7 @@ partial class MethodGenerator
                     public void Push(int value) => _ip.StackStack.Push(value);
                     public int Pop() => _ip.StackStack.Pop();
                     public int Peek() => _ip.StackStack.TOSS.Count > 0 ? _ip.StackStack.TOSS.Peek() : 0;
+                    public int InstructionPointerId => _ip.Id;
                     public (int X, int Y, int Z) PopVector()
                     {
                         int z = _ip.StackStack.Pop(), y = _ip.StackStack.Pop(), x = _ip.StackStack.Pop();
@@ -579,6 +596,7 @@ partial class MethodGenerator
                         foreach (var __fp0 in fingerprints)
                             __fingerprintMap[__fp0.Handprint] = __fp0;
         """ : "")}}
+        {{lifecycleHelpers}}
                     var rng = new Random();
 
                     int exitCode = 0;
@@ -1135,6 +1153,7 @@ partial class MethodGenerator
                             case 't':
                                 {
                                     var child = ip.CreateChild(ips.Count);
+        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? "                            NotifyInstructionPointerCloned(ip.Id, child.Id);" : "")}}
                                     ips.AddAfter(ipNode, child);
                                     break;
                                 }
@@ -1222,21 +1241,35 @@ partial class MethodGenerator
                     }
 
                     ips.AddFirst(new RuntimeIp(0));
-                    while (ips.Count > 0 && !quit)
+                    try
                     {
-                        ct.ThrowIfCancellationRequested();
-                        var node = ips.First;
-                        while (node != null && !quit)
+                        while (ips.Count > 0 && !quit)
                         {
-                            var nextNode = node.Next;
-                            var ip = node.Value;
-                            bool suppressAdvance = false;
-                            ExecuteInstruction(ip, node, ref suppressAdvance, null);
-                            if (ip.IsStopped || quit)
-                                ips.Remove(node);
-                            else if (!suppressAdvance)
-                                ip.Position = Advance(ip.Position, ip.Delta);
-                            node = nextNode;
+                            ct.ThrowIfCancellationRequested();
+                            var node = ips.First;
+                            while (node != null && !quit)
+                            {
+                                var nextNode = node.Next;
+                                var ip = node.Value;
+                                bool suppressAdvance = false;
+                                ExecuteInstruction(ip, node, ref suppressAdvance, null);
+                                if (ip.IsStopped || quit)
+                                {
+        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? "                            NotifyInstructionPointerTerminated(ip.Id);" : "")}}
+                                    ips.Remove(node);
+                                }
+                                else if (!suppressAdvance)
+                                    ip.Position = Advance(ip.Position, ip.Delta);
+                                node = nextNode;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        while (ips.Count > 0)
+                        {
+        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? "                    NotifyInstructionPointerTerminated(ips.First!.Value.Id);" : "")}}
+                            ips.RemoveFirst();
                         }
                     }
                     return exitCode;

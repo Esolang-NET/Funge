@@ -23,6 +23,19 @@ file sealed class CustomFingerprint(string name, IReadOnlyDictionary<char, Finge
     public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } = instructions;
 }
 
+file sealed class LifecycleFingerprint(string name, IReadOnlyDictionary<char, FingerprintInstruction> instructions) : IFingerprint, IFungeInstructionPointerLifecycle
+{
+    public int Handprint { get; } = FingerprintHandprint.Compute(name);
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } = instructions;
+    public List<string> Events { get; } = [];
+
+    public void OnInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
+        => Events.Add($"clone:{parentInstructionPointerId}->{childInstructionPointerId}");
+
+    public void OnInstructionPointerTerminated(int instructionPointerId)
+        => Events.Add($"term:{instructionPointerId}");
+}
+
 /// <summary>
 /// Tests for the fingerprint load <c>(</c>, unload <c>)</c>, and A-Z dispatch semantics.
 /// </summary>
@@ -268,6 +281,41 @@ public class FingerprintTests(TestContext TestContext)
             });
         var result = Run("\"TSEP\"4(A.@", [fp]);
         Assert.AreEqual("0 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void RuntimeContext_ExposesInstructionPointerCapability()
+    {
+        var fp = new CustomFingerprint(
+            "PEST",
+            new Dictionary<char, FingerprintInstruction>
+            {
+                ['A'] = ctx =>
+                {
+                    if (ctx is not IFungeInstructionPointerContext instructionPointer)
+                    {
+                        ctx.Reflect();
+                        return;
+                    }
+
+                    ctx.Push(instructionPointer.InstructionPointerId);
+                },
+            });
+        var result = Run("\"TSEP\"4(A.@", [fp]);
+        Assert.AreEqual("0 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void RuntimeLifecycle_NotifiesCloneAndTermination()
+    {
+        var fp = new LifecycleFingerprint("PEST", new Dictionary<char, FingerprintInstruction>());
+        var exitCode = RunExitCode("\"TSEP\"4(>tq", [fp]);
+        Assert.AreEqual(1, exitCode);
+        CollectionAssert.AreEqual(
+            new[] { "clone:0->1", "term:0", "term:1" },
+            fp.Events);
     }
 
     // ── Multiple fingerprints ─────────────────────────────────────────────────
