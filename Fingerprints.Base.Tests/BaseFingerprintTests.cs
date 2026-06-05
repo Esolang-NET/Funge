@@ -1,6 +1,6 @@
 namespace Esolang.Funge.Fingerprints.Base;
 
-sealed class TestContext : IFungeExecutionContext
+sealed class TestContext : IFungeExecutionContext, IFungeInputContext, IFungeOutputContext
 {
     readonly Stack<int> _stack = new();
     readonly Queue<string?> _input = new();

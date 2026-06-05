@@ -9,8 +9,6 @@ sealed class TestContext : IFungeExecutionContext
     public void Push(int value) => _stack.Push(value);
     public int Pop() => _stack.Count > 0 ? _stack.Pop() : 0;
     public int Peek() => _stack.Count > 0 ? _stack.Peek() : 0;
-    public void WriteString(string value) => throw new NotImplementedException();
-    public string? ReadLine() => throw new NotImplementedException();
     public void Reflect() => Reflected = true;
 }
 

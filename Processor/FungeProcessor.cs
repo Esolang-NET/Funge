@@ -603,7 +603,7 @@ public sealed partial class FungeProcessor(
                 {
                     var letter = (char)cell;
                     if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
-                        semStack.Peek()(new FungeExecutionContext(ip, _input, _output));
+                        semStack.Peek()(FungeExecutionContext.Create(ip, _input, _output));
                     else
                         ip.Delta = ip.Delta.Reflect();
                 }

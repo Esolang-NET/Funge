@@ -65,6 +65,45 @@ public class FingerprintTests(TestContext TestContext)
         return output.ToString();
     }
 
+    int RunExitCode(string source, IEnumerable<IFingerprint>? fingerprints = null, string? input = null, bool provideInput = true, bool provideOutput = true)
+    {
+        var space = Parser.FungeParser.Parse(source);
+        var output = new StringWriter();
+        var reader = input is null ? TextReader.Null : new StringReader(input);
+        var proc = new FungeProcessor(
+            space,
+            fingerprints: fingerprints,
+            input: provideInput ? reader : null,
+            output: provideOutput ? output : null);
+        var task = Task.Run(async () =>
+        {
+            var exitCode = 0;
+            await foreach (var ev in proc.RunAsyncEnumerable(TestCancellationToken))
+            {
+                switch (ev)
+                {
+                    case OutputCharEvent oce: output.Write(oce.Output); break;
+                    case OutputIntEvent oie: output.Write(oie.Output); break;
+                    case InputCharEvent ice:
+                        var c = reader.Read();
+                        if (c != -1) ice.Write((char)c);
+                        break;
+                    case InputIntEvent iie:
+                        var line = reader.ReadLine();
+                        if (int.TryParse(line, out var val)) iie.Write(val);
+                        break;
+                    case EndEvent ee:
+                        exitCode = ee.ExitCode;
+                        break;
+                }
+            }
+
+            return exitCode;
+        }, TestCancellationToken);
+
+        return task.GetAwaiter().GetResult();
+    }
+
     // ── Load ( ───────────────────────────────────────────────────────────────
 
     [TestMethod]
@@ -167,6 +206,22 @@ public class FingerprintTests(TestContext TestContext)
     {
         var result = Run("\"ESAB\"4(2I.@", [new BaseFingerprint()], "101");
         Assert.AreEqual("5 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void BaseFingerprint_OutputReflectsWithoutOutputCapability()
+    {
+        var result = RunExitCode("\"ESAB\"4(5#@B1q", [new BaseFingerprint()], provideOutput: false);
+        Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void BaseFingerprint_InputReflectsWithoutInputCapability()
+    {
+        var result = RunExitCode("\"ESAB\"4(2#@I1q", [new BaseFingerprint()], provideInput: false);
+        Assert.AreEqual(0, result);
     }
 
     // ── Multiple fingerprints ─────────────────────────────────────────────────

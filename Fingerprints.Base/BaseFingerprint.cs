@@ -21,20 +21,38 @@ public sealed class BaseFingerprint : IFingerprint
             .Add('O', OutputTopOfStackInOctal)
             .BuildInstructions();
 
-    static void WriteInBase(IFungeExecutionContext ctx, int value, int numberBase)
-        => ctx.WriteString((Convert.ToString(value, numberBase) ?? "0").ToUpperInvariant());
+    static void WriteInBase(IFungeOutputContext output, int value, int numberBase)
+        => output.WriteString((Convert.ToString(value, numberBase) ?? "0").ToUpperInvariant());
 
     /// <summary>
     /// B	(n -- )	Output top of stack in binary
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputTopOfStackInBinary(IFungeExecutionContext ctx) => WriteInBase(ctx, ctx.Pop(), 2);
+    static void OutputTopOfStackInBinary(IFungeExecutionContext ctx)
+    {
+        if (ctx is not IFungeOutputContext output)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        WriteInBase(output, ctx.Pop(), 2);
+    }
 
     /// <summary>
     /// H	(n -- )	Output top of stack in hex
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputTopOfStackInHex(IFungeExecutionContext ctx) => WriteInBase(ctx, ctx.Pop(), 16);
+    static void OutputTopOfStackInHex(IFungeExecutionContext ctx)
+    {
+        if (ctx is not IFungeOutputContext output)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        WriteInBase(output, ctx.Pop(), 16);
+    }
 
     /// <summary>
     /// I	(b -- n)	Read input in specified base
@@ -42,8 +60,14 @@ public sealed class BaseFingerprint : IFingerprint
     /// <param name="ctx"></param>
     static void ReadInputInSpecifiedBase(IFungeExecutionContext ctx)
     {
+        if (ctx is not IFungeInputContext input)
+        {
+            ctx.Reflect();
+            return;
+        }
+
         var baseVal = ctx.Pop();
-        var line = ctx.ReadLine();
+        var line = input.ReadLine();
         if (line is null)
         {
             ctx.Reflect();
@@ -66,16 +90,31 @@ public sealed class BaseFingerprint : IFingerprint
     /// <param name="ctx"></param>
     static void OutputNInBaseB(IFungeExecutionContext ctx)
     {
+        if (ctx is not IFungeOutputContext output)
+        {
+            ctx.Reflect();
+            return;
+        }
+
         var numberBase = ctx.Pop();
         var number = ctx.Pop();
-        WriteInBase(ctx, number, numberBase);
+        WriteInBase(output, number, numberBase);
     }
 
     /// <summary>
     /// O	(n -- )	Output top of stack in octal
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputTopOfStackInOctal(IFungeExecutionContext ctx) => WriteInBase(ctx, ctx.Pop(), 8);
+    static void OutputTopOfStackInOctal(IFungeExecutionContext ctx)
+    {
+        if (ctx is not IFungeOutputContext output)
+        {
+            ctx.Reflect();
+            return;
+        }
+
+        WriteInBase(output, ctx.Pop(), 8);
+    }
 
 
 }
