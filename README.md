@@ -71,10 +71,11 @@ Built-in fingerprints shipped with this repository:
 |---|---|---|---|
 | [`NULL`](./Abstractions/README.md) | `0x4E554C4C` | [Esolang.Funge.Abstractions](./Abstractions/README.md) | ✅ All 26 instructions reflect |
 | [`FILE`](./Fingerprints.File/README.md) | `0x46494C45` | [Esolang.Funge.Fingerprints.File](./Fingerprints.File/README.md) | ✅ C D G M O P R S W |
-| `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.ROMA](./Fingerprints.ROMA) | ✅ C D I L M V X |
-| `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.MODU](./Fingerprints.MODU) | ✅ M R U |
-| `TIME` | `0x54494D45` | [Esolang.Funge.Fingerprints.TIME](./Fingerprints.TIME) | ✅ D G H M S T Y |
-| `STRN` | `0x5354524E` | [Esolang.Funge.Fingerprints.STRN](./Fingerprints.STRN) | ✅ A C L N R S |
+| `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | ✅ C D I L M V X |
+| `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | ✅ M R U |
+| `TIME` | `0x54494D45` | [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | ✅ D G H M S T Y |
+| `STRN` | `0x5354524E` | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | ✅ A C L N R S |
+| `BOOL` | `0x424F4F4C` | [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | ✅ A N O X |
 
 To register fingerprints with the Generator, use `[FingerprintsProvider]` — see [Generator README](./Generator/README.md).
 
@@ -100,6 +101,7 @@ dotnet tool install -g dotnet-funge
 | Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.MODU |
 | Use TIME fingerprint (System time) | Esolang.Funge.Fingerprints.TIME |
 | Use STRN fingerprint (String manipulation) | Esolang.Funge.Fingerprints.STRN |
+| Use BOOL fingerprint (Boolean logic) | Esolang.Funge.Fingerprints.Bool |
 | Run Funge-98 from CLI | dotnet-funge |
 
 ## NuGet
@@ -116,6 +118,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Fingerprints.MODU](./Fingerprints.MODU/README.md) | [![NuGet: Esolang.Funge.Fingerprints.MODU](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.MODU?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.MODU/) | MODU fingerprint (Modulo math). |
 | [Esolang.Funge.Fingerprints.TIME](./Fingerprints.TIME/README.md) | [![NuGet: Esolang.Funge.Fingerprints.TIME](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.TIME?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.TIME/) | TIME fingerprint (System time). |
 | [Esolang.Funge.Fingerprints.STRN](./Fingerprints.STRN/README.md) | [![NuGet: Esolang.Funge.Fingerprints.STRN](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.STRN?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.STRN/) | STRN fingerprint (String manipulation). |
+| [Esolang.Funge.Fingerprints.Bool](./Fingerprints.Bool/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Bool](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Bool?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Bool/) | BOOL fingerprint (Boolean logic). |
 
 ## Framework Support
 
@@ -130,6 +133,7 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Fingerprints.MODU | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.TIME | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.STRN | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Bool | netstandard2.0, netstandard2.1, net10.0 |
 | dotnet-funge | net8.0, net9.0, net10.0 |
 
 ## Changelog

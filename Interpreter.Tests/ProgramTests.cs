@@ -49,6 +49,14 @@ public class ProgramTests(TestContext TestContext)
     }
 
     [TestMethod]
+    public void Run_WithFingerprintBool_ReturnsZero()
+    {
+        const string source = "\"LOOB\"4(0N0AN1-q";
+        var exitCode = Run(["--source", source, "--fingerprint-bool"]);
+        Assert.AreEqual(0, exitCode);
+    }
+
+    [TestMethod]
     public void Run_SourceOptionWithMultilineCode_ReturnsZero()
     {
         const string source = "v\n>25*\"!dlroW ,olleH\",,,,@";

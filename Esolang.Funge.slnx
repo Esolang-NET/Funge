@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/Esoalng.Funge.Fingerprints/">
+    <Project Path="Fingerprints.Bool.Tests/Esolang.Funge.Fingerprints.Bool.Tests.csproj" />
+    <Project Path="Fingerprints.Bool/Esolang.Funge.Fingerprints.Bool.csproj" />
     <Project Path="Fingerprints.File.Tests/Esolang.Funge.Fingerprints.File.Tests.csproj" />
     <Project Path="Fingerprints.File/Esolang.Funge.Fingerprints.File.csproj" />
     <Project Path="Fingerprints.Modu.Tests/Esolang.Funge.Fingerprints.Modu.Tests.csproj" />

@@ -1,3 +1,4 @@
+using Esolang.Funge.Fingerprints.Bool;
 using Esolang.Funge.Fingerprints.File;
 using Esolang.Funge.Fingerprints.Modu;
 using Esolang.Funge.Fingerprints.Roma;
@@ -33,6 +34,7 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     public IEnumerator<IOptionAndMakeFingerprintPair> GetEnumerator()
     {
         yield return Null;
+        yield return Bool;
         yield return File;
         yield return Modu;
         yield return Roma;
@@ -51,6 +53,14 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     }, _ => NullFingerprint.Instance);
 
     /// <summary>
+    /// Enable the BOOL fingerprint (0x424F4F4C): logic instructions A N O X.
+    /// </summary>
+    readonly Pair Bool = new(new(name: "--fingerprint-bool")
+    {
+        Description = "Enable the BOOL fingerprint (0x424F4F4C): logic instructions A N O X.",
+    }, _ => new BoolFingerprint());
+
+    /// <summary>
     /// Enable the FILE fingerprint (0x46494C45): file I/O instructions C D G M O P R S W.
     /// </summary>
     readonly Pair File = new(new(name: "--fingerprint-file")
@@ -59,35 +69,35 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     }, _ => new FileFingerprint());
 
     /// <summary>
-    /// Enable the MODU fingerprint (0x4D4F4455): modulo instructions.
+    /// Enable the MODU fingerprint (0x4D4F4455): modulo instructions M R U.
     /// </summary>
     readonly Pair Modu = new(new(name: "--fingerprint-modu")
     {
-        Description = "Enable the MODU fingerprint (0x4D4F4455): modulo instructions.",
+        Description = "Enable the MODU fingerprint (0x4D4F4455): modulo instructions M R U.",
     }, _ => new ModuloFingerprint());
 
     /// <summary>
-    /// Enable the ROMA fingerprint (0x524F4D41): Roma instructions.
+    /// Enable the ROMA fingerprint (0x524F4D41): Roma instructions D G H M S T Y.
     /// </summary>
     readonly Pair Roma = new(new(name: "--fingerprint-roma")
     {
-        Description = "Enable the ROMA fingerprint (0x524F4D41): Roma instructions.",
+        Description = "Enable the ROMA fingerprint (0x524F4D41): Roma instructions D G H M S T Y.",
     }, _ => new RomanFingerprint());
 
     /// <summary>
-    /// Enable the STRN fingerprint (0x5354524E): string instructions.
+    /// Enable the STRN fingerprint (0x5354524E): string instructions A C L N R S.
     /// </summary>
     readonly Pair Strn = new(new(name: "--fingerprint-strn")
     {
-        Description = "Enable the STRN fingerprint (0x5354524E): string instructions.",
+        Description = "Enable the STRN fingerprint (0x5354524E): string instructions A C L N R S.",
     }, _ => new StringFingerprint());
 
     /// <summary>
-    /// Enable the TIME fingerprint (0x54494D45): time instructions.
+    /// Enable the TIME fingerprint (0x54494D45): time instructions A N O X.
     /// </summary>
     readonly Pair Time = new(new(name: "--fingerprint-time")
     {
-        Description = "Enable the TIME fingerprint (0x54494D45): time instructions.",
+        Description = "Enable the TIME fingerprint (0x54494D45): time instructions A N O X.",
     }, _ => new TimeFingerprint());
 
     /// <summary>
