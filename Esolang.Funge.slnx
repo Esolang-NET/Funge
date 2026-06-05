@@ -10,6 +10,8 @@
     <Project Path="Fingerprints.Frth/Esolang.Funge.Fingerprints.Frth.csproj" />
     <Project Path="Fingerprints.Imth.Tests/Esolang.Funge.Fingerprints.Imth.Tests.csproj" />
     <Project Path="Fingerprints.Imth/Esolang.Funge.Fingerprints.Imth.csproj" />
+    <Project Path="Fingerprints.Indv.Tests/Esolang.Funge.Fingerprints.Indv.Tests.csproj" />
+    <Project Path="Fingerprints.Indv/Esolang.Funge.Fingerprints.Indv.csproj" />
     <Project Path="Fingerprints.Long.Tests/Esolang.Funge.Fingerprints.Long.Tests.csproj" />
     <Project Path="Fingerprints.Long/Esolang.Funge.Fingerprints.Long.csproj" />
     <Project Path="Fingerprints.Modu.Tests/Esolang.Funge.Fingerprints.Modu.Tests.csproj" />

@@ -101,6 +101,14 @@
 			"path": "Fingerprints.Imth.Tests"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Indv",
+			"path": "Fingerprints.Indv"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Indv.Tests",
+			"path": "Fingerprints.Indv.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.Long",
 			"path": "Fingerprints.Long"
 		},
@@ -179,6 +187,8 @@
 			"Fingerprints.Frth.Tests": true,
 			"Fingerprints.Imth": true,
 			"Fingerprints.Imth.Tests": true,
+			"Fingerprints.Indv": true,
+			"Fingerprints.Indv.Tests": true,
 			"Fingerprints.Long": true,
 			"Fingerprints.Long.Tests": true,
 			"Fingerprints.Modu": true,

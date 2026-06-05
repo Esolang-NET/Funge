@@ -1,6 +1,7 @@
 using Esolang.Funge.Fingerprints.Arry;
 using Esolang.Funge.Fingerprints.Base;
 using Esolang.Funge.Fingerprints.Imth;
+using Esolang.Funge.Fingerprints.Indv;
 using Esolang.Funge.Fingerprints.Long;
 using static Esolang.Processor.IOEvent;
 
@@ -59,8 +60,10 @@ public class FingerprintTests(TestContext TestContext)
     CancellationToken TestCancellationToken => TestContext.CancellationToken;
 
     string Run(string source, IEnumerable<IFingerprint>? fingerprints = null, string? input = null)
+        => Run(Parser.FungeParser.Parse(source), fingerprints, input);
+
+    string Run(Parser.FungeSpace space, IEnumerable<IFingerprint>? fingerprints = null, string? input = null)
     {
-        var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
         var proc = new FungeProcessor(space, fingerprints: fingerprints, input: reader, output: output);
@@ -276,6 +279,21 @@ public class FingerprintTests(TestContext TestContext)
     {
         var result = RunExitCode("\"GNOL\"4(0n5E#@P1q", [new LongIntegerFingerprint()], provideOutput: false);
         Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void IndvFingerprint_ReadsCellThroughIndirectAddress()
+    {
+        var space = Parser.FungeParser.Parse("\"VDNI\"4($$45*00G.@");
+        space[new Parser.FungeVector(20, 0, 0)] = 0;
+        space[new Parser.FungeVector(21, 0, 0)] = 0;
+        space[new Parser.FungeVector(22, 0, 0)] = 30;
+        space[new Parser.FungeVector(30, 0, 0)] = 42;
+
+        var result = Run(space, [new IndirectVectorFingerprint()]);
+
+        Assert.AreEqual("42 ", result);
     }
 
     [TestMethod]
