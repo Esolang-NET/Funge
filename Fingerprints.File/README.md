@@ -5,7 +5,7 @@
 ## Overview
 
 Provides file I/O operations via the standard `FILE` fingerprint.
-File handles are tracked per `FileFingerprint` instance; dispose the instance to release all open handles.
+File handles are tracked per instruction pointer within a `FileFingerprint` instance; dispose the instance to release any remaining open handles.
 
 ## Installation
 

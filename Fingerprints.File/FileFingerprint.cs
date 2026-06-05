@@ -6,7 +6,8 @@ namespace Esolang.Funge.Fingerprints.File;
 /// <remarks>
 /// <para>
 /// The FILE fingerprint provides file I/O operations.
-/// File handles are managed internally per instance; dispose the instance to release all open handles.
+/// File handles are managed per instruction pointer within the fingerprint instance;
+/// dispose the instance to release any remaining open handles.
 /// </para>
 /// <para>
 /// Supported instructions:

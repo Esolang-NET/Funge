@@ -4,7 +4,7 @@
 
 ## Overview
 
-Provides instructions for retrieving the current system date/time fields, with a switch between local time and GMT.
+Provides instructions for retrieving the current system date/time fields, with a per-instruction-pointer switch between local time and GMT.
 
 ## Supported Instructions
 
