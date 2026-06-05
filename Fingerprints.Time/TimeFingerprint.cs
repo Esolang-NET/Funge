@@ -3,9 +3,9 @@ namespace Esolang.Funge.Fingerprints.Time;
 /// <summary>
 /// Provides the standard Funge-98 <c>TIME</c> fingerprint (handprint <c>0x54494D45</c>).
 /// </summary>
-public sealed class TimeFingerprint : IFingerprint
+public sealed class TimeFingerprint : IFingerprint, IFungeInstructionPointerLifecycle
 {
-    bool _useGmt;
+    readonly Dictionary<int, bool> _useGmtByInstructionPointer = [];
 
     /// <inheritdoc/>
     public int Handprint { get; } = FingerprintHandprint.Compute("TIME");
@@ -28,25 +28,67 @@ public sealed class TimeFingerprint : IFingerprint
             .Add('Y', GetYear)
             .BuildInstructions();
 
-    DateTime CurrentTime => _useGmt ? DateTime.UtcNow : DateTime.Now;
+    DateTime CurrentTime(IFungeExecutionContext ctx)
+        => GetUseGmt(ctx) ? DateTime.UtcNow : DateTime.Now;
 
-    void GetDayOfMonth(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Day);
+    void GetDayOfMonth(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).Day);
 
-    void GetDayOfYear(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.DayOfYear - 1);
+    void GetDayOfYear(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).DayOfYear - 1);
 
-    void UseGmt(IFungeExecutionContext ctx) => _useGmt = true;
+    void UseGmt(IFungeExecutionContext ctx)
+    {
+        if (!TryGetInstructionPointerId(ctx, out var instructionPointerId))
+            return;
 
-    void GetHour(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Hour);
+        _useGmtByInstructionPointer[instructionPointerId] = true;
+    }
 
-    void UseLocalTime(IFungeExecutionContext ctx) => _useGmt = false;
+    void GetHour(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).Hour);
 
-    void GetMinute(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Minute);
+    void UseLocalTime(IFungeExecutionContext ctx)
+    {
+        if (!TryGetInstructionPointerId(ctx, out var instructionPointerId))
+            return;
 
-    void GetMonth(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Month);
+        _useGmtByInstructionPointer[instructionPointerId] = false;
+    }
 
-    void GetSecond(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Second);
+    void GetMinute(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).Minute);
 
-    void GetDayOfWeek(IFungeExecutionContext ctx) => ctx.Push((int)CurrentTime.DayOfWeek + 1);
+    void GetMonth(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).Month);
 
-    void GetYear(IFungeExecutionContext ctx) => ctx.Push(CurrentTime.Year);
+    void GetSecond(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).Second);
+
+    void GetDayOfWeek(IFungeExecutionContext ctx) => ctx.Push((int)CurrentTime(ctx).DayOfWeek + 1);
+
+    void GetYear(IFungeExecutionContext ctx) => ctx.Push(CurrentTime(ctx).Year);
+
+    bool GetUseGmt(IFungeExecutionContext ctx)
+        => TryGetInstructionPointerId(ctx, out var instructionPointerId)
+            && _useGmtByInstructionPointer.TryGetValue(instructionPointerId, out var useGmt)
+            && useGmt;
+
+    static bool TryGetInstructionPointerId(IFungeExecutionContext ctx, out int instructionPointerId)
+    {
+        if (ctx is not IFungeInstructionPointerContext instructionPointer)
+        {
+            instructionPointerId = 0;
+            ctx.Reflect();
+            return false;
+        }
+
+        instructionPointerId = instructionPointer.InstructionPointerId;
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public void OnInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
+    {
+        if (_useGmtByInstructionPointer.TryGetValue(parentInstructionPointerId, out var useGmt))
+            _useGmtByInstructionPointer[childInstructionPointerId] = useGmt;
+    }
+
+    /// <inheritdoc/>
+    public void OnInstructionPointerTerminated(int instructionPointerId)
+        => _useGmtByInstructionPointer.Remove(instructionPointerId);
 }

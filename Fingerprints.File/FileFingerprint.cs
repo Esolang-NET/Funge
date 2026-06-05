@@ -24,19 +24,33 @@ namespace Esolang.Funge.Fingerprints.File;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class FileFingerprint : IFingerprint, IDisposable
+public sealed class FileFingerprint : IFingerprint, IFungeInstructionPointerLifecycle, IDisposable
 {
-    sealed class FileHandle(Stream stream, int bufferX, int bufferY, int bufferZ, bool appendOnWrite)
+    sealed class FileHandle(
+        string path,
+        Stream stream,
+        int flags,
+        int bufferX,
+        int bufferY,
+        int bufferZ,
+        bool appendOnWrite)
     {
+        public string Path { get; } = path;
         public Stream Stream { get; } = stream;
+        public int Flags { get; } = flags;
         public int BufferX { get; } = bufferX;
         public int BufferY { get; } = bufferY;
         public int BufferZ { get; } = bufferZ;
         public bool AppendOnWrite { get; } = appendOnWrite;
     }
 
-    int _nextHandle = 1;
-    readonly Dictionary<int, FileHandle> _handles = [];
+    sealed class InstructionPointerFileState
+    {
+        public int NextHandle { get; set; } = 1;
+        public Dictionary<int, FileHandle> Handles { get; } = [];
+    }
+
+    readonly Dictionary<int, InstructionPointerFileState> _statesByInstructionPointer = [];
     bool _disposed;
 
     /// <inheritdoc/>
@@ -168,51 +182,88 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
             handle.Stream.Seek(0, SeekOrigin.End);
     }
 
+    static Stream CreateStream(string path, int flags, out bool appendOnWrite)
+    {
+        appendOnWrite = false;
+        return flags switch
+        {
+            0 => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite),
+            1 => new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite),
+            2 => CreateAppendWriteStream(path, out appendOnWrite),
+            3 => new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite),
+            4 => new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite),
+            5 => CreateAppendReadWriteStream(path, out appendOnWrite),
+            _ => throw new ArgumentOutOfRangeException(nameof(flags)),
+        };
+
+        static Stream CreateAppendWriteStream(string path, out bool appendOnWrite)
+        {
+            var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+            stream.Seek(0, SeekOrigin.Begin);
+            appendOnWrite = true;
+            return stream;
+        }
+
+        static Stream CreateAppendReadWriteStream(string path, out bool appendOnWrite)
+        {
+            var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+            stream.Seek(0, SeekOrigin.Begin);
+            appendOnWrite = true;
+            return stream;
+        }
+    }
+
+    static bool TryGetInstructionPointerId(IFungeExecutionContext ctx, out int instructionPointerId)
+    {
+        if (ctx is not IFungeInstructionPointerContext instructionPointer)
+        {
+            instructionPointerId = 0;
+            ctx.Reflect();
+            return false;
+        }
+
+        instructionPointerId = instructionPointer.InstructionPointerId;
+        return true;
+    }
+
+    bool TryGetInstructionPointerState(IFungeExecutionContext ctx, out InstructionPointerFileState state)
+    {
+        if (!TryGetInstructionPointerId(ctx, out var instructionPointerId))
+        {
+            state = null!;
+            return false;
+        }
+
+        if (!_statesByInstructionPointer.TryGetValue(instructionPointerId, out var existingState))
+        {
+            state = new InstructionPointerFileState();
+            _statesByInstructionPointer[instructionPointerId] = state;
+        }
+        else
+        {
+            state = existingState;
+        }
+
+        return true;
+    }
+
     void OpenFile(IFungeExecutionContext ctx)
     {
         var filename = Pop0gnirts(ctx);
         var flags = ctx.Pop();
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
         if (!TryGetBufferOrigin(ctx, out var bufferX, out var bufferY, out var bufferZ))
             return;
 
         try
         {
-            Stream stream;
-            var appendOnWrite = false;
-            switch (flags)
-            {
-                case 0:
-                    stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    break;
-                case 1:
-                    stream = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.Read);
-                    break;
-                case 2:
-                    stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
-                    stream.Seek(0, SeekOrigin.Begin);
-                    appendOnWrite = true;
-                    break;
-                case 3:
-                    stream = new FileStream(filename, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
-                    break;
-                case 4:
-                    stream = new FileStream(filename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
-                    break;
-                case 5:
-                    stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
-                    stream.Seek(0, SeekOrigin.Begin);
-                    appendOnWrite = true;
-                    break;
-                default:
-                    ctx.Reflect();
-                    return;
-            }
-
-            var handle = _nextHandle++;
-            _handles[handle] = new FileHandle(stream, bufferX, bufferY, bufferZ, appendOnWrite);
+            var stream = CreateStream(filename, flags, out var appendOnWrite);
+            var handle = state.NextHandle++;
+            state.Handles[handle] = new FileHandle(filename, stream, flags, bufferX, bufferY, bufferZ, appendOnWrite);
             ctx.Push(handle);
         }
-        catch (Exception ex) when (IsRecoverableFileException(ex))
+        catch (Exception ex) when (IsRecoverableFileException(ex) || ex is ArgumentOutOfRangeException)
         {
             ctx.Reflect();
         }
@@ -220,8 +271,11 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void CloseFile(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var handle = ctx.Pop();
-        if (!_handles.TryGetValue(handle, out var fileHandle))
+        if (!state.Handles.TryGetValue(handle, out var fileHandle))
         {
             ctx.Reflect();
             return;
@@ -230,7 +284,7 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
         try
         {
             fileHandle.Stream.Dispose();
-            _handles.Remove(handle);
+            state.Handles.Remove(handle);
         }
         catch (Exception ex) when (IsRecoverableFileException(ex))
         {
@@ -240,8 +294,11 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void GetString(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var handle = ctx.Peek();
-        if (!_handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanRead)
+        if (!state.Handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanRead)
         {
             ctx.Reflect();
             return;
@@ -259,8 +316,11 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void GetLocation(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var handle = ctx.Peek();
-        if (!_handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanSeek)
+        if (!state.Handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanSeek)
         {
             ctx.Reflect();
             return;
@@ -278,9 +338,12 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void PutString(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var value = Pop0gnirts(ctx);
         var handle = ctx.Peek();
-        if (!_handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanWrite)
+        if (!state.Handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanWrite)
         {
             ctx.Reflect();
             return;
@@ -319,9 +382,12 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void ReadBytes(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var count = ctx.Pop();
         var handle = ctx.Peek();
-        if (count <= 0 || !_handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanRead)
+        if (count <= 0 || !state.Handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanRead)
         {
             ctx.Reflect();
             return;
@@ -347,10 +413,13 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void Seek(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var offset = ctx.Pop();
         var mode = ctx.Pop();
         var handle = ctx.Peek();
-        if (!_handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanSeek)
+        if (!state.Handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanSeek)
         {
             ctx.Reflect();
             return;
@@ -375,9 +444,12 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
 
     void WriteBytes(IFungeExecutionContext ctx)
     {
+        if (!TryGetInstructionPointerState(ctx, out var state))
+            return;
+
         var count = ctx.Pop();
         var handle = ctx.Peek();
-        if (count <= 0 || !_handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanWrite)
+        if (count <= 0 || !state.Handles.TryGetValue(handle, out var fileHandle) || !fileHandle.Stream.CanWrite)
         {
             ctx.Reflect();
             return;
@@ -401,13 +473,63 @@ public sealed class FileFingerprint : IFingerprint, IDisposable
     }
 
     /// <inheritdoc/>
+    public void OnInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
+    {
+        if (!_statesByInstructionPointer.TryGetValue(parentInstructionPointerId, out var parentState))
+            return;
+
+        var childState = new InstructionPointerFileState
+        {
+            NextHandle = parentState.NextHandle,
+        };
+
+        try
+        {
+            foreach (var (handle, fileHandle) in parentState.Handles)
+            {
+                var stream = CreateStream(fileHandle.Path, fileHandle.Flags, out _);
+                if (stream.CanSeek && fileHandle.Stream.CanSeek)
+                    stream.Seek(fileHandle.Stream.Position, SeekOrigin.Begin);
+                childState.Handles[handle] = new FileHandle(
+                    fileHandle.Path,
+                    stream,
+                    fileHandle.Flags,
+                    fileHandle.BufferX,
+                    fileHandle.BufferY,
+                    fileHandle.BufferZ,
+                    fileHandle.AppendOnWrite);
+            }
+        }
+        catch
+        {
+            foreach (var handle in childState.Handles.Values)
+                handle.Stream.Dispose();
+            throw;
+        }
+
+        _statesByInstructionPointer[childInstructionPointerId] = childState;
+    }
+
+    /// <inheritdoc/>
+    public void OnInstructionPointerTerminated(int instructionPointerId)
+    {
+        if (!_statesByInstructionPointer.TryGetValue(instructionPointerId, out var state))
+            return;
+
+        foreach (var handle in state.Handles.Values)
+            handle.Stream.Dispose();
+        _statesByInstructionPointer.Remove(instructionPointerId);
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
-        foreach (var handle in _handles.Values)
-            handle.Stream.Dispose();
-        _handles.Clear();
+        foreach (var state in _statesByInstructionPointer.Values)
+            foreach (var handle in state.Handles.Values)
+                handle.Stream.Dispose();
+        _statesByInstructionPointer.Clear();
     }
 }
 

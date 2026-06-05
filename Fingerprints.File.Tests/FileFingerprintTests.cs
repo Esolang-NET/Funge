@@ -2,12 +2,13 @@ using System.Text;
 
 namespace Esolang.Funge.Fingerprints.File;
 
-sealed class TestContext : IFungeExecutionContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext
+sealed class TestContext : IFungeExecutionContext, IFungeInstructionPointerContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext
 {
     readonly Stack<int> _stack = new();
     readonly Dictionary<(int X, int Y, int Z), int> _cells = [];
 
     public bool Reflected { get; set; }
+    public int InstructionPointerId { get; set; }
     public (int X, int Y, int Z) StorageOffset { get; set; }
     public int Dimensions => 3;
 
@@ -263,5 +264,58 @@ public class FileFingerprintTests
         Instruction(fp, 'O')(ctx);
 
         Assert.IsTrue(ctx.Reflected);
+    }
+
+    [TestMethod]
+    public void Handles_AreScopedPerInstructionPointer_AndCopiedOnClone()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            System.IO.File.WriteAllText(path, "abcdef");
+            using var fp = new FileFingerprint();
+            var parent = new TestContext { InstructionPointerId = 1 };
+            parent.PushVector(0, 0, 0);
+            parent.Push(3);
+            parent.PushString(path);
+            Instruction(fp, 'O')(parent);
+            var handle = parent.Pop();
+
+            parent.Push(handle);
+            parent.Push(0);
+            parent.Push(2);
+            Instruction(fp, 'S')(parent);
+            Assert.AreEqual(handle, parent.Pop());
+
+            fp.OnInstructionPointerCloned(1, 2);
+            var child = new TestContext { InstructionPointerId = 2 };
+            child.Push(handle);
+            Instruction(fp, 'L')(child);
+            Assert.AreEqual(2, child.Pop());
+            Assert.AreEqual(handle, child.Pop());
+
+            child.Push(handle);
+            parent.Push(handle);
+            parent.Push(0);
+            parent.Push(1);
+            Instruction(fp, 'S')(parent);
+            Assert.AreEqual(handle, parent.Pop());
+
+            child.Push(handle);
+            Instruction(fp, 'L')(child);
+            Assert.AreEqual(2, child.Pop());
+            Assert.AreEqual(handle, child.Pop());
+
+            fp.OnInstructionPointerTerminated(1);
+            child.Push(handle);
+            Instruction(fp, 'L')(child);
+            Assert.AreEqual(2, child.Pop());
+            Assert.AreEqual(handle, child.Pop());
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
     }
 }

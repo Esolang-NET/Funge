@@ -1,9 +1,10 @@
 namespace Esolang.Funge.Fingerprints.Time;
 
-sealed class TestContext : IFungeExecutionContext
+sealed class TestContext : IFungeExecutionContext, IFungeInstructionPointerContext
 {
     readonly Stack<int> _stack = new();
     public bool Reflected { get; set; }
+    public int InstructionPointerId { get; set; }
     public void Push(int value) => _stack.Push(value);
     public int Pop() => _stack.Count > 0 ? _stack.Pop() : 0;
     public int Peek() => _stack.Count > 0 ? _stack.Peek() : 0;
@@ -56,7 +57,7 @@ public class TimeFingerprintTests
     public void G_And_L_SwitchBetweenGmtAndLocalMode()
     {
         var fp = new TimeFingerprint();
-        var ctx = new TestContext();
+        var ctx = new TestContext { InstructionPointerId = 1 };
 
         Instruction(fp, 'G')(ctx);
         var utcYear = DateTime.UtcNow.Year;
@@ -67,6 +68,27 @@ public class TimeFingerprintTests
         var localYear = DateTime.Now.Year;
         Instruction(fp, 'Y')(ctx);
         Assert.AreEqual(localYear, ctx.Pop());
+    }
+
+    [TestMethod]
+    public void GmtMode_IsScopedPerInstructionPointer_AndCopiedOnClone()
+    {
+        var fp = new TimeFingerprint();
+        var parent = new TestContext { InstructionPointerId = 1 };
+        var child = new TestContext { InstructionPointerId = 2 };
+
+        Instruction(fp, 'G')(parent);
+        fp.OnInstructionPointerCloned(1, 2);
+        fp.OnInstructionPointerTerminated(1);
+
+        var utcYear = DateTime.UtcNow.Year;
+        Instruction(fp, 'Y')(child);
+        Assert.AreEqual(utcYear, child.Pop());
+
+        Instruction(fp, 'L')(child);
+        var localYear = DateTime.Now.Year;
+        Instruction(fp, 'Y')(child);
+        Assert.AreEqual(localYear, child.Pop());
     }
 
     [TestMethod]
