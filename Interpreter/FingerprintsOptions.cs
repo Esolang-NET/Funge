@@ -1,3 +1,4 @@
+using Esolang.Funge.Fingerprints.Base;
 using Esolang.Funge.Fingerprints.Bool;
 using Esolang.Funge.Fingerprints.File;
 using Esolang.Funge.Fingerprints.Modu;
@@ -40,7 +41,7 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
         yield return Roma;
         yield return Strn;
         yield return Time;
-
+        yield return Base;
     }
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -51,6 +52,14 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     {
         Description = "Enable the NULL fingerprint (0x4E554C4C): all 26 instructions reflect.",
     }, _ => NullFingerprint.Instance);
+
+    /// <summary>
+    /// Enable the BASE fingerprint (0x42415345): base conversion instructions B H I N O.
+    /// </summary>
+    readonly Pair Base = new(new(name: "--fingerprint-base")
+    {
+        Description = "Enable the BASE fingerprint (0x42415345): base conversion instructions B H I N O",
+    }, _ => new BaseFingerprint());
 
     /// <summary>
     /// Enable the BOOL fingerprint (0x424F4F4C): logic instructions A N O X.

@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/Esoalng.Funge.Fingerprints/">
+    <Project Path="Fingerprints.Base.Tests/Esolang.Funge.Fingerprints.Base.Tests.csproj" />
+    <Project Path="Fingerprints.Base/Esolang.Funge.Fingerprints.Base.csproj" />
     <Project Path="Fingerprints.Bool.Tests/Esolang.Funge.Fingerprints.Bool.Tests.csproj" />
     <Project Path="Fingerprints.Bool/Esolang.Funge.Fingerprints.Bool.csproj" />
     <Project Path="Fingerprints.File.Tests/Esolang.Funge.Fingerprints.File.Tests.csproj" />
@@ -25,13 +27,13 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="Abstractions/Esolang.Funge.Abstractions.csproj" />
-  <Project Path="Generator/Esolang.Funge.Generator.csproj" />
   <Project Path="Generator.Tests/Esolang.Funge.Generator.Tests.csproj" />
-  <Project Path="samples/Generator.UseConsole/Esolang.Funge.Generator.UseConsole.csproj" />
-  <Project Path="Parser/Esolang.Funge.Parser.csproj" />
-  <Project Path="Parser.Tests/Esolang.Funge.Parser.Tests.csproj" />
-  <Project Path="Processor/Esolang.Funge.Processor.csproj" />
-  <Project Path="Processor.Tests/Esolang.Funge.Processor.Tests.csproj" />
-  <Project Path="Interpreter/Esolang.Funge.Interpreter.csproj" />
+  <Project Path="Generator/Esolang.Funge.Generator.csproj" />
   <Project Path="Interpreter.Tests/Esolang.Funge.Interpreter.Tests.csproj" />
+  <Project Path="Interpreter/Esolang.Funge.Interpreter.csproj" />
+  <Project Path="Parser.Tests/Esolang.Funge.Parser.Tests.csproj" />
+  <Project Path="Parser/Esolang.Funge.Parser.csproj" />
+  <Project Path="Processor.Tests/Esolang.Funge.Processor.Tests.csproj" />
+  <Project Path="Processor/Esolang.Funge.Processor.csproj" />
+  <Project Path="samples/Generator.UseConsole/Esolang.Funge.Generator.UseConsole.csproj" />
 </Solution>

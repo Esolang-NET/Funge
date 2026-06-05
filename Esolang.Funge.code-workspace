@@ -45,6 +45,22 @@
 			"path": "Processor.Tests"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Base",
+			"path": "Fingerprints.Base"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Base.Tests",
+			"path": "Fingerprints.Base.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Bool",
+			"path": "Fingerprints.Bool"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Bool.Tests",
+			"path": "Fingerprints.Bool.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.File",
 			"path": "Fingerprints.File"
 		},
@@ -101,6 +117,10 @@
 			"Parser.Tests": true,
 			"Processor": true,
 			"Processor.Tests": true,
+			"Fingerprints.Base": true,
+			"Fingerprints.Base.Tests": true,
+			"Fingerprints.Bool": true,
+			"Fingerprints.Bool.Tests": true,
 			"Fingerprints.File": true,
 			"Fingerprints.File.Tests": true,
 			"Fingerprints.Modu": true,

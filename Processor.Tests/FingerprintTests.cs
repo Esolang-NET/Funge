@@ -1,3 +1,4 @@
+using Esolang.Funge.Fingerprints.Base;
 using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor.Tests;
@@ -35,11 +36,12 @@ public class FingerprintTests(TestContext TestContext)
 {
     CancellationToken TestCancellationToken => TestContext.CancellationToken;
 
-    string Run(string source, IEnumerable<IFingerprint>? fingerprints = null)
+    string Run(string source, IEnumerable<IFingerprint>? fingerprints = null, string? input = null)
     {
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
-        var proc = new FungeProcessor(space, fingerprints: fingerprints);
+        var reader = input is null ? TextReader.Null : new StringReader(input);
+        var proc = new FungeProcessor(space, fingerprints: fingerprints, input: reader, output: output);
         var task = Task.Run(async () =>
         {
             await foreach (var ev in proc.RunAsyncEnumerable(TestCancellationToken))
@@ -48,6 +50,14 @@ public class FingerprintTests(TestContext TestContext)
                 {
                     case OutputCharEvent oce: output.Write(oce.Output); break;
                     case OutputIntEvent oie: output.Write(oie.Output); break;
+                    case InputCharEvent ice:
+                        var c = reader.Read();
+                        if (c != -1) ice.Write((char)c);
+                        break;
+                    case InputIntEvent iie:
+                        var line = reader.ReadLine();
+                        if (int.TryParse(line, out var val)) iie.Write(val);
+                        break;
                 }
             }
         }, TestCancellationToken);
@@ -141,6 +151,22 @@ public class FingerprintTests(TestContext TestContext)
         var fp = NullFingerprint.Instance;
         var result = Run("\"LLUN\"4(A@", [fp]);
         Assert.AreEqual(string.Empty, result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void BaseFingerprint_OutputUsesExecutionContextIo()
+    {
+        var result = Run("\"ESAB\"4(5B@", [new BaseFingerprint()]);
+        Assert.AreEqual("101", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void BaseFingerprint_InputUsesExecutionContextIo()
+    {
+        var result = Run("\"ESAB\"4(2I.@", [new BaseFingerprint()], "101");
+        Assert.AreEqual("5 ", result);
     }
 
     // ── Multiple fingerprints ─────────────────────────────────────────────────

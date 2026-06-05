@@ -15,6 +15,12 @@ public interface IFungeExecutionContext
     /// <summary>Peeks at the top of the stack without removing it. Returns <c>0</c> if empty.</summary>
     int Peek();
 
+    /// <summary>Writes text to the program's standard output.</summary>
+    void WriteString(string value);
+
+    /// <summary>Reads one line from the program's standard input, or <c>null</c> on EOF.</summary>
+    string? ReadLine();
+
     /// <summary>Reflects the instruction pointer (reverses its delta direction).</summary>
     void Reflect();
 }

@@ -338,26 +338,50 @@ partial class MethodGenerator
 
         var fingerprintAZDispatch = fingerprintSupport
             ? """
-                                 if (cell >= 'A' && cell <= 'Z')
-                                 {
-                                     var __letter = (char)cell;
-                                     Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
-                                     if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0)
-                                         __semStack.Peek()(new RuntimeFungeExecutionContext(ip));
-                                     else
-                                         ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
-                                 }
-              """
+                                     if (cell >= 'A' && cell <= 'Z')
+                                     {
+                                         var __letter = (char)cell;
+                                         Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
+                                         if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0)
+                                             __semStack.Peek()(new RuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar));
+                                         else
+                                             ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
+                                     }
+               """
             : "                                 if (cell >= 'A' && cell <= 'Z') ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);";
 
         var runtimeExecutionContext = fingerprintSupport ? """
                 private sealed class RuntimeFungeExecutionContext : global::Esolang.Funge.IFungeExecutionContext
                 {
                     readonly RuntimeIp _ip;
-                    internal RuntimeFungeExecutionContext(RuntimeIp ip) => _ip = ip;
+                    readonly TextReader _input;
+                    readonly bool _hasInput;
+                    readonly bool _hasOutput;
+                    readonly Action<int> _writeOutputChar;
+                    internal RuntimeFungeExecutionContext(RuntimeIp ip, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputChar)
+                    {
+                        _ip = ip;
+                        _input = input;
+                        _hasInput = hasInput;
+                        _hasOutput = hasOutput;
+                        _writeOutputChar = writeOutputChar;
+                    }
                     public void Push(int value) => _ip.StackStack.Push(value);
                     public int Pop() => _ip.StackStack.Pop();
                     public int Peek() => _ip.StackStack.TOSS.Count > 0 ? _ip.StackStack.TOSS.Peek() : 0;
+                    public void WriteString(string value)
+                    {
+                        if (!_hasOutput)
+                            throw new InvalidOperationException("Fingerprint output without an output interface");
+                        for (int i = 0; i < value.Length; i++)
+                            _writeOutputChar(value[i]);
+                    }
+                    public string? ReadLine()
+                    {
+                        if (!_hasInput)
+                            throw new InvalidOperationException("Fingerprint input without an input interface");
+                        return _input.ReadLine();
+                    }
                     public void Reflect() => _ip.Delta = (-_ip.Delta.X, -_ip.Delta.Y, -_ip.Delta.Z);
                 }
         """ : "";

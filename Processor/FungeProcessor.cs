@@ -20,11 +20,15 @@ namespace Esolang.Funge.Processor;
 /// <param name="commandLineArguments">Optional command-line arguments exposed by <c>y</c>. Defaults to host process args.</param>
 /// <param name="environmentVariables">Optional environment variable entries (<c>NAME=VALUE</c>) exposed by <c>y</c>. Defaults to host process environment.</param>
 /// <param name="fingerprints">Optional fingerprint implementations to load on demand via <c>(</c>/<c>)</c>.</param>
+/// <param name="input">Optional text input used by fingerprint instructions that read from standard input.</param>
+/// <param name="output">Optional text output used by fingerprint instructions that write to standard output.</param>
 public sealed partial class FungeProcessor(
     FungeSpace space,
     IEnumerable<string>? commandLineArguments = null,
     IEnumerable<string>? environmentVariables = null,
-    IEnumerable<IFingerprint>? fingerprints = null)
+    IEnumerable<IFingerprint>? fingerprints = null,
+    TextReader? input = null,
+    TextWriter? output = null)
 {
     readonly FungeSpace _space = space;
     readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
@@ -38,6 +42,8 @@ public sealed partial class FungeProcessor(
     readonly Dictionary<int, IFingerprint> _fingerprintMap = fingerprints is not null
         ? fingerprints.ToDictionary(static f => f.Handprint)
         : [];
+    readonly TextReader? _input = input;
+    readonly TextWriter? _output = output;
     readonly Random _random = new();
     int _nextIpId;
 
@@ -597,7 +603,7 @@ public sealed partial class FungeProcessor(
                 {
                     var letter = (char)cell;
                     if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
-                        semStack.Peek()(new FungeExecutionContext(ip));
+                        semStack.Peek()(new FungeExecutionContext(ip, _input, _output));
                     else
                         ip.Delta = ip.Delta.Reflect();
                 }

@@ -11,7 +11,7 @@ public class FungeProcessorTests(TestContext TestContext)
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
-        var proc = new FungeProcessor(space);
+        var proc = new FungeProcessor(space, input: reader, output: output);
         _ = RunToEnd(proc, reader, output, TestCancellationToken);
         return output.ToString();
     }
