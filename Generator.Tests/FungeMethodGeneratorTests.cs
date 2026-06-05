@@ -2585,7 +2585,7 @@ public class FungeMethodGeneratorTests
     }
 
     [TestMethod]
-    public void FingerprintsProvider_InvalidReturnType_EmitsFG0012()
+    public void FingerprintsProvider_InvalidMethodReturnType_EmitsFG0012()
     {
         var source = """
             using Esolang.Funge;
@@ -2602,6 +2602,32 @@ public class FungeMethodGeneratorTests
         try
         {
             Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for invalid FingerprintsProvider return type");
+        }
+        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        {
+            LogDiagnostics(diag, comp);
+            throw;
+        }
+    }
+
+    [TestMethod]
+    public void FingerprintsProvider_InvalidPropertyType_EmitsFG0012()
+    {
+        var source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                public int Fingerprints => 42;
+
+                [GenerateFungeMethod(InlineSource = "@", FingerprintsProvider = "Fingerprints")]
+                public partial void Run();
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
+        try
+        {
+            Assert.IsTrue(diag.Any(d => d.Id == "FG0012"), "Expected FG0012 for invalid FingerprintsProvider property type");
         }
         catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
         {
