@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Fingerprints.Fixp\Esolang.Funge.Fingerprints.Fixp.csproj" />
     <ProjectReference Include="..\Fingerprints.Indv\Esolang.Funge.Fingerprints.Indv.csproj" />
     <ProjectReference Include="..\Fingerprints.Long\Esolang.Funge.Fingerprints.Long.csproj" />
+    <ProjectReference Include="..\Fingerprints.Rand\Esolang.Funge.Fingerprints.Rand.csproj" />
     <ProjectReference Include="..\Parser\Esolang.Funge.Parser.csproj" />
     <ProjectReference Include="..\Processor\Esolang.Funge.Processor.csproj" />
     <ProjectReference Include="..\Abstractions\Esolang.Funge.Abstractions.csproj" />

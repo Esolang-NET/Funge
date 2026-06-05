@@ -16,4 +16,5 @@ readonly struct KnownFungeTypes(Compilation compilation)
     public INamedTypeSymbol? IFungeVectorContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeVectorContext");
     public INamedTypeSymbol? IFungeSpaceContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeSpaceContext");
     public INamedTypeSymbol? IFungeStorageOffsetContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeStorageOffsetContext");
+    public INamedTypeSymbol? IFungeRandomContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeRandomContext");
 }

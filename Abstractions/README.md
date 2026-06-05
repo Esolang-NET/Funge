@@ -13,6 +13,7 @@ and ships a set of standard fingerprints that have no external dependencies.
 |---|---|
 | `IFingerprint` | Interface for fingerprint implementations |
 | `IFungeExecutionContext` | Execution context passed to each fingerprint instruction |
+| `IFungeRandomContext` | Optional capability exposing the runtime shared random-number source |
 | `IFungeStackContext` | Optional capability exposing the current top-stack depth |
 | `FingerprintInstruction` | Delegate type for a single instruction handler |
 | `FingerprintHandprint` | Utility to compute a handprint integer from a 4-letter name |

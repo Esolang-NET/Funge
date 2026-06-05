@@ -6,6 +6,7 @@ using Esolang.Funge.Fingerprints.File;
 using Esolang.Funge.Fingerprints.Fixp;
 using Esolang.Funge.Fingerprints.Indv;
 using Esolang.Funge.Fingerprints.Modu;
+using Esolang.Funge.Fingerprints.Rand;
 using Esolang.Funge.Fingerprints.Roma;
 using Esolang.Funge.Fingerprints.Strn;
 using Esolang.Funge.Fingerprints.Time;
@@ -46,6 +47,7 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
         yield return Fixp;
         yield return Indv;
         yield return Modu;
+        yield return Rand;
         yield return Roma;
         yield return Strn;
         yield return Time;
@@ -116,6 +118,14 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     {
         Description = "Enable the INDV fingerprint (0x494E4456): indirect vector instructions G P V W.",
     }, _ => new IndirectVectorFingerprint());
+
+    /// <summary>
+    /// Enable the RAND fingerprint (0x52414E44): random instructions I M R S T.
+    /// </summary>
+    readonly Pair Rand = new(new(name: "--fingerprint-rand")
+    {
+        Description = "Enable the RAND fingerprint (0x52414E44): random instructions I M R S T.",
+    }, _ => new RandomFingerprint());
 
     /// <summary>
     /// Enable the MODU fingerprint (0x4D4F4455): modulo instructions M R U.

@@ -240,7 +240,8 @@ partial class MethodGenerator
             fungeTypes.IFungeStackContext is not null ? "global::Esolang.Funge.IFungeStackContext" : null,
             fungeTypes.IFungeVectorContext is not null ? "global::Esolang.Funge.IFungeVectorContext" : null,
             fungeTypes.IFungeSpaceContext is not null ? "global::Esolang.Funge.IFungeSpaceContext" : null,
-            fungeTypes.IFungeStorageOffsetContext is not null ? "global::Esolang.Funge.IFungeStorageOffsetContext" : null);
+            fungeTypes.IFungeStorageOffsetContext is not null ? "global::Esolang.Funge.IFungeStorageOffsetContext" : null,
+            fungeTypes.IFungeRandomContext is not null ? "global::Esolang.Funge.IFungeRandomContext" : null);
         var runtimeInputContextSuffix = BuildImplementedInterfaceSuffix(
             fungeTypes.IFungeInputContext is not null ? "global::Esolang.Funge.IFungeInputContext" : null);
         var runtimeOutputContextSuffix = BuildImplementedInterfaceSuffix(
@@ -398,23 +399,73 @@ partial class MethodGenerator
                                          var __letter = (char)cell;
                                          Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
                                          if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0)
-                                             __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell));
+                                            __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell, rng));
                                          else
                                              ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
                                      }
                """
             : "                                 if (cell >= 'A' && cell <= 'Z') ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);";
 
+        var runtimeRandomSource = """
+                private sealed class RuntimeRandomSource
+                {
+                    private readonly object _sync = new object();
+                    private Random _random = new Random();
+
+                    internal uint NextUInt32(uint exclusiveUpperBound)
+                    {
+                        if (exclusiveUpperBound == 0)
+                            throw new global::System.ArgumentOutOfRangeException(nameof(exclusiveUpperBound));
+
+                        lock (_sync)
+                        {
+                            uint limit = uint.MaxValue - uint.MaxValue % exclusiveUpperBound;
+                            while (true)
+                            {
+                                var candidate = NextRawUInt32();
+                                if (candidate < limit)
+                                    return candidate % exclusiveUpperBound;
+                            }
+                        }
+                    }
+
+                    internal float NextSingle()
+                    {
+                        lock (_sync)
+                            return (float)_random.NextDouble();
+                    }
+
+                    internal void Reseed(uint seed)
+                    {
+                        lock (_sync)
+                            _random = new Random(unchecked((int)seed));
+                    }
+
+                    internal void Reseed()
+                    {
+                        lock (_sync)
+                            _random = new Random();
+                    }
+
+                    uint NextRawUInt32()
+                    {
+                        var bytes = new byte[4];
+                        _random.NextBytes(bytes);
+                        return global::System.BitConverter.ToUInt32(bytes, 0);
+                    }
+                }
+        """;
+
         var runtimeExecutionContext = fingerprintSupport ? $$"""
-                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell)
+                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng)
                 {
                     if (hasInput && hasOutput)
-                        return new RuntimeFungeIoExecutionContext(ip, input, writeOutputChar, getCell, setCell);
+                        return new RuntimeFungeIoExecutionContext(ip, input, writeOutputChar, getCell, setCell, rng);
                     if (hasInput)
-                        return new RuntimeFungeInputExecutionContext(ip, input, getCell, setCell);
+                        return new RuntimeFungeInputExecutionContext(ip, input, getCell, setCell, rng);
                     if (hasOutput)
-                        return new RuntimeFungeOutputExecutionContext(ip, writeOutputChar, getCell, setCell);
-                    return new RuntimeFungeExecutionContext(ip, getCell, setCell);
+                        return new RuntimeFungeOutputExecutionContext(ip, writeOutputChar, getCell, setCell, rng);
+                    return new RuntimeFungeExecutionContext(ip, getCell, setCell, rng);
                 }
 
                 private class RuntimeFungeExecutionContext{{runtimeExecutionContextInterfaces}}
@@ -422,11 +473,13 @@ partial class MethodGenerator
                     readonly RuntimeIp _ip;
                     readonly Func<int, int, int, int> _getCell;
                     readonly Action<int, int, int, int> _setCell;
-                    internal RuntimeFungeExecutionContext(RuntimeIp ip, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell)
+                    readonly RuntimeRandomSource _random;
+                    internal RuntimeFungeExecutionContext(RuntimeIp ip, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng)
                     {
                         _ip = ip;
                         _getCell = getCell;
                         _setCell = setCell;
+                        _random = rng;
                     }
                     public void Push(int value) => _ip.StackStack.Push(value);
                     public int Pop() => _ip.StackStack.Pop();
@@ -448,20 +501,24 @@ partial class MethodGenerator
                     public (int X, int Y, int Z) StorageOffset => (_ip.Offset.X, _ip.Offset.Y, _ip.Offset.Z);
                     public int GetCell(int x, int y, int z) => _getCell(x, y, z);
                     public void SetCell(int x, int y, int z, int value) => _setCell(x, y, z, value);
+                    public uint NextUInt32(uint exclusiveUpperBound) => _random.NextUInt32(exclusiveUpperBound);
+                    public float NextSingle() => _random.NextSingle();
+                    public void Reseed(uint seed) => _random.Reseed(seed);
+                    public void Reseed() => _random.Reseed();
                     public void Reflect() => _ip.Delta = (-_ip.Delta.X, -_ip.Delta.Y, -_ip.Delta.Z);
                 }
 
                 private sealed class RuntimeFungeInputExecutionContext : RuntimeFungeExecutionContext{{runtimeInputContextSuffix}}
                 {
                     readonly TextReader _input;
-                    internal RuntimeFungeInputExecutionContext(RuntimeIp ip, TextReader input, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell) : base(ip, getCell, setCell) => _input = input;
+                    internal RuntimeFungeInputExecutionContext(RuntimeIp ip, TextReader input, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _input = input;
                     public string? ReadLine() => _input.ReadLine();
                 }
 
                 private sealed class RuntimeFungeOutputExecutionContext : RuntimeFungeExecutionContext{{runtimeOutputContextSuffix}}
                 {
                     readonly Action<int> _writeOutputChar;
-                    internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell) : base(ip, getCell, setCell) => _writeOutputChar = writeOutputChar;
+                    internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _writeOutputChar = writeOutputChar;
                     public void WriteString(string value)
                     {
                         for (int i = 0; i < value.Length; i++)
@@ -473,7 +530,7 @@ partial class MethodGenerator
                 {
                     readonly TextReader _input;
                     readonly Action<int> _writeOutputChar;
-                    internal RuntimeFungeIoExecutionContext(RuntimeIp ip, TextReader input, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell) : base(ip, getCell, setCell)
+                    internal RuntimeFungeIoExecutionContext(RuntimeIp ip, TextReader input, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng)
                     {
                         _input = input;
                         _writeOutputChar = writeOutputChar;
@@ -511,6 +568,7 @@ partial class MethodGenerator
             {
         {{BuildRuntimeFacadeMethods(features)}}
         {{logMessages}}
+        {{runtimeRandomSource}}
                 private sealed class RuntimeStackStack
                 {
                     private readonly LinkedList<Stack<int>> _stacks = new LinkedList<Stack<int>>();
@@ -599,7 +657,7 @@ partial class MethodGenerator
                             __fingerprintMap[__fp0.Handprint] = __fp0;
         """ : "")}}
         {{lifecycleHelpers}}
-                    var rng = new Random();
+                    var rng = new RuntimeRandomSource();
 
                     int exitCode = 0;
 
@@ -933,7 +991,7 @@ partial class MethodGenerator
                                 ip.Delta = (0, 0, 1);
                                 break;
                             case '?':
-                                switch (rng.Next(6))
+                                switch (rng.NextUInt32(6))
                                 {
                                     case 0:
                                         ip.Delta = (1, 0, 0);

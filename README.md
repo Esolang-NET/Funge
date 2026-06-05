@@ -81,6 +81,7 @@ Built-in fingerprints shipped with this repository:
 | [`INDV`](./Fingerprints.Indv/README.md) | `0x494E4456` | [Esolang.Funge.Fingerprints.Indv](./Fingerprints.Indv/README.md) | ✅ G P V W |
 | [`LONG`](./Fingerprints.Long/README.md) | `0x4C4F4E47` | [Esolang.Funge.Fingerprints.Long](./Fingerprints.Long/README.md) | ✅ A B D E L M N O P R S Z |
 | `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | ✅ M R U |
+| [`RAND`](./Fingerprints.Rand/README.md) | `0x52414E44` | [Esolang.Funge.Fingerprints.Rand](./Fingerprints.Rand/README.md) | ✅ I M R S T |
 | `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | ✅ C D I L M V X |
 | [`STCK`](./Fingerprints.Stck/README.md) | `0x5354434B` | [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | ✅ B C D G K N P R S T U W Z |
 | [`STRN`](./Fingerprints.Strn/README.md) | `0x5354524E` | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | ✅ A C D F G I L M N P R S V |
@@ -116,6 +117,7 @@ dotnet tool install -g dotnet-funge
 | Use INDV fingerprint (indirect vector access) | Esolang.Funge.Fingerprints.Indv |
 | Use LONG fingerprint (two-cell signed integers) | Esolang.Funge.Fingerprints.Long |
 | Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.Modu |
+| Use RAND fingerprint (random numbers) | Esolang.Funge.Fingerprints.Rand |
 | Use ROMA fingerprint (Roman numerals) | Esolang.Funge.Fingerprints.Roma |
 | Use STCK fingerprint (stack manipulation) | Esolang.Funge.Fingerprints.Stck |
 | Use STRN fingerprint (String manipulation) | Esolang.Funge.Fingerprints.Strn |
@@ -142,6 +144,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Fingerprints.Indv](./Fingerprints.Indv/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Indv](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Indv?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Indv/) | INDV fingerprint (indirect vector access). |
 | [Esolang.Funge.Fingerprints.Long](./Fingerprints.Long/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Long](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Long?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Long/) | LONG fingerprint (two-cell signed integers). |
 | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Modu](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Modu?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Modu/) | MODU fingerprint (Modulo math). |
+| [Esolang.Funge.Fingerprints.Rand](./Fingerprints.Rand/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Rand](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Rand?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Rand/) | RAND fingerprint (random numbers). |
 | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Roma](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Roma?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Roma/) | ROMA fingerprint (Roman numerals). |
 | [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Stck](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Stck?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Stck/) | STCK fingerprint (stack manipulation). |
 | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Strn](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Strn?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Strn/) | STRN fingerprint (String manipulation). |

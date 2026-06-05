@@ -44,7 +44,7 @@ public sealed partial class FungeProcessor(
         : [];
     readonly TextReader? _input = input;
     readonly TextWriter? _output = output;
-    readonly Random _random = new();
+    readonly FungeRandomSource _random = new();
     int _nextIpId;
 
     void NotifyInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
@@ -203,7 +203,7 @@ public sealed partial class FungeProcessor(
             case 'v': ip.Delta = FungeVector.South; break;
 
             case '?': // Go Away: random cardinal direction
-                ip.Delta = _random.Next(6) switch
+                ip.Delta = _random.NextUInt32(6) switch
                 {
                     0 => FungeVector.East,
                     1 => FungeVector.West,
@@ -616,7 +616,7 @@ public sealed partial class FungeProcessor(
                 {
                     var letter = (char)cell;
                     if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
-                        semStack.Peek()(FungeExecutionContext.Create(ip, _space, _input, _output));
+                        semStack.Peek()(FungeExecutionContext.Create(ip, _space, _input, _output, _random));
                     else
                         ip.Delta = ip.Delta.Reflect();
                 }

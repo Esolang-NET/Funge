@@ -6,18 +6,18 @@ namespace Esolang.Funge.Processor;
 /// Wraps an <see cref="InstructionPointer"/> to implement <see cref="IFungeExecutionContext"/>
 /// for use by fingerprint instruction handlers.
 /// </summary>
-abstract class FungeExecutionContext(InstructionPointer ip, FungeSpace space)
-    : IFungeExecutionContext, IFungeInstructionPointerContext, IFungeStackContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext
+abstract class FungeExecutionContext(InstructionPointer ip, FungeSpace space, FungeRandomSource random)
+    : IFungeExecutionContext, IFungeInstructionPointerContext, IFungeStackContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext, IFungeRandomContext
 {
-    public static IFungeExecutionContext Create(InstructionPointer ip, FungeSpace space, TextReader? input, TextWriter? output)
+    public static IFungeExecutionContext Create(InstructionPointer ip, FungeSpace space, TextReader? input, TextWriter? output, FungeRandomSource random)
     {
         if (input is not null && output is not null)
-            return new FungeIoExecutionContext(ip, space, input, output);
+            return new FungeIoExecutionContext(ip, space, input, output, random);
         if (input is not null)
-            return new FungeInputExecutionContext(ip, space, input);
+            return new FungeInputExecutionContext(ip, space, input, random);
         if (output is not null)
-            return new FungeOutputExecutionContext(ip, space, output);
-        return new FungeCoreExecutionContext(ip, space);
+            return new FungeOutputExecutionContext(ip, space, output, random);
+        return new FungeCoreExecutionContext(ip, space, random);
     }
 
     /// <inheritdoc/>
@@ -65,25 +65,38 @@ abstract class FungeExecutionContext(InstructionPointer ip, FungeSpace space)
     public void SetCell(int x, int y, int z, int value) => space[new FungeVector(x, y, z)] = value;
 
     /// <inheritdoc/>
+    public uint NextUInt32(uint exclusiveUpperBound) => random.NextUInt32(exclusiveUpperBound);
+
+    /// <inheritdoc/>
+    public float NextSingle() => random.NextSingle();
+
+    /// <inheritdoc/>
+    public void Reseed(uint seed) => random.Reseed(seed);
+
+    /// <inheritdoc/>
+    public void Reseed() => random.Reseed();
+
+    /// <inheritdoc/>
     public void Reflect() => ip.Delta = ip.Delta.Reflect();
 }
 
-sealed class FungeCoreExecutionContext(InstructionPointer ip, FungeSpace space) : FungeExecutionContext(ip, space);
+sealed class FungeCoreExecutionContext(InstructionPointer ip, FungeSpace space, FungeRandomSource random)
+    : FungeExecutionContext(ip, space, random);
 
-sealed class FungeInputExecutionContext(InstructionPointer ip, FungeSpace space, TextReader input)
-    : FungeExecutionContext(ip, space), IFungeInputContext
+sealed class FungeInputExecutionContext(InstructionPointer ip, FungeSpace space, TextReader input, FungeRandomSource random)
+    : FungeExecutionContext(ip, space, random), IFungeInputContext
 {
     public string? ReadLine() => input.ReadLine();
 }
 
-sealed class FungeOutputExecutionContext(InstructionPointer ip, FungeSpace space, TextWriter output)
-    : FungeExecutionContext(ip, space), IFungeOutputContext
+sealed class FungeOutputExecutionContext(InstructionPointer ip, FungeSpace space, TextWriter output, FungeRandomSource random)
+    : FungeExecutionContext(ip, space, random), IFungeOutputContext
 {
     public void WriteString(string value) => output.Write(value);
 }
 
-sealed class FungeIoExecutionContext(InstructionPointer ip, FungeSpace space, TextReader input, TextWriter output)
-    : FungeExecutionContext(ip, space), IFungeInputContext, IFungeOutputContext
+sealed class FungeIoExecutionContext(InstructionPointer ip, FungeSpace space, TextReader input, TextWriter output, FungeRandomSource random)
+    : FungeExecutionContext(ip, space, random), IFungeInputContext, IFungeOutputContext
 {
     public string? ReadLine() => input.ReadLine();
     public void WriteString(string value) => output.Write(value);

@@ -4,6 +4,7 @@ using Esolang.Funge.Fingerprints.Fixp;
 using Esolang.Funge.Fingerprints.Imth;
 using Esolang.Funge.Fingerprints.Indv;
 using Esolang.Funge.Fingerprints.Long;
+using Esolang.Funge.Fingerprints.Rand;
 using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor.Tests;
@@ -292,6 +293,14 @@ public class FingerprintTests(TestContext TestContext)
 
     [TestMethod]
     [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void RandFingerprint_PushesMaximumInteger()
+    {
+        var result = Run("\"DNAR\"4(M.@", [new RandomFingerprint()]);
+        Assert.AreEqual($"{int.MaxValue} ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void IndvFingerprint_ReadsCellThroughIndirectAddress()
     {
         var space = Parser.FungeParser.Parse("\"VDNI\"4($$45*00G.@");
@@ -342,6 +351,30 @@ public class FingerprintTests(TestContext TestContext)
             });
         var result = Run("\"TSEP\"4(A.@", [fp]);
         Assert.AreEqual("0 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void RuntimeContext_ExposesRandomCapability()
+    {
+        var fp = new CustomFingerprint(
+            "PEST",
+            new Dictionary<char, FingerprintInstruction>
+            {
+                ['A'] = ctx =>
+                {
+                    if (ctx is not IFungeRandomContext random)
+                    {
+                        ctx.Reflect();
+                        return;
+                    }
+
+                    random.Reseed(123u);
+                    ctx.Push(random.NextUInt32(1) == 0 ? 1 : 0);
+                },
+            });
+        var result = Run("\"TSEP\"4(A.@", [fp]);
+        Assert.AreEqual("1 ", result);
     }
 
     [TestMethod]

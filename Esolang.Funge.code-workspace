@@ -133,6 +133,14 @@
 			"path": "Fingerprints.Modu.Tests"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Rand",
+			"path": "Fingerprints.Rand"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Rand.Tests",
+			"path": "Fingerprints.Rand.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.Roma",
 			"path": "Fingerprints.Roma"
 		},
@@ -203,6 +211,8 @@
 			"Fingerprints.Long.Tests": true,
 			"Fingerprints.Modu": true,
 			"Fingerprints.Modu.Tests": true,
+			"Fingerprints.Rand": true,
+			"Fingerprints.Rand.Tests": true,
 			"Fingerprints.Roma": true,
 			"Fingerprints.Roma.Tests": true,
 			"Fingerprints.Stck": true,
