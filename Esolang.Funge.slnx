@@ -12,6 +12,8 @@
     <Project Path="Fingerprints.Modu/Esolang.Funge.Fingerprints.Modu.csproj" />
     <Project Path="Fingerprints.Roma.Tests/Esolang.Funge.Fingerprints.Roma.Tests.csproj" />
     <Project Path="Fingerprints.Roma/Esolang.Funge.Fingerprints.Roma.csproj" />
+    <Project Path="Fingerprints.Stck.Tests/Esolang.Funge.Fingerprints.Stck.Tests.csproj" />
+    <Project Path="Fingerprints.Stck/Esolang.Funge.Fingerprints.Stck.csproj" />
     <Project Path="Fingerprints.Strn.Tests/Esolang.Funge.Fingerprints.Strn.Tests.csproj" />
     <Project Path="Fingerprints.Strn/Esolang.Funge.Fingerprints.Strn.csproj" />
     <Project Path="Fingerprints.Time.Tests/Esolang.Funge.Fingerprints.Time.Tests.csproj" />

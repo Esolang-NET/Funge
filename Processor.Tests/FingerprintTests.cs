@@ -325,6 +325,29 @@ public class FingerprintTests(TestContext TestContext)
 
     [TestMethod]
     [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void RuntimeContext_ExposesStackCapability()
+    {
+        var fp = new CustomFingerprint(
+            "PEST",
+            new Dictionary<char, FingerprintInstruction>
+            {
+                ['A'] = ctx =>
+                {
+                    if (ctx is not IFungeStackContext stack)
+                    {
+                        ctx.Reflect();
+                        return;
+                    }
+
+                    ctx.Push(stack.StackDepth);
+                },
+            });
+        var result = Run("\"TSEP\"4($$12A.@", [fp]);
+        Assert.AreEqual("2 ", result);
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void RuntimeLifecycle_NotifiesCloneAndTermination()
     {
         var fp = new LifecycleFingerprint("PEST", new Dictionary<char, FingerprintInstruction>());

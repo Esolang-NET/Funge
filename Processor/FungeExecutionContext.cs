@@ -7,7 +7,7 @@ namespace Esolang.Funge.Processor;
 /// for use by fingerprint instruction handlers.
 /// </summary>
 abstract class FungeExecutionContext(InstructionPointer ip, FungeSpace space)
-    : IFungeExecutionContext, IFungeInstructionPointerContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext
+    : IFungeExecutionContext, IFungeInstructionPointerContext, IFungeStackContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext
 {
     public static IFungeExecutionContext Create(InstructionPointer ip, FungeSpace space, TextReader? input, TextWriter? output)
     {
@@ -31,6 +31,9 @@ abstract class FungeExecutionContext(InstructionPointer ip, FungeSpace space)
 
     /// <inheritdoc/>
     public int InstructionPointerId => ip.Id;
+
+    /// <inheritdoc/>
+    public int StackDepth => ip.StackStack.TOSS.Count;
 
     /// <inheritdoc/>
     public (int X, int Y, int Z) PopVector()

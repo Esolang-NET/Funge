@@ -237,6 +237,7 @@ partial class MethodGenerator
         var runtimeExecutionContextInterfaces = BuildInterfaceList(
             "global::Esolang.Funge.IFungeExecutionContext",
             fungeTypes.IFungeInstructionPointerContext is not null ? "global::Esolang.Funge.IFungeInstructionPointerContext" : null,
+            fungeTypes.IFungeStackContext is not null ? "global::Esolang.Funge.IFungeStackContext" : null,
             fungeTypes.IFungeVectorContext is not null ? "global::Esolang.Funge.IFungeVectorContext" : null,
             fungeTypes.IFungeSpaceContext is not null ? "global::Esolang.Funge.IFungeSpaceContext" : null,
             fungeTypes.IFungeStorageOffsetContext is not null ? "global::Esolang.Funge.IFungeStorageOffsetContext" : null);
@@ -431,6 +432,7 @@ partial class MethodGenerator
                     public int Pop() => _ip.StackStack.Pop();
                     public int Peek() => _ip.StackStack.TOSS.Count > 0 ? _ip.StackStack.TOSS.Peek() : 0;
                     public int InstructionPointerId => _ip.Id;
+                    public int StackDepth => _ip.StackStack.TOSS.Count;
                     public (int X, int Y, int Z) PopVector()
                     {
                         int z = _ip.StackStack.Pop(), y = _ip.StackStack.Pop(), x = _ip.StackStack.Pop();

@@ -78,6 +78,7 @@ Built-in fingerprints shipped with this repository:
 | [`IMTH`](./Fingerprints.Imth/README.md) | `0x494D5448` | [Esolang.Funge.Fingerprints.Imth](./Fingerprints.Imth/README.md) | ✅ A B C D E F G H I L N R S T U X Z |
 | `MODU` | `0x4D4F4455` | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | ✅ M R U |
 | `ROMA` | `0x524F4D41` | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | ✅ C D I L M V X |
+| [`STCK`](./Fingerprints.Stck/README.md) | `0x5354434B` | [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | ✅ B C D G K N P R S T U W Z |
 | [`STRN`](./Fingerprints.Strn/README.md) | `0x5354524E` | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | ✅ A C D F G I L M N P R S V |
 | [`TIME`](./Fingerprints.Time/README.md) | `0x54494D45` | [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | ✅ D F G H L M O S W Y |
 
@@ -108,6 +109,7 @@ dotnet tool install -g dotnet-funge
 | Use IMTH fingerprint (integer math helpers) | Esolang.Funge.Fingerprints.Imth |
 | Use MODU fingerprint (Modulo math) | Esolang.Funge.Fingerprints.Modu |
 | Use ROMA fingerprint (Roman numerals) | Esolang.Funge.Fingerprints.Roma |
+| Use STCK fingerprint (stack manipulation) | Esolang.Funge.Fingerprints.Stck |
 | Use STRN fingerprint (String manipulation) | Esolang.Funge.Fingerprints.Strn |
 | Use TIME fingerprint (System time) | Esolang.Funge.Fingerprints.Time |
 | Run Funge-98 from CLI | dotnet-funge |
@@ -129,6 +131,7 @@ dotnet tool install -g dotnet-funge
 | [Esolang.Funge.Fingerprints.Imth](./Fingerprints.Imth/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Imth](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Imth?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Imth/) | IMTH fingerprint (integer math helpers). |
 | [Esolang.Funge.Fingerprints.Modu](./Fingerprints.Modu/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Modu](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Modu?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Modu/) | MODU fingerprint (Modulo math). |
 | [Esolang.Funge.Fingerprints.Roma](./Fingerprints.Roma/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Roma](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Roma?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Roma/) | ROMA fingerprint (Roman numerals). |
+| [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Stck](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Stck?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Stck/) | STCK fingerprint (stack manipulation). |
 | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Strn](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Strn?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Strn/) | STRN fingerprint (String manipulation). |
 | [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | [![NuGet: Esolang.Funge.Fingerprints.Time](https://img.shields.io/nuget/v/Esolang.Funge.Fingerprints.Time?logo=nuget)](https://www.nuget.org/packages/Esolang.Funge.Fingerprints.Time/) | TIME fingerprint (System time). |
 
@@ -148,6 +151,7 @@ dotnet tool install -g dotnet-funge
 | Esolang.Funge.Fingerprints.Imth | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Modu | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Roma | netstandard2.0, netstandard2.1, net10.0 |
+| Esolang.Funge.Fingerprints.Stck | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Strn | netstandard2.0, netstandard2.1, net10.0 |
 | Esolang.Funge.Fingerprints.Time | netstandard2.0, netstandard2.1, net10.0 |
 | dotnet-funge | net8.0, net9.0, net10.0 |

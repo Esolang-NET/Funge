@@ -10,6 +10,7 @@ readonly struct KnownFungeTypes(Compilation compilation)
     public INamedTypeSymbol? IFungeExecutionContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeExecutionContext");
     public INamedTypeSymbol? IFungeInstructionPointerContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeInstructionPointerContext");
     public INamedTypeSymbol? IFungeInstructionPointerLifecycle { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeInstructionPointerLifecycle");
+    public INamedTypeSymbol? IFungeStackContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeStackContext");
     public INamedTypeSymbol? IFungeInputContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeInputContext");
     public INamedTypeSymbol? IFungeOutputContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeOutputContext");
     public INamedTypeSymbol? IFungeVectorContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeVectorContext");
