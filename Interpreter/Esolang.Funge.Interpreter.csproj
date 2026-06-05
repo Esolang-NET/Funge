@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Fingerprints.Date\Esolang.Funge.Fingerprints.Date.csproj" />
     <ProjectReference Include="..\Fingerprints.Base\Esolang.Funge.Fingerprints.Base.csproj" />
     <ProjectReference Include="..\Fingerprints.Bool\Esolang.Funge.Fingerprints.Bool.csproj" />
     <ProjectReference Include="..\Fingerprints.Modu\Esolang.Funge.Fingerprints.Modu.csproj" />

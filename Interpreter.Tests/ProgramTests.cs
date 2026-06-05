@@ -57,6 +57,14 @@ public class ProgramTests(TestContext TestContext)
     }
 
     [TestMethod]
+    public void Run_WithFingerprintDate_ReturnsZero()
+    {
+        const string source = "\"ETAD\"4(.@";
+        var exitCode = Run(["--source", source, "--fingerprint-date"]);
+        Assert.AreEqual(0, exitCode);
+    }
+
+    [TestMethod]
     public void Run_SourceOptionWithMultilineCode_ReturnsZero()
     {
         const string source = "v\n>25*\"!dlroW ,olleH\",,,,@";

@@ -1,5 +1,6 @@
 using Esolang.Funge.Fingerprints.Base;
 using Esolang.Funge.Fingerprints.Bool;
+using Esolang.Funge.Fingerprints.Date;
 using Esolang.Funge.Fingerprints.File;
 using Esolang.Funge.Fingerprints.Modu;
 using Esolang.Funge.Fingerprints.Roma;
@@ -35,6 +36,7 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     public IEnumerator<IOptionAndMakeFingerprintPair> GetEnumerator()
     {
         yield return Null;
+        yield return Date;
         yield return Bool;
         yield return File;
         yield return Modu;
@@ -68,6 +70,14 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     {
         Description = "Enable the BOOL fingerprint (0x424F4F4C): logic instructions A N O X.",
     }, _ => new BoolFingerprint());
+
+    /// <summary>
+    /// Enable the DATE fingerprint (0x44415445): Gregorian calendar instructions A C D J T W Y.
+    /// </summary>
+    readonly Pair Date = new(new(name: "--fingerprint-date")
+    {
+        Description = "Enable the DATE fingerprint (0x44415445): Gregorian calendar instructions A C D J T W Y.",
+    }, _ => new DateFingerprint());
 
     /// <summary>
     /// Enable the FILE fingerprint (0x46494C45): file I/O instructions C D G M O P R S W.
