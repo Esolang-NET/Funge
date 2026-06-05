@@ -533,4 +533,10 @@ public sealed class FileFingerprint : IFingerprint, IFungeInstructionPointerLife
         _statesByInstructionPointer.Clear();
     }
 }
-
+#if NETSTANDARD2_0
+static class KeyValuePairExtensions
+{
+    public static void Deconstruct<K, V>(this KeyValuePair<K, V> kvp, out K key, out V value)
+       => (key, value) = (kvp.Key, kvp.Value);
+}
+#endif
