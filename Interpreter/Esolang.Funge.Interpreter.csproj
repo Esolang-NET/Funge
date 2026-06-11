@@ -53,6 +53,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Funge.Interpreter.Tests" />
+    <InternalsVisibleTo Include="Esolang.Funge.Interpreter.Tests" />
   </ItemGroup>
 </Project>

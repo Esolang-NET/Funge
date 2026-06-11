@@ -21,33 +21,14 @@ public sealed class NullFingerprint : IFingerprint
     public int Handprint { get; } = FingerprintHandprint.Compute("NULL");
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } =
-        new FingerprintBuilder()
-            .Add('A', static ctx => ctx.Reflect())
-            .Add('B', static ctx => ctx.Reflect())
-            .Add('C', static ctx => ctx.Reflect())
-            .Add('D', static ctx => ctx.Reflect())
-            .Add('E', static ctx => ctx.Reflect())
-            .Add('F', static ctx => ctx.Reflect())
-            .Add('G', static ctx => ctx.Reflect())
-            .Add('H', static ctx => ctx.Reflect())
-            .Add('I', static ctx => ctx.Reflect())
-            .Add('J', static ctx => ctx.Reflect())
-            .Add('K', static ctx => ctx.Reflect())
-            .Add('L', static ctx => ctx.Reflect())
-            .Add('M', static ctx => ctx.Reflect())
-            .Add('N', static ctx => ctx.Reflect())
-            .Add('O', static ctx => ctx.Reflect())
-            .Add('P', static ctx => ctx.Reflect())
-            .Add('Q', static ctx => ctx.Reflect())
-            .Add('R', static ctx => ctx.Reflect())
-            .Add('S', static ctx => ctx.Reflect())
-            .Add('T', static ctx => ctx.Reflect())
-            .Add('U', static ctx => ctx.Reflect())
-            .Add('V', static ctx => ctx.Reflect())
-            .Add('W', static ctx => ctx.Reflect())
-            .Add('X', static ctx => ctx.Reflect())
-            .Add('Y', static ctx => ctx.Reflect())
-            .Add('Z', static ctx => ctx.Reflect())
-            .BuildInstructions();
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } = MakeBuilder().BuildInstructions();
+    
+    internal static IEnumerable<char> Keys => Enumerable.Range('A', 'Z' - 'A' + 1).Select(c => (char)c);
+    static FingerprintBuilder MakeBuilder() => Keys.Aggregate(new FingerprintBuilder(), AddInstruction);
+    static FingerprintBuilder AddInstruction(FingerprintBuilder builder, char c)
+    {
+        builder.Add(c, Value);
+        return builder;
+    }
+    static void Value(IFungeExecutionContext ctx) => ctx.Reflect();
 }

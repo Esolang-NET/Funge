@@ -221,6 +221,18 @@ public class FingerprintTests(TestContext TestContext)
 
     [TestMethod]
     [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    public void NullFingerprint_AllKeys()
+    {
+        char[] expected = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+        var actual = NullFingerprint.Keys.ToArray();
+        CollectionAssert.AreEqual(
+            expected,
+            actual
+        );
+    }
+
+    [TestMethod]
+    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
     public void BaseFingerprint_OutputUsesExecutionContextIo()
     {
         var result = Run("\"ESAB\"4(5B@", [new BaseFingerprint()]);
