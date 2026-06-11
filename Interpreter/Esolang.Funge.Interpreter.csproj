@@ -32,16 +32,31 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fingerprints.Arry\Esolang.Funge.Fingerprints.Arry.csproj" />
+    <ProjectReference Include="..\Fingerprints.Cpli\Esolang.Funge.Fingerprints.Cpli.csproj" />
     <ProjectReference Include="..\Fingerprints.Date\Esolang.Funge.Fingerprints.Date.csproj" />
     <ProjectReference Include="..\Fingerprints.Base\Esolang.Funge.Fingerprints.Base.csproj" />
     <ProjectReference Include="..\Fingerprints.Bool\Esolang.Funge.Fingerprints.Bool.csproj" />
+    <ProjectReference Include="..\Fingerprints.Dirf\Esolang.Funge.Fingerprints.Dirf.csproj" />
+    <ProjectReference Include="..\Fingerprints.Evar\Esolang.Funge.Fingerprints.Evar.csproj" />
     <ProjectReference Include="..\Fingerprints.Fixp\Esolang.Funge.Fingerprints.Fixp.csproj" />
+    <ProjectReference Include="..\Fingerprints.Fpdp\Esolang.Funge.Fingerprints.Fpdp.csproj" />
+    <ProjectReference Include="..\Fingerprints.Fprt\Esolang.Funge.Fingerprints.Fprt.csproj" />
+    <ProjectReference Include="..\Fingerprints.Fpsp\Esolang.Funge.Fingerprints.Fpsp.csproj" />
+    <ProjectReference Include="..\Fingerprints.Hrti\Esolang.Funge.Fingerprints.Hrti.csproj" />
+    <ProjectReference Include="..\Fingerprints.Ical\Esolang.Funge.Fingerprints.Ical.csproj" />
     <ProjectReference Include="..\Fingerprints.Indv\Esolang.Funge.Fingerprints.Indv.csproj" />
+    <ProjectReference Include="..\Fingerprints.Jstr\Esolang.Funge.Fingerprints.Jstr.csproj" />
     <ProjectReference Include="..\Fingerprints.Modu\Esolang.Funge.Fingerprints.Modu.csproj" />
+    <ProjectReference Include="..\Fingerprints.Orth\Esolang.Funge.Fingerprints.Orth.csproj" />
     <ProjectReference Include="..\Fingerprints.Rand\Esolang.Funge.Fingerprints.Rand.csproj" />
+    <ProjectReference Include="..\Fingerprints.Refc\Esolang.Funge.Fingerprints.Refc.csproj" />
     <ProjectReference Include="..\Fingerprints.Roma\Esolang.Funge.Fingerprints.Roma.csproj" />
+    <ProjectReference Include="..\Fingerprints.Sets\Esolang.Funge.Fingerprints.Sets.csproj" />
     <ProjectReference Include="..\Fingerprints.Strn\Esolang.Funge.Fingerprints.Strn.csproj" />
+    <ProjectReference Include="..\Fingerprints.Term\Esolang.Funge.Fingerprints.Term.csproj" />
+    <ProjectReference Include="..\Fingerprints.ThreeDsp\Esolang.Funge.Fingerprints.ThreeDsp.csproj" />
     <ProjectReference Include="..\Fingerprints.Time\Esolang.Funge.Fingerprints.Time.csproj" />
+    <ProjectReference Include="..\Fingerprints.Toys\Esolang.Funge.Fingerprints.Toys.csproj" />
     <ProjectReference Include="..\Processor\Esolang.Funge.Processor.csproj" />
     <ProjectReference Include="..\Fingerprints.File\Esolang.Funge.Fingerprints.File.csproj" />
   </ItemGroup>

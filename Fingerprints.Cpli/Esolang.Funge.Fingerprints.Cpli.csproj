@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <RootNamespace>Esolang.Funge.Fingerprints.Cpli</RootNamespace>
+    <Description>CPLI fingerprint (0x43504C49) for Funge-98: complex integer arithmetic A D M O S V.</Description>
+    <PackageId>Esolang.Funge.Fingerprints.Cpli</PackageId>
+    <PackageTags>esolang;funge;funge-98;befunge;fingerprints;cpli</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <StripSymbols>false</StripSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Abstractions/Esolang.Funge.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

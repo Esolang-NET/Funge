@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net48;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0;net9.0;net10.0</TargetFrameworks>
+    <AssemblyName>Esolang.Funge.Fingerprints.Dirf.Tests</AssemblyName>
+    <RootNamespace>Esolang.Funge.Fingerprints.Dirf</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fingerprints.Dirf\Esolang.Funge.Fingerprints.Dirf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
+  </ItemGroup>
+
+</Project>
