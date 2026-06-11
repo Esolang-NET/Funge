@@ -46,5 +46,13 @@
     <OutputType>Exe</OutputType>
     <EnableMSTestRunner>true</EnableMSTestRunner>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
   </PropertyGroup>
+
+  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Tests')) == 'True'">
+    <ProjectCapability Include="TestContainer" />
+
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+
 </Project>
