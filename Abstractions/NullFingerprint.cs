@@ -22,7 +22,7 @@ public sealed class NullFingerprint : IFingerprint
 
     /// <inheritdoc/>
     public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } = MakeBuilder().BuildInstructions();
-    
+
     internal static IEnumerable<char> Keys => Enumerable.Range('A', 'Z' - 'A' + 1).Select(c => (char)c);
     static FingerprintBuilder MakeBuilder() => Keys.Aggregate(new FingerprintBuilder(), AddInstruction);
     static FingerprintBuilder AddInstruction(FingerprintBuilder builder, char c)
