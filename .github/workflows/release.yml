@@ -97,9 +97,12 @@ jobs:
       - name: Pack Libraries
         run: |
           dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -c Release -o artifacts/aot --no-build -p:ToolPackageRuntimeIdentifiers=""
-          dotnet pack Generator/Esolang.Funge.Generator.csproj -c Release -o artifacts/nuget --no-build
-          dotnet pack Parser/Esolang.Funge.Parser.csproj -c Release -o artifacts/nuget --no-build
-          dotnet pack Processor/Esolang.Funge.Processor.csproj -c Release -o artifacts/nuget --no-build
+          while IFS= read -r project; do
+            dotnet pack "$project" -c Release -o artifacts/nuget --no-build
+          done < <(find . -type f -name "*.csproj" \
+            ! -name "*.Tests.csproj" \
+            ! -path "./Interpreter/*" \
+            ! -path "./samples/*" | sort)
 
       - name: Publish to NuGet.org
         env:

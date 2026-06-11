@@ -100,11 +100,14 @@ jobs:
       - name: Pack
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          dotnet pack Generator/Esolang.Funge.Generator.csproj -o artifacts/
-          dotnet pack Parser/Esolang.Funge.Parser.csproj -o artifacts/
-          dotnet pack Processor/Esolang.Funge.Processor.csproj -o artifacts/
           dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -p:ToolPackageRuntimeIdentifiers= -o artifacts/
           dotnet pack Interpreter/Esolang.Funge.Interpreter.csproj -p:PublishAot=false -p:ToolPackageRuntimeIdentifiers="" -o artifacts/
+          while IFS= read -r project; do
+            dotnet pack "$project" -o artifacts/
+          done < <(find . -type f -name "*.csproj" \
+            ! -name "*.Tests.csproj" \
+            ! -path "./Interpreter/*" \
+            ! -path "./samples/*" | sort)
 
       - uses: actions/upload-artifact@v4
         if: ${{ matrix.os == 'ubuntu-latest' }}
