@@ -50,7 +50,13 @@ public class HighResTimerFingerprintTests
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
         Instruction(fp, 'M')(ctx);
+<<<<<<< TODO: プロジェクト 'Esolang.Funge.Fingerprints.Hrti.Tests(net8.0)' からのマージされていない変更, 前:
         System.Threading.Thread.Sleep(5);
+=======
+        Thread.Sleep(5);
+>>>>>>> 後
+
+        Thread.Sleep(5);
         Instruction(fp, 'T')(ctx);
         Assert.IsFalse(ctx.Reflected);
         Assert.IsGreaterThanOrEqualTo(ctx.Pop(), 0);
@@ -108,7 +114,13 @@ public class HighResTimerFingerprintTests
         fp.OnInstructionPointerCloned(1, 2);
 
         var childCtx = new TestContext { InstructionPointerId = 2 };
+<<<<<<< TODO: プロジェクト 'Esolang.Funge.Fingerprints.Hrti.Tests(net8.0)' からのマージされていない変更, 前:
         System.Threading.Thread.Sleep(1);
+=======
+        Thread.Sleep(1);
+>>>>>>> 後
+
+        Thread.Sleep(1);
         Instruction(fp, 'T')(childCtx);
         Assert.IsFalse(childCtx.Reflected);
         Assert.IsGreaterThanOrEqualTo(childCtx.Pop(), 0);

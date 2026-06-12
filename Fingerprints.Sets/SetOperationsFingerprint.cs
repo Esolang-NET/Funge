@@ -103,7 +103,7 @@ public sealed class SetOperationsFingerprint : IFingerprint
         if (!TryPopSet(ctx, out var set))
             return;
         PushSet(ctx, set);
-        PushSet(ctx, [..set]);
+        PushSet(ctx, [.. set]);
     }
 
     static void GetFromSpace(IFungeExecutionContext ctx)
