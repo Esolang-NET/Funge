@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <RootNamespace>Esolang.Funge.Fingerprints.Fprt</RootNamespace>
+    <Description>FPRT fingerprint (0x46505254) for Funge-98: formatted print instructions D F I L S.</Description>
+    <PackageId>Esolang.Funge.Fingerprints.Fprt</PackageId>
+    <PackageTags>esolang;funge;funge-98;befunge;fingerprints;fprt</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <StripSymbols>false</StripSymbols>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(TargetFramework) == 'netstandard2.0'">
+    <PackageReference Include="IndexRange" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Abstractions/Esolang.Funge.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

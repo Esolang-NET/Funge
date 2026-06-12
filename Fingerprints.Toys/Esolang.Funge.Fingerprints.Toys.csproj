@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
+    <RootNamespace>Esolang.Funge.Fingerprints.Toys</RootNamespace>
+    <Description>TOYS fingerprint (0x544F5953) for Funge-98: Funge-98 standard toys A B C D E F G H I J K L M N O P Q R S T U V W X Y Z.</Description>
+    <PackageId>Esolang.Funge.Fingerprints.Toys</PackageId>
+    <PackageTags>esolang;funge;funge-98;befunge;fingerprints;toys</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <StripSymbols>false</StripSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Abstractions/Esolang.Funge.Abstractions.csproj" />
+  </ItemGroup>
+</Project>

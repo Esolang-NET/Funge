@@ -1,15 +1,30 @@
 using Esolang.Funge.Fingerprints.Arry;
 using Esolang.Funge.Fingerprints.Base;
 using Esolang.Funge.Fingerprints.Bool;
+using Esolang.Funge.Fingerprints.Cpli;
 using Esolang.Funge.Fingerprints.Date;
+using Esolang.Funge.Fingerprints.Dirf;
+using Esolang.Funge.Fingerprints.Evar;
 using Esolang.Funge.Fingerprints.File;
 using Esolang.Funge.Fingerprints.Fixp;
+using Esolang.Funge.Fingerprints.Fpdp;
+using Esolang.Funge.Fingerprints.Fprt;
+using Esolang.Funge.Fingerprints.Fpsp;
+using Esolang.Funge.Fingerprints.Hrti;
+using Esolang.Funge.Fingerprints.Ical;
 using Esolang.Funge.Fingerprints.Indv;
+using Esolang.Funge.Fingerprints.Jstr;
 using Esolang.Funge.Fingerprints.Modu;
+using Esolang.Funge.Fingerprints.Orth;
 using Esolang.Funge.Fingerprints.Rand;
+using Esolang.Funge.Fingerprints.Refc;
 using Esolang.Funge.Fingerprints.Roma;
+using Esolang.Funge.Fingerprints.Sets;
 using Esolang.Funge.Fingerprints.Strn;
+using Esolang.Funge.Fingerprints.Term;
+using Esolang.Funge.Fingerprints.ThreeDsp;
 using Esolang.Funge.Fingerprints.Time;
+using Esolang.Funge.Fingerprints.Toys;
 using System.Collections;
 using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
@@ -43,14 +58,29 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
         yield return Arry;
         yield return Date;
         yield return Bool;
+        yield return Cpli;
+        yield return Dirf;
+        yield return Evar;
         yield return File;
         yield return Fixp;
+        yield return Fpdp;
+        yield return Fprt;
+        yield return Fpsp;
+        yield return Hrti;
+        yield return Ical;
         yield return Indv;
+        yield return Jstr;
         yield return Modu;
+        yield return Orth;
         yield return Rand;
+        yield return Refc;
         yield return Roma;
+        yield return Sets;
         yield return Strn;
+        yield return Term;
+        yield return ThreeDsp;
         yield return Time;
+        yield return Toys;
         yield return Base;
     }
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -158,6 +188,126 @@ class FingerprintsOptions : IEnumerable<IOptionAndMakeFingerprintPair>
     {
         Description = "Enable the TIME fingerprint (0x54494D45): time instructions A N O X.",
     }, _ => new TimeFingerprint());
+
+    /// <summary>
+    /// Enable the CPLI fingerprint (0x43504C49): complex integer arithmetic A D M O S V.
+    /// </summary>
+    readonly Pair Cpli = new(new(name: "--fingerprint-cpli")
+    {
+        Description = "Enable the CPLI fingerprint (0x43504C49): complex integer arithmetic A D M O S V.",
+    }, _ => new ComplexIntegerFingerprint());
+
+    /// <summary>
+    /// Enable the DIRF fingerprint (0x44495246): directory functions C M R.
+    /// </summary>
+    readonly Pair Dirf = new(new(name: "--fingerprint-dirf")
+    {
+        Description = "Enable the DIRF fingerprint (0x44495246): directory functions C M R.",
+    }, _ => new DirectoryFingerprint());
+
+    /// <summary>
+    /// Enable the EVAR fingerprint (0x45564152): environment variable instructions G N P V.
+    /// </summary>
+    readonly Pair Evar = new(new(name: "--fingerprint-evar")
+    {
+        Description = "Enable the EVAR fingerprint (0x45564152): environment variable instructions G N P V.",
+    }, _ => new EnvironmentVariablesFingerprint());
+
+    /// <summary>
+    /// Enable the FPDP fingerprint (0x46504450): double-precision floating point A B C D E F G H I K L M N P Q S T V X Y.
+    /// </summary>
+    readonly Pair Fpdp = new(new(name: "--fingerprint-fpdp")
+    {
+        Description = "Enable the FPDP fingerprint (0x46504450): double-precision floating point A B C D E F G H I K L M N P Q S T V X Y.",
+    }, _ => new DoublePrecisionFloatFingerprint());
+
+    /// <summary>
+    /// Enable the FPRT fingerprint (0x46505254): formatted print D F I L S.
+    /// </summary>
+    readonly Pair Fprt = new(new(name: "--fingerprint-fprt")
+    {
+        Description = "Enable the FPRT fingerprint (0x46505254): formatted print D F I L S.",
+    }, _ => new FormattedPrintFingerprint());
+
+    /// <summary>
+    /// Enable the FPSP fingerprint (0x46505350): single-precision floating point A B C D E F G H I K L M N P Q S T V X Y.
+    /// </summary>
+    readonly Pair Fpsp = new(new(name: "--fingerprint-fpsp")
+    {
+        Description = "Enable the FPSP fingerprint (0x46505350): single-precision floating point A B C D E F G H I K L M N P Q S T V X Y.",
+    }, _ => new SinglePrecisionFloatFingerprint());
+
+    /// <summary>
+    /// Enable the HRTI fingerprint (0x48525449): high-resolution timer E G M S T.
+    /// </summary>
+    readonly Pair Hrti = new(new(name: "--fingerprint-hrti")
+    {
+        Description = "Enable the HRTI fingerprint (0x48525449): high-resolution timer E G M S T.",
+    }, _ => new HighResTimerFingerprint());
+
+    /// <summary>
+    /// Enable the ICAL fingerprint (0x4943414C): intercal-like instructions A F I N O R S X.
+    /// </summary>
+    readonly Pair Ical = new(new(name: "--fingerprint-ical")
+    {
+        Description = "Enable the ICAL fingerprint (0x4943414C): intercal-like instructions A F I N O R S X.",
+    }, _ => new IntercalFingerprint());
+
+    /// <summary>
+    /// Enable the JSTR fingerprint (0x4A535452): Jesse van Herk's string extensions G P.
+    /// </summary>
+    readonly Pair Jstr = new(new(name: "--fingerprint-jstr")
+    {
+        Description = "Enable the JSTR fingerprint (0x4A535452): Jesse van Herk's string extensions G P.",
+    }, _ => new JstrFingerprint());
+
+    /// <summary>
+    /// Enable the ORTH fingerprint (0x4F525448): orthogonal easement A E G O P S V W X Y Z.
+    /// </summary>
+    readonly Pair Orth = new(new(name: "--fingerprint-orth")
+    {
+        Description = "Enable the ORTH fingerprint (0x4F525448): orthogonal easement A E G O P S V W X Y Z.",
+    }, _ => new OrthogonalFingerprint());
+
+    /// <summary>
+    /// Enable the REFC fingerprint (0x52454643): referenced cells D R.
+    /// </summary>
+    readonly Pair Refc = new(new(name: "--fingerprint-refc")
+    {
+        Description = "Enable the REFC fingerprint (0x52454643): referenced cells D R.",
+    }, _ => new ReferencedCellsFingerprint());
+
+    /// <summary>
+    /// Enable the SETS fingerprint (0x53455453): set operations A C D G I M P R S U W X Z.
+    /// </summary>
+    readonly Pair Sets = new(new(name: "--fingerprint-sets")
+    {
+        Description = "Enable the SETS fingerprint (0x53455453): set operations A C D G I M P R S U W X Z.",
+    }, _ => new SetOperationsFingerprint());
+
+    /// <summary>
+    /// Enable the TERM fingerprint (0x5445524D): terminal extension C D G H L S U.
+    /// </summary>
+    readonly Pair Term = new(new(name: "--fingerprint-term")
+    {
+        Description = "Enable the TERM fingerprint (0x5445524D): terminal extension C D G H L S U.",
+    }, _ => new TerminalFingerprint());
+
+    /// <summary>
+    /// Enable the 3DSP fingerprint (0x33445350): 3D space manipulation A B C D L M N P R S T U V X Y Z.
+    /// </summary>
+    readonly Pair ThreeDsp = new(new(name: "--fingerprint-3dsp")
+    {
+        Description = "Enable the 3DSP fingerprint (0x33445350): 3D space manipulation A B C D L M N P R S T U V X Y Z.",
+    }, _ => new ThreeDeeSpaceFingerprint());
+
+    /// <summary>
+    /// Enable the TOYS fingerprint (0x544F5953): Funge-98 standard toys A B C D E F G H I J K L M N O P Q R S T U V W X Y Z.
+    /// </summary>
+    readonly Pair Toys = new(new(name: "--fingerprint-toys")
+    {
+        Description = "Enable the TOYS fingerprint (0x544F5953): Funge-98 standard toys A B C D E F G H I J K L M N O P Q R S T U V W X Y Z.",
+    }, _ => new ToysFingerprint());
 
     /// <summary>
     /// Defines a pair of an <see cref="Option"/> and a factory for creating an <see cref="IFingerprint"/> based on the parsed command-line arguments.
