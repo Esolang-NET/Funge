@@ -91,7 +91,7 @@ public class EnvironmentVariablesFingerprintTests
         var ctx = new TestContext();
         Instruction(fp, 'N')(ctx);
         Assert.IsFalse(ctx.Reflected);
-        Assert.IsGreaterThan(ctx.Pop(), 0);
+        Assert.IsGreaterThan(0, ctx.Pop());
     }
 
     [TestMethod]

@@ -41,7 +41,7 @@ public class HighResTimerFingerprintTests
         var ctx = new TestContext();
         Instruction(fp, 'G')(ctx);
         Assert.IsFalse(ctx.Reflected);
-        Assert.IsGreaterThanOrEqualTo(ctx.Pop(), 0);
+        Assert.IsGreaterThanOrEqualTo(0, ctx.Pop());
     }
 
     [TestMethod]
@@ -54,7 +54,7 @@ public class HighResTimerFingerprintTests
         Thread.Sleep(5);
         Instruction(fp, 'T')(ctx);
         Assert.IsFalse(ctx.Reflected);
-        Assert.IsGreaterThanOrEqualTo(ctx.Pop(), 0);
+        Assert.IsGreaterThanOrEqualTo(0, ctx.Pop());
     }
 
     [TestMethod]
@@ -86,8 +86,8 @@ public class HighResTimerFingerprintTests
         Instruction(fp, 'S')(ctx);
         Assert.IsFalse(ctx.Reflected);
         var val = ctx.Pop();
-        Assert.IsGreaterThanOrEqualTo(val, 0);
-        Assert.IsLessThan(val, 1_000_000);
+        Assert.IsGreaterThanOrEqualTo(0, val);
+        Assert.IsLessThan(1_000_000, val);
     }
 
     [TestMethod]
@@ -113,7 +113,7 @@ public class HighResTimerFingerprintTests
         Thread.Sleep(1);
         Instruction(fp, 'T')(childCtx);
         Assert.IsFalse(childCtx.Reflected);
-        Assert.IsGreaterThanOrEqualTo(childCtx.Pop(), 0);
+        Assert.IsGreaterThanOrEqualTo(0, childCtx.Pop());
     }
 
     [TestMethod]
