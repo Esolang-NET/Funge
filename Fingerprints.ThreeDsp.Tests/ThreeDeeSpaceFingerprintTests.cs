@@ -43,11 +43,31 @@ public class ThreeDeeSpaceFingerprintTests
         return instr;
     }
 
+    static int SingleToInt32Bits(float value)
+    {
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        return BitConverter.SingleToInt32Bits(value);
+#else
+        var bytes = BitConverter.GetBytes(value);
+        return BitConverter.ToInt32(bytes, 0);
+#endif
+    }
+
+    static float Int32BitsToSingle(int bits)
+    {
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        return BitConverter.Int32BitsToSingle(bits);
+#else
+        var bytes = BitConverter.GetBytes(bits);
+        return BitConverter.ToSingle(bytes, 0);
+#endif
+    }
+
     static void PushFloat(TestContext ctx, float value)
-        => ctx.Push(BitConverter.SingleToInt32Bits(value));
+        => ctx.Push(SingleToInt32Bits(value));
 
     static float PopFloat(TestContext ctx)
-        => BitConverter.Int32BitsToSingle(ctx.Pop());
+        => Int32BitsToSingle(ctx.Pop());
 
     static void PushVec3(TestContext ctx, float x, float y, float z)
     {

@@ -86,17 +86,28 @@ public class FormattedPrintFingerprintTests
         Assert.AreEqual("Hello world!", Pop0gnirts(ctx));
     }
 
+    static int SingleToInt32Bits(float value)
+    {
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+        return BitConverter.SingleToInt32Bits(value);
+#else
+        var bytes = BitConverter.GetBytes(value);
+        return BitConverter.ToInt32(bytes, 0);
+#endif
+    }
+
+
     [TestMethod]
     public void Instruction_F_FormatFloat()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
-        ctx.Push(BitConverter.SingleToInt32Bits(3.14f)); // value
+        ctx.Push(SingleToInt32Bits(3.14f)); // value
         Push0gnirts(ctx, "%.2f"); // format
         Instruction(fp, 'F')(ctx);
         Assert.IsFalse(ctx.Reflected);
         var result = Pop0gnirts(ctx);
-        Assert.IsTrue(result.StartsWith("3.14", System.StringComparison.Ordinal));
+        Assert.IsTrue(result.StartsWith("3.14", StringComparison.Ordinal));
     }
 
     [TestMethod]
