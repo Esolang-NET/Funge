@@ -86,6 +86,21 @@ Built-in fingerprints shipped with this repository:
 | [`STCK`](./Fingerprints.Stck/README.md) | `0x5354434B` | [Esolang.Funge.Fingerprints.Stck](./Fingerprints.Stck/README.md) | ✅ B C D G K N P R S T U W Z |
 | [`STRN`](./Fingerprints.Strn/README.md) | `0x5354524E` | [Esolang.Funge.Fingerprints.Strn](./Fingerprints.Strn/README.md) | ✅ A C D F G I L M N P R S V |
 | [`TIME`](./Fingerprints.Time/README.md) | `0x54494D45` | [Esolang.Funge.Fingerprints.Time](./Fingerprints.Time/README.md) | ✅ D F G H L M O S W Y |
+| [`3DSP`](./Fingerprints.ThreeDsp/README.md) | `0x33445350` | [Esolang.Funge.Fingerprints.ThreeDsp](./Fingerprints.ThreeDsp/README.md) | ✅ A B C D L M N P R S T U V X Y Z |
+| [`CPLI`](./Fingerprints.Cpli/README.md) | `0x43504C49` | [Esolang.Funge.Fingerprints.Cpli](./Fingerprints.Cpli/README.md) | ✅ A D M O S V |
+| [`DIRF`](./Fingerprints.Dirf/README.md) | `0x44495246` | [Esolang.Funge.Fingerprints.Dirf](./Fingerprints.Dirf/README.md) | ✅ C M R |
+| [`EVAR`](./Fingerprints.Evar/README.md) | `0x45564152` | [Esolang.Funge.Fingerprints.Evar](./Fingerprints.Evar/README.md) | ✅ G N P V |
+| [`FPDP`](./Fingerprints.Fpdp/README.md) | `0x46504450` | [Esolang.Funge.Fingerprints.Fpdp](./Fingerprints.Fpdp/README.md) | ✅ A B C D E F G H I K L M N P Q S T V X Y |
+| [`FPRT`](./Fingerprints.Fprt/README.md) | `0x46505254` | [Esolang.Funge.Fingerprints.Fprt](./Fingerprints.Fprt/README.md) | ✅ D F I L S |
+| [`FPSP`](./Fingerprints.Fpsp/README.md) | `0x46505350` | [Esolang.Funge.Fingerprints.Fpsp](./Fingerprints.Fpsp/README.md) | ✅ A B C D E F G H I K L M N P Q S T V X Y |
+| [`HRTI`](./Fingerprints.Hrti/README.md) | `0x48525449` | [Esolang.Funge.Fingerprints.Hrti](./Fingerprints.Hrti/README.md) | ✅ E G M S T |
+| [`ICAL`](./Fingerprints.Ical/README.md) | `0x4943414C` | [Esolang.Funge.Fingerprints.Ical](./Fingerprints.Ical/README.md) | ✅ A F I N O R S X |
+| [`JSTR`](./Fingerprints.Jstr/README.md) | `0x4A535452` | [Esolang.Funge.Fingerprints.Jstr](./Fingerprints.Jstr/README.md) | ✅ G P |
+| [`ORTH`](./Fingerprints.Orth/README.md) | `0x4F525448` | [Esolang.Funge.Fingerprints.Orth](./Fingerprints.Orth/README.md) | ✅ A E G O P S V W X Y Z |
+| [`REFC`](./Fingerprints.Refc/README.md) | `0x52454643` | [Esolang.Funge.Fingerprints.Refc](./Fingerprints.Refc/README.md) | ✅ D R |
+| [`SETS`](./Fingerprints.Sets/README.md) | `0x53455453` | [Esolang.Funge.Fingerprints.Sets](./Fingerprints.Sets/README.md) | ✅ A C D G I M P R S U W X Z |
+| [`TERM`](./Fingerprints.Term/README.md) | `0x5445524D` | [Esolang.Funge.Fingerprints.Term](./Fingerprints.Term/README.md) | ✅ C D G H L S U |
+| [`TOYS`](./Fingerprints.Toys/README.md) | `0x544F5953` | [Esolang.Funge.Fingerprints.Toys](./Fingerprints.Toys/README.md) | ✅ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z |
 
 To register fingerprints with the Generator, use `[FingerprintsProvider]` — see [Generator README](./Generator/README.md).
 
