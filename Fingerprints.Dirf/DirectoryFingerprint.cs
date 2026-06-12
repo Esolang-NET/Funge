@@ -21,7 +21,7 @@ public sealed class DirectoryFingerprint : IFingerprint
 
     static string Pop0gnirts(IFungeExecutionContext ctx)
     {
-        var chars = new System.Collections.Generic.List<char>();
+        var chars = new List<char>();
         int c;
         while ((c = ctx.Pop()) != 0)
             chars.Insert(0, (char)c);
@@ -31,11 +31,6 @@ public sealed class DirectoryFingerprint : IFingerprint
     static void ChangeDirectory(IFungeExecutionContext ctx)
     {
         var path = Pop0gnirts(ctx);
-<<<<<<< TODO: プロジェクト 'Esolang.Funge.Fingerprints.Dirf(netstandard2.1)' からのマージされていない変更, 前:
-            System.IO.Directory.SetCurrentDirectory(path);
-=======
-            Directory.SetCurrentDirectory(path);
->>>>>>> 後
 
         try
         {
@@ -50,11 +45,6 @@ public sealed class DirectoryFingerprint : IFingerprint
     static void MakeDirectory(IFungeExecutionContext ctx)
     {
         var path = Pop0gnirts(ctx);
-<<<<<<< TODO: プロジェクト 'Esolang.Funge.Fingerprints.Dirf(netstandard2.1)' からのマージされていない変更, 前:
-            System.IO.Directory.CreateDirectory(path);
-=======
-            Directory.CreateDirectory(path);
->>>>>>> 後
 
         try
         {
@@ -69,11 +59,6 @@ public sealed class DirectoryFingerprint : IFingerprint
     static void RemoveDirectory(IFungeExecutionContext ctx)
     {
         var path = Pop0gnirts(ctx);
-<<<<<<< TODO: プロジェクト 'Esolang.Funge.Fingerprints.Dirf(netstandard2.1)' からのマージされていない変更, 前:
-            System.IO.Directory.Delete(path);
-=======
-            Directory.Delete(path);
->>>>>>> 後
 
         try
         {

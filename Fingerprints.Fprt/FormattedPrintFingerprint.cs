@@ -23,12 +23,6 @@ public sealed partial class FormattedPrintFingerprint : IFingerprint
             .Add('L', FormatLong)
             .Add('S', FormatString)
             .BuildInstructions();
-<<<<<<< TODO: プロジェクト 'Esolang.Funge.Fingerprints.Fprt(netstandard2.1)' からのマージされていない変更, 前:
-    private static Regex FormatSpecifierRegex() => new Regex(@"%[^%]*[diouxXeEfgGsq]");
-=======
-    static Regex FormatSpecifierRegex() => new(@"%[^%]*[diouxXeEfgGsq]");
->>>>>>> 後
-
 
 #if NET7_0_OR_GREATER
     [GeneratedRegex(@"%[^%]*[diouxXeEfgGsq]")]
