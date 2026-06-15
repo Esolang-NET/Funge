@@ -213,7 +213,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
                 // Bind the method signature
-                var binding = BindExecutionSignature(symbol, method, compilation, types, fungeTypes, fingerprintsProviderName, symbol, ctx);
+                var binding = BindExecutionSignature(symbol, compilation, types, fungeTypes, fingerprintsProviderName, symbol, ctx);
                 if (!binding.IsValid)
                 {
                     var error = binding.FungeError ?? binding.Binding.Error!;
@@ -300,7 +300,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         method.Identifier.GetLocation(), symbol.Name));
 
                 var displayPath = !string.IsNullOrWhiteSpace(inlineSource) ? "<inline>" : sourcePath!;
-                var emitted = EmitMethod(symbol, method, space, binding, projDir, displayPath);
+                var emitted = EmitMethod(symbol, space, binding, projDir, displayPath);
                 methodSb.AppendLine(emitted);
                 emittedCount++;
                 runtimeFeatures |= GetRuntimeFacadeFeatures(binding.Binding.ReturnKind);
@@ -338,7 +338,6 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     static FungeExecutionBinding BindExecutionSignature(
         IMethodSymbol method,
-        MethodDeclarationSyntax syntax,
         Compilation compilation,
         KnownTypes types,
         KnownFungeTypes fungeTypes,
@@ -469,7 +468,6 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
     static string EmitMethod(
         IMethodSymbol symbol,
-        MethodDeclarationSyntax syntax,
         FungeSpace space,
         FungeExecutionBinding binding,
         string? projDir,
