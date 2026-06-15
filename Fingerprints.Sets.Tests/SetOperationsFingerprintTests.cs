@@ -50,7 +50,7 @@ public class SetOperationsFingerprintTests
         (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        await Assert.That(result).IsEquivalentTo((int[])[1, 2,3,4], CollectionOrdering.Any);
+        await Assert.That(result).IsEquivalentTo((int[])[1, 2, 3, 4], CollectionOrdering.Any);
     }
 
     [Test]

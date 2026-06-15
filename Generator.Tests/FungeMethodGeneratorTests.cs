@@ -6,8 +6,8 @@ using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Text;
-using TUnit.Assertions.Exceptions;
 using TUnit.Assertions.Enums;
+using TUnit.Assertions.Exceptions;
 
 namespace Esolang.Funge.Generator.Tests;
 
@@ -519,7 +519,7 @@ public class FungeMethodGeneratorTests
 
     [Test]
     [Timeout(Constant.Timeout)]
-    public async Task StringMode_SgmlStyleSpaces_StringReturn(CancellationToken CancellationToken   )
+    public async Task StringMode_SgmlStyleSpaces_StringReturn(CancellationToken CancellationToken)
     {
         const string program = "\"   \"..@";
 
@@ -1602,9 +1602,11 @@ public class FungeMethodGeneratorTests
             if (Directory.Exists(originalDir))
                 Directory.SetCurrentDirectory(originalDir);
             if (Directory.Exists(tempDir))
-                try {
+                try
+                {
                     Directory.Delete(tempDir, recursive: true);
-                }catch {}
+                }
+                catch { }
         }
     }
 
@@ -1648,7 +1650,7 @@ public class FungeMethodGeneratorTests
                 }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
                 var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
-                await Assert.That(bytes).IsEquivalentTo((byte[]) [ 65 ], CollectionOrdering.Matching);
+                await Assert.That(bytes).IsEquivalentTo((byte[])[65], CollectionOrdering.Matching);
             }
             catch (Exception e) when (e is AssertionException or TargetInvocationException)
             {
@@ -1661,9 +1663,11 @@ public class FungeMethodGeneratorTests
             if (Directory.Exists(originalDir))
                 Directory.SetCurrentDirectory(originalDir);
             if (Directory.Exists(tempDir))
-                try {
+                try
+                {
                     Directory.Delete(tempDir, recursive: true);
-                } catch { }
+                }
+                catch { }
         }
     }
 
@@ -1732,7 +1736,7 @@ public class FungeMethodGeneratorTests
             AssertNoErrors(diag, comp);
 
             var asm = await EmitAsync(comp, CancellationToken);
-            await Task.Factory.StartNew(async() =>
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
@@ -1853,7 +1857,7 @@ public class FungeMethodGeneratorTests
                 await enumerator.DisposeAsync();
             }
 
-            await Assert.That(bytes).IsEquivalentTo((byte[]) [ (byte)'A' ], CollectionOrdering.Matching);
+            await Assert.That(bytes).IsEquivalentTo((byte[])[(byte)'A'], CollectionOrdering.Matching);
         }
         catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
@@ -2269,7 +2273,7 @@ public class FungeMethodGeneratorTests
 
             var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [CancellationToken]));
             Assert.NotNull(ex.InnerException);
-            await Assert.That(ex.InnerException).IsTypeOf<InvalidOperationException>();;
+            await Assert.That(ex.InnerException).IsTypeOf<InvalidOperationException>(); ;
             await Assert.That(ex.InnerException).HasMessageContaining("without an output interface");
         }
         catch (Exception e) when (e is AssertionException or TargetInvocationException)

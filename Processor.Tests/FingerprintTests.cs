@@ -5,8 +5,8 @@ using Esolang.Funge.Fingerprints.Imth;
 using Esolang.Funge.Fingerprints.Indv;
 using Esolang.Funge.Fingerprints.Long;
 using Esolang.Funge.Fingerprints.Rand;
-using static Esolang.Processor.IOEvent;
 using TUnit.Assertions.Enums;
+using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor.Tests;
 
@@ -433,7 +433,7 @@ public class FingerprintTests
         var fp = new LifecycleFingerprint("PEST", new Dictionary<char, FingerprintInstruction>());
         var exitCode = RunExitCode("\"TSEP\"4(>tq", [fp], CancellationToken: CancellationToken);
         await Assert.That(exitCode).IsEqualTo(1);
-        await Assert.That(fp.Events).IsEquivalentTo((string[])[ "clone:0->1", "term:0", "term:1" ], CollectionOrdering.Matching);
+        await Assert.That(fp.Events).IsEquivalentTo((string[])["clone:0->1", "term:0", "term:1"], CollectionOrdering.Matching);
     }
 
     // ── Multiple fingerprints ─────────────────────────────────────────────────

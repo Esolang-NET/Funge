@@ -57,7 +57,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'D'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 3 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 3], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -69,7 +69,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'O'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 1 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 1], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -81,7 +81,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'R'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 2, 3, 1 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[2, 3, 1], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -93,7 +93,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'P'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 3 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 3], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -105,7 +105,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'P'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 0 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 0], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -128,7 +128,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'L'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 3, 4, 5, 2 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 3, 4, 5, 2], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -140,7 +140,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'L'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 0 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 0], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -152,7 +152,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'L'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 5, 3, 4 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 5, 3, 4], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 
@@ -164,7 +164,7 @@ public class ForthFingerprintTests
 
         (await Instruction(fingerprint, 'L'))(context);
 
-        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 3, 0, 0, 1, 2 ], CollectionOrdering.Matching);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[3, 0, 0, 1, 2], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
     }
 }

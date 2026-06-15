@@ -1,5 +1,5 @@
-using static Esolang.Processor.IOEvent;
 using TUnit.Assertions.Enums;
+using static Esolang.Processor.IOEvent;
 
 namespace Esolang.Funge.Processor.Tests;
 
@@ -336,9 +336,11 @@ public class FungeProcessorTests
             if (Directory.Exists(originalDir))
                 Directory.SetCurrentDirectory(originalDir);
             if (Directory.Exists(tempDir))
-                try {
-                Directory.Delete(tempDir, recursive: true);
-                } catch { }
+                try
+                {
+                    Directory.Delete(tempDir, recursive: true);
+                }
+                catch { }
         }
     }
 
@@ -362,16 +364,18 @@ public class FungeProcessorTests
             await Run("88*1+000p00000000\"txt.tuptuo\"o@", CancellationToken: CancellationToken);
 
             var bytes = await File.ReadAllBytesAsync(Path.Combine(tempDir, "output.txt"), CancellationToken);
-            await Assert.That(bytes).IsEquivalentTo((byte[]) [ 65 ], CollectionOrdering.Matching);
+            await Assert.That(bytes).IsEquivalentTo((byte[])[65], CollectionOrdering.Matching);
         }
         finally
         {
             if (Directory.Exists(originalDir))
                 Directory.SetCurrentDirectory(originalDir);
             if (Directory.Exists(tempDir))
-                try {
+                try
+                {
                     Directory.Delete(tempDir, recursive: true);
-                } catch { }
+                }
+                catch { }
         }
     }
 
