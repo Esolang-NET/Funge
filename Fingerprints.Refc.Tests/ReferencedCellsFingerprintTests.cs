@@ -35,77 +35,77 @@ sealed class NoVectorContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class ReferencedCellsFingerprintTests
 {
-    static FingerprintInstruction Instruction(ReferencedCellsFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(ReferencedCellsFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x52454643, new ReferencedCellsFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new ReferencedCellsFingerprint().Handprint).IsEqualTo(0x52454643);
 
-    [TestMethod]
-    public void Instruction_R_D_RoundTrip()
+    [Test]
+    public async Task Instruction_R_D_RoundTrip()
     {
         var fp = new ReferencedCellsFingerprint();
         var ctx = new TestContext();
 
         // Push vector (x=1, y=2, z=3)
         ctx.Push(1); ctx.Push(2); ctx.Push(3);
-        Instruction(fp, 'R')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var refId = ctx.Pop();
 
         // Dereference
         ctx.Push(refId);
-        Instruction(fp, 'D')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
 
         var z = ctx.Pop();
         var y = ctx.Pop();
         var x = ctx.Pop();
-        Assert.AreEqual(1, x);
-        Assert.AreEqual(2, y);
-        Assert.AreEqual(3, z);
+        await Assert.That(x).IsEqualTo(1);
+        await Assert.That(y).IsEqualTo(2);
+        await Assert.That(z).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void Instruction_D_InvalidRef_Reflects()
+    [Test]
+    public async Task Instruction_D_InvalidRef_Reflects()
     {
         var fp = new ReferencedCellsFingerprint();
         var ctx = new TestContext();
         ctx.Push(999);
-        Instruction(fp, 'D')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_R_NoVector_Reflects()
+    [Test]
+    public async Task Instruction_R_NoVector_Reflects()
     {
         var fp = new ReferencedCellsFingerprint();
         var ctx = new NoVectorContext();
-        Instruction(fp, 'R')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_R_AutoIncrementsRef()
+    [Test]
+    public async Task Instruction_R_AutoIncrementsRef()
     {
         var fp = new ReferencedCellsFingerprint();
         var ctx = new TestContext();
 
         ctx.Push(1); ctx.Push(0); ctx.Push(0);
-        Instruction(fp, 'R')(ctx);
+        (await Instruction(fp, 'R'))(ctx);
         var ref1 = ctx.Pop();
 
         ctx.Push(2); ctx.Push(0); ctx.Push(0);
-        Instruction(fp, 'R')(ctx);
+        (await Instruction(fp, 'R'))(ctx);
         var ref2 = ctx.Pop();
 
-        Assert.AreNotEqual(ref1, ref2);
+        await Assert.That(ref2).IsNotEqualTo(ref1);
     }
 }

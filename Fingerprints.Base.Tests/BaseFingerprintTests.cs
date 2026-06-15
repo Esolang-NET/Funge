@@ -19,110 +19,110 @@ sealed class TestContext : IFungeExecutionContext, IFungeInputContext, IFungeOut
     public string Output => _output.ToString();
 }
 
-[TestClass]
 public class BaseFingerprintTests
 {
-    static FingerprintInstruction Instruction(BaseFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(BaseFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x42415345, new BaseFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new BaseFingerprint().Handprint).IsEqualTo(0x42415345);
 
-    [TestMethod]
-    [DataRow(5, "101")]
-    [DataRow(0, "0")]
-    public void Instruction_B_BinaryOutput(int value, string expected)
+    [Test]
+    [Arguments(5, "101")]
+    [Arguments(0, "0")]
+    public async Task Instruction_B_BinaryOutput(int value, string expected)
     {
         var fp = new BaseFingerprint();
         var ctx = new TestContext();
         ctx.Push(value);
 
-        Instruction(fp, 'B')(ctx);
+        (await Instruction(fp, 'B'))(ctx);
 
-        Assert.AreEqual(expected, ctx.Output);
-        Assert.AreEqual(0, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Output).IsEqualTo(expected);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(255, "FF")]
-    [DataRow(16, "10")]
-    public void Instruction_H_HexOutput(int value, string expected)
+    [Test]
+    [Arguments(255, "FF")]
+    [Arguments(16, "10")]
+    public async Task Instruction_H_HexOutput(int value, string expected)
     {
         var fp = new BaseFingerprint();
         var ctx = new TestContext();
         ctx.Push(value);
 
-        Instruction(fp, 'H')(ctx);
+        (await Instruction(fp, 'H'))(ctx);
 
-        Assert.AreEqual(expected, ctx.Output);
-        Assert.AreEqual(0, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Output).IsEqualTo(expected);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(8, "10")]
-    [DataRow(9, "11")]
-    public void Instruction_O_OctalOutput(int value, string expected)
+    [Test]
+    [Arguments(8, "10")]
+    [Arguments(9, "11")]
+    public async Task Instruction_O_OctalOutput(int value, string expected)
     {
         var fp = new BaseFingerprint();
         var ctx = new TestContext();
         ctx.Push(value);
 
-        Instruction(fp, 'O')(ctx);
+        (await Instruction(fp, 'O'))(ctx);
 
-        Assert.AreEqual(expected, ctx.Output);
-        Assert.AreEqual(0, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Output).IsEqualTo(expected);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow("101", 2, 5)]
-    [DataRow("42", 10, 42)]
-    public void Instruction_I_ReadsInputInSpecifiedBase(string input, int baseVal, int expected)
+    [Test]
+    [Arguments("101", 2, 5)]
+    [Arguments("42", 10, 42)]
+    public async Task Instruction_I_ReadsInputInSpecifiedBase(string input, int baseVal, int expected)
     {
         var fp = new BaseFingerprint();
         var ctx = new TestContext();
         ctx.EnqueueInput(input);
         ctx.Push(baseVal);
 
-        Instruction(fp, 'I')(ctx);
+        (await Instruction(fp, 'I'))(ctx);
 
-        Assert.AreEqual(expected, ctx.Pop());
-        Assert.AreEqual(string.Empty, ctx.Output);
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Pop()).IsEqualTo(expected);
+        await Assert.That(ctx.Output).IsEqualTo(string.Empty);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_I_ReflectsOnEof()
+    [Test]
+    public async Task Instruction_I_ReflectsOnEof()
     {
         var fp = new BaseFingerprint();
         var ctx = new TestContext();
         ctx.Push(2);
 
-        Instruction(fp, 'I')(ctx);
+        (await Instruction(fp, 'I'))(ctx);
 
-        Assert.IsTrue(ctx.Reflected);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    [DataRow(5, 2, "101")]
-    [DataRow(255, 16, "FF")]
-    public void Instruction_N_OutputInBase(int number, int baseVal, string expected)
+    [Test]
+    [Arguments(5, 2, "101")]
+    [Arguments(255, 16, "FF")]
+    public async Task Instruction_N_OutputInBase(int number, int baseVal, string expected)
     {
         var fp = new BaseFingerprint();
         var ctx = new TestContext();
         ctx.Push(number);
         ctx.Push(baseVal);
 
-        Instruction(fp, 'N')(ctx);
+        (await Instruction(fp, 'N'))(ctx);
 
-        Assert.AreEqual(expected, ctx.Output);
-        Assert.AreEqual(0, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Output).IsEqualTo(expected);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 }

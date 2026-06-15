@@ -52,41 +52,41 @@ sealed class CoreOnlyContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class ArrayFingerprintTests
 {
-    static FingerprintInstruction Instruction(ArrayFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(ArrayFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
     static void PushVector(TestContext ctx, int x, int y, int z) => ctx.PushVector(x, y, z);
 
-    static void AssertVector(TestContext ctx, int x, int y, int z)
+    static async Task AssertVector(TestContext ctx, int x, int y, int z)
     {
-        Assert.AreEqual(z, ctx.Pop());
-        Assert.AreEqual(y, ctx.Pop());
-        Assert.AreEqual(x, ctx.Pop());
+        await Assert.That(ctx.Pop()).IsEqualTo(z);
+        await Assert.That(ctx.Pop()).IsEqualTo(y);
+        await Assert.That(ctx.Pop()).IsEqualTo(x);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x41525259, new ArrayFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new ArrayFingerprint().Handprint).IsEqualTo(0x41525259);
 
-    [TestMethod]
-    public void Instruction_G_PushesMaximumDimensions()
+    [Test]
+    public async Task Instruction_G_PushesMaximumDimensions()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
 
-        Instruction(fp, 'G')(ctx);
+        (await Instruction(fp, 'G'))(ctx);
 
-        Assert.AreEqual(3, ctx.Pop());
+        await Assert.That(ctx.Pop()).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void Instruction_A_StoresToSingleDimensionArray()
+    [Test]
+    public async Task Instruction_A_StoresToSingleDimensionArray()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
@@ -94,14 +94,14 @@ public class ArrayFingerprintTests
         ctx.Push(42);
         ctx.Push(-2);
 
-        Instruction(fp, 'A')(ctx);
+        (await Instruction(fp, 'A'))(ctx);
 
-        Assert.AreEqual(42, ctx.GetCell(8, 20, 30));
-        AssertVector(ctx, 10, 20, 30);
+        await Assert.That(ctx.GetCell(8, 20, 30)).IsEqualTo(42);
+        await AssertVector(ctx, 10, 20, 30);
     }
 
-    [TestMethod]
-    public void Instruction_B_RetrievesFromSingleDimensionArray()
+    [Test]
+    public async Task Instruction_B_RetrievesFromSingleDimensionArray()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
@@ -109,14 +109,14 @@ public class ArrayFingerprintTests
         PushVector(ctx, 10, 20, 30);
         ctx.Push(2);
 
-        Instruction(fp, 'B')(ctx);
+        (await Instruction(fp, 'B'))(ctx);
 
-        Assert.AreEqual(99, ctx.Pop());
-        AssertVector(ctx, 10, 20, 30);
+        await Assert.That(ctx.Pop()).IsEqualTo(99);
+        await AssertVector(ctx, 10, 20, 30);
     }
 
-    [TestMethod]
-    public void Instruction_C_StoresToTwoDimensionArray()
+    [Test]
+    public async Task Instruction_C_StoresToTwoDimensionArray()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
@@ -125,14 +125,14 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        Instruction(fp, 'C')(ctx);
+        (await Instruction(fp, 'C'))(ctx);
 
-        Assert.AreEqual(77, ctx.GetCell(8, 23, 30));
-        AssertVector(ctx, 10, 20, 30);
+        await Assert.That(ctx.GetCell(8, 23, 30)).IsEqualTo(77);
+        await AssertVector(ctx, 10, 20, 30);
     }
 
-    [TestMethod]
-    public void Instruction_D_RetrievesFromTwoDimensionArray()
+    [Test]
+    public async Task Instruction_D_RetrievesFromTwoDimensionArray()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
@@ -141,14 +141,14 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        Instruction(fp, 'D')(ctx);
+        (await Instruction(fp, 'D'))(ctx);
 
-        Assert.AreEqual(55, ctx.Pop());
-        AssertVector(ctx, 10, 20, 30);
+        await Assert.That(ctx.Pop()).IsEqualTo(55);
+        await AssertVector(ctx, 10, 20, 30);
     }
 
-    [TestMethod]
-    public void Instruction_E_StoresToThreeDimensionArray()
+    [Test]
+    public async Task Instruction_E_StoresToThreeDimensionArray()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
@@ -158,14 +158,14 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        Instruction(fp, 'E')(ctx);
+        (await Instruction(fp, 'E'))(ctx);
 
-        Assert.AreEqual(88, ctx.GetCell(11, 18, 33));
-        AssertVector(ctx, 10, 20, 30);
+        await Assert.That(ctx.GetCell(11, 18, 33)).IsEqualTo(88);
+        await AssertVector(ctx, 10, 20, 30);
     }
 
-    [TestMethod]
-    public void Instruction_F_RetrievesFromThreeDimensionArray()
+    [Test]
+    public async Task Instruction_F_RetrievesFromThreeDimensionArray()
     {
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
@@ -175,20 +175,20 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        Instruction(fp, 'F')(ctx);
+        (await Instruction(fp, 'F'))(ctx);
 
-        Assert.AreEqual(66, ctx.Pop());
-        AssertVector(ctx, 10, 20, 30);
+        await Assert.That(ctx.Pop()).IsEqualTo(66);
+        await AssertVector(ctx, 10, 20, 30);
     }
 
-    [TestMethod]
-    public void MissingCapabilities_Reflects()
+    [Test]
+    public async Task MissingCapabilities_Reflects()
     {
         var fp = new ArrayFingerprint();
         var ctx = new CoreOnlyContext();
 
-        Instruction(fp, 'G')(ctx);
+        (await Instruction(fp, 'G'))(ctx);
 
-        Assert.IsTrue(ctx.Reflected);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

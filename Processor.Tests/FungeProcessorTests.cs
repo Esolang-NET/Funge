@@ -1,24 +1,22 @@
 using static Esolang.Processor.IOEvent;
+using TUnit.Assertions.Enums;
 
 namespace Esolang.Funge.Processor.Tests;
 
-[TestClass]
-public class FungeProcessorTests(TestContext TestContext)
+public class FungeProcessorTests
 {
-    CancellationToken TestCancellationToken => TestContext.CancellationToken;
-    string Run(string source, string? input = null)
+    static async Task<string> Run(string source, string? input = null, CancellationToken CancellationToken = default)
     {
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
         var proc = new FungeProcessor(space, input: reader, output: output);
-        _ = RunToEnd(proc, reader, output, TestCancellationToken);
+        await RunToEnd(proc, reader, output, CancellationToken);
         return output.ToString();
     }
 
-    static int RunToEnd(FungeProcessor proc, TextReader input, TextWriter output, CancellationToken ct)
-    {
-        var task = Task.Run(async () =>
+    static Task<int> RunToEnd(FungeProcessor proc, TextReader input, TextWriter output, CancellationToken ct)
+       => Task.Run(async () =>
         {
             var exitCode = 0;
             await foreach (var ev in proc.RunAsyncEnumerable(ct))
@@ -42,19 +40,17 @@ public class FungeProcessorTests(TestContext TestContext)
             }
             return exitCode;
         }, ct);
-        return task.GetAwaiter().GetResult();
-    }
 
-    int RunGetExitCode(string source)
+    static async Task<int> RunGetExitCode(string source, CancellationToken CancellationToken = default)
     {
         var space = Parser.FungeParser.Parse(source);
         var proc = new FungeProcessor(space);
-        return RunToEnd(proc, TextReader.Null, TextWriter.Null, TestCancellationToken);
+        return await RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void TestDirectionalInstructions()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task TestDirectionalInstructions(CancellationToken CancellationToken)
     {
         var space = new Parser.FungeSpace();
         var pos1 = new Parser.FungeVector(0, 0, 0);
@@ -70,9 +66,8 @@ public class FungeProcessorTests(TestContext TestContext)
         space[pos5] = '@';
 
         var proc = new FungeProcessor(space);
-        var token = TestCancellationToken;
 
-        RunToEnd(proc, TextReader.Null, TextWriter.Null, token);
+        await RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);
     }
 
     static string EncodeZeroGnirts(string value)
@@ -80,267 +75,283 @@ public class FungeProcessorTests(TestContext TestContext)
 
     // ── Termination ────────────────────────────────────────────────────────
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void Stop_EmptyProgram_Wraps()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Stop_EmptyProgram_Wraps(CancellationToken CancellationToken)
     {
         // No @ → program loops but should terminate via cancellation
         // Just ensure an immediate @ exits
-        var result = Run("@");
-        Assert.AreEqual(string.Empty, result);
+        var result = Run("@", CancellationToken: CancellationToken);
+        await Assert.That(result).IsEqualTo(string.Empty);
     }
 
-    [TestMethod]
-    public void Quit_ReturnsExitCode()
-        => Assert.AreEqual(8, RunGetExitCode("42*q"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Quit_ReturnsExitCode(CancellationToken CancellationToken)
+        => await Assert.That(RunGetExitCode("42*q", CancellationToken)).IsEqualTo(8);
 
     // ── Output ────────────────────────────────────────────────────────────
 
-    [TestMethod]
-    public void OutputChar_SingleChar()
-        => Assert.AreEqual("H", Run("\"H\",@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task OutputChar_SingleChar(CancellationToken CancellationToken)
+        => await Assert.That(Run("\"H\",@", CancellationToken: CancellationToken)).IsEqualTo("H");
 
-    [TestMethod]
-    public void OutputInt_WithTrailingSpace()
-        => Assert.AreEqual("10 ", Run("55+.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task OutputInt_WithTrailingSpace(CancellationToken CancellationToken)
+        => await Assert.That(Run("55+.@", CancellationToken: CancellationToken)).IsEqualTo("10 ");
 
     // ── Arithmetic ────────────────────────────────────────────────────────
 
-    [TestMethod]
-    public void Add()
-        => Assert.AreEqual("7 ", Run("34+.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Add(CancellationToken CancellationToken)
+        => await Assert.That(Run("34+.@", CancellationToken: CancellationToken)).IsEqualTo("7 ");
 
-    [TestMethod]
-    public void Subtract()
-        => Assert.AreEqual("2 ", Run("53-.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Subtract(CancellationToken CancellationToken)
+        => await Assert.That(Run("53-.@", CancellationToken: CancellationToken)).IsEqualTo("2 ");
 
-    [TestMethod]
-    public void Multiply()
-        => Assert.AreEqual("12 ", Run("34*.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Multiply(CancellationToken CancellationToken)
+        => await Assert.That(Run("34*.@", CancellationToken: CancellationToken)).IsEqualTo("12 ");
 
-    [TestMethod]
-    public void Divide()
-        => Assert.AreEqual("1 ", Run("96/.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Divide(CancellationToken CancellationToken)
+        => await Assert.That(Run("96/.@", CancellationToken: CancellationToken)).IsEqualTo("1 ");
 
-    [TestMethod]
-    public void Remainder()
-        => Assert.AreEqual("1 ", Run("72%.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Remainder(CancellationToken CancellationToken)
+        => await Assert.That(Run("72%.@", CancellationToken: CancellationToken)).IsEqualTo("1 ");
 
-    [TestMethod]
-    public void GreaterThan_True()
-        => Assert.AreEqual("1 ", Run("53`.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task GreaterThan_True(CancellationToken CancellationToken)
+        => await Assert.That(Run("53`.@", CancellationToken: CancellationToken)).IsEqualTo("1 ");
 
-    [TestMethod]
-    public void GreaterThan_False()
-        => Assert.AreEqual("0 ", Run("35`.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task GreaterThan_False(CancellationToken CancellationToken)
+        => await Assert.That(Run("35`.@", CancellationToken: CancellationToken)).IsEqualTo("0 ");
 
-    [TestMethod]
-    public void LogicalNot_Zero()
-        => Assert.AreEqual("1 ", Run("0!.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task LogicalNot_Zero(CancellationToken CancellationToken)
+        => await Assert.That(Run("0!.@", CancellationToken: CancellationToken)).IsEqualTo("1 ");
 
-    [TestMethod]
-    public void LogicalNot_NonZero()
-        => Assert.AreEqual("0 ", Run("5!.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task LogicalNot_NonZero(CancellationToken CancellationToken)
+        => await Assert.That(Run("5!.@", CancellationToken: CancellationToken)).IsEqualTo("0 ");
 
     // ── Stack ─────────────────────────────────────────────────────────────
 
-    [TestMethod]
-    public void Duplicate()
-        => Assert.AreEqual("5 5 ", Run("5:..@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Duplicate(CancellationToken CancellationToken)
+        => await Assert.That(Run("5:..@", CancellationToken: CancellationToken)).IsEqualTo("5 5 ");
 
-    [TestMethod]
-    public void Swap()
-        => Assert.AreEqual("5 3 ", Run("53\\..@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Swap(CancellationToken CancellationToken)
+        => await Assert.That(Run("53\\..@", CancellationToken: CancellationToken)).IsEqualTo("5 3 ");
 
-    [TestMethod]
-    public void Pop_Discard()
-        => Assert.AreEqual("5 ", Run("53$.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Pop_Discard(CancellationToken CancellationToken)
+        => await Assert.That(Run("53$.@", CancellationToken: CancellationToken)).IsEqualTo("5 ");
 
     // ── Direction ─────────────────────────────────────────────────────────
 
-    [TestMethod]
-#pragma warning disable IDE0022
-    public void EastWestIf_Zero_GoesEast()
-    {
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task EastWestIf_Zero_GoesEast(CancellationToken CancellationToken)
+        =>
         // 0_ → East → . outputs next pop (0) then @
-        Assert.AreEqual("0 ", Run("0_.@"));
-    }
-#pragma warning restore IDE0022
+        await Assert.That(Run("0_.@", CancellationToken: CancellationToken)).IsEqualTo("0 ");
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-#pragma warning disable IDE0022
-    public void NorthSouthIf_NonZero_GoesNorth()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task NorthSouthIf_NonZero_GoesNorth(CancellationToken CancellationToken)
     {
         const string source = "v @\n>1|";
-        Assert.AreEqual(string.Empty, Run(source));
+        await Assert.That(Run(source, CancellationToken: CancellationToken)).IsEqualTo(string.Empty);
     }
-#pragma warning restore IDE0022
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-#pragma warning disable IDE0022
-    public void EastWestIf_NonZero_GoesWest()
-    {
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task EastWestIf_NonZero_GoesWest(CancellationToken CancellationToken)
+        =>
         // "1_" at positions 0-1. After '_', go West, wrap to rightmost char...
         // Hard to test in single row. Use '@' placement.
         // "1_@" → goes West to nothing... let's try another approach
         // Just verify we can stop: if nonzero, go West; space wraps; '@' at start doesn't help
         // Skip complex direction tests here; covered by Hello World test below
-        Assert.AreEqual(string.Empty, Run("1_@")); // goes West, wraps, hits '_' etc. – eventually '@' or loops
-    }
-#pragma warning restore IDE0022
+        await Assert.That(Run("1_@", CancellationToken: CancellationToken)).IsEqualTo(string.Empty); // goes West, wraps, hits '_' etc. – eventually '@' or loops
 
     // ── Additional coverage for ExecuteInstruction ────────────────────────
 
-    [TestMethod]
-    public void Trampoline_SkipUntilSemicolon()
-        => Assert.AreEqual("1 ", Run("; skipped code ;1.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Trampoline_SkipUntilSemicolon(CancellationToken CancellationToken)
+        => await Assert.That(Run("; skipped code ;1.@", CancellationToken: CancellationToken)).IsEqualTo("1 ");
 
-    [TestMethod]
-    public void HexDigits_Individual()
+    [Test]
+    public async Task HexDigits_Individual(CancellationToken CancellationToken)
     {
-        Assert.AreEqual("10 ", Run("a.@"));
-        Assert.AreEqual("11 ", Run("b.@"));
+        await Assert.That(Run("a.@", CancellationToken: CancellationToken)).IsEqualTo("10 ");
+        await Assert.That(Run("b.@", CancellationToken: CancellationToken)).IsEqualTo("11 ");
     }
 
-    [TestMethod]
-    public void OutputInt_EmptyStack_OutputsZero()
-        => Assert.AreEqual("0 ", Run(".@"));
+    [Test]
+    public async Task OutputInt_EmptyStack_OutputsZero(CancellationToken CancellationToken)
+        => await Assert.That(Run(".@", CancellationToken: CancellationToken)).IsEqualTo("0 ");
 
-    [TestMethod]
-    public void Iterate_ZeroTimes_SkipsOperand()
+    [Test]
+    public async Task Iterate_ZeroTimes_SkipsOperand(CancellationToken CancellationToken)
     {
-        var result = Run("0k1.2.@");
-        Assert.AreEqual("0 2 ", result, $"Expected '0 2 ', but got '{result}'");
+        var result = Run("0k1.2.@", CancellationToken: CancellationToken);
+        await Assert.That(result).IsEqualTo("0 2 ").Because($"Expected '0 2 ', but got '{result}'");
     }
 
 
     // ── String mode ───────────────────────────────────────────────────────
 
-    [TestMethod]
-#pragma warning disable IDE0022
-    public void StringMode_PushesChars()
-    {
+    [Test]
+    public async Task StringMode_PushesChars(CancellationToken CancellationToken)
+        =>
         // "Hi" pushes 'H'=72 then 'i'=105; i is on top
-        Assert.AreEqual("iH", Run("\"Hi\",,@"));
-    }
-#pragma warning restore IDE0022
+        await Assert.That(Run("\"Hi\",,@", CancellationToken: CancellationToken)).IsEqualTo("iH");
 
-    [TestMethod]
-    public void StringMode_ContiguousSpaces_PushSingleSpace()
-        => Assert.AreEqual("49  ", Run("\"   1\".,@"));
+    [Test]
+    public async Task StringMode_ContiguousSpaces_PushSingleSpace(CancellationToken CancellationToken)
+        => await Assert.That(Run("\"   1\".,@", CancellationToken: CancellationToken)).IsEqualTo("49  ");
 
     // ── Trampoline ────────────────────────────────────────────────────────
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
+    [Test]
+    [Timeout(Constant.Timeout)]
 #pragma warning disable IDE0022
-    public void Trampoline_SkipsOne()
+    public async Task Trampoline_SkipsOne(CancellationToken CancellationToken)
     {
         // "#.@" → skip '.', execute '@' → empty output
-        Assert.AreEqual(string.Empty, Run("#.@"));
+        await Assert.That(Run("#.@", CancellationToken: CancellationToken)).IsEqualTo(string.Empty);
     }
 #pragma warning restore IDE0022
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void SgmlSpaces_DoNotReflect()
-        => Assert.AreEqual("1 ", Run("1\t\v.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task SgmlSpaces_DoNotReflect(CancellationToken CancellationToken)
+        => await Assert.That(Run("1\t\v.@", CancellationToken: CancellationToken)).IsEqualTo("1 ");
 
     // ── FungeSpace get/put ────────────────────────────────────────────────
 
-    [TestMethod]
-#pragma warning disable IDE0022
-    public void GetPut_ReadWrite()
-    {
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task GetPut_ReadWrite(CancellationToken CancellationToken)
+        =>
         // p pops z,y,x,v. Build v=65 via 8*8+1, then store at (5,0,0) and read back.
-        Assert.AreEqual("65 ", Run("88*1+500p500g.@"));
-    }
-#pragma warning restore IDE0022
+        await Assert.That(Run("88*1+500p500g.@", CancellationToken: CancellationToken)).IsEqualTo("65 ");
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void GoHigh_ChangesDeltaToNegativeZ()
-        => Assert.AreEqual(7, RunGetExitCode("h\f\f>7q"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task GoHigh_ChangesDeltaToNegativeZ(CancellationToken CancellationToken)
+        => await Assert.That(RunGetExitCode("h\f\f>7q", CancellationToken: CancellationToken)).IsEqualTo(7);
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void GoLow_ChangesDeltaToPositiveZ()
-        => Assert.AreEqual(7, RunGetExitCode("l\f>7q"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task GoLow_ChangesDeltaToPositiveZ(CancellationToken CancellationToken)
+        => await Assert.That(RunGetExitCode("l\f>7q", CancellationToken: CancellationToken)).IsEqualTo(7);
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void HighLowIf_Zero_GoesLow()
-        => Assert.AreEqual(1, RunGetExitCode("0m\f >1q\f >2q"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task HighLowIf_Zero_GoesLow(CancellationToken CancellationToken)
+        => await Assert.That(RunGetExitCode("0m\f >1q\f >2q", CancellationToken: CancellationToken)).IsEqualTo(1);
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void HighLowIf_NonZero_GoesHigh()
-        => Assert.AreEqual(2, RunGetExitCode("1m\f >1q\f >2q"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task HighLowIf_NonZero_GoesHigh(CancellationToken CancellationToken)
+        => await Assert.That(RunGetExitCode("1m\f >1q\f >2q", CancellationToken: CancellationToken)).IsEqualTo(2);
 
     // ── Hello World ───────────────────────────────────────────────────────
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-#pragma warning disable IDE0022
-    public void HelloWorld_Classic()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task HelloWorld_Classic(CancellationToken CancellationToken)
     {
         // Classic Befunge-98 Hello World (one-liner)
         const string src = "\"olleH\">:#,_@";
-        Assert.AreEqual("Hello", Run(src));
+        await Assert.That(Run(src, CancellationToken: CancellationToken)).IsEqualTo("Hello");
     }
-#pragma warning restore IDE0022
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-#pragma warning disable IDE0022
-    public void HelloWorld_WithExclamation()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task HelloWorld_WithExclamation(CancellationToken CancellationToken)
     {
         const string src = "\"!dlroW ,olleH\">:#,_@";
-        Assert.AreEqual("Hello, World!", Run(src));
+        await Assert.That(Run(src, CancellationToken: CancellationToken)).IsEqualTo("Hello, World!");
     }
-#pragma warning restore IDE0022
 
 
     // ── Input ─────────────────────────────────────────────────────────────
 
-    [TestMethod]
-    public void InputChar_EchoBack()
-        => Assert.AreEqual("A", Run("~,@", "A"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task InputChar_EchoBack(CancellationToken CancellationToken)
+        => await Assert.That(Run("~,@", "A", CancellationToken: CancellationToken)).IsEqualTo("A");
 
-    [TestMethod]
-    public void InputInt_EchoBack()
-        => Assert.AreEqual("42 ", Run("&.@", "42\n"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task InputInt_EchoBack(CancellationToken CancellationToken)
+        => await Assert.That(Run("&.@", "42\n", CancellationToken: CancellationToken)).IsEqualTo("42 ");
 
-    [TestMethod]
-    public void InputFile_LoadsFileIntoSpace()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task InputFile_LoadsFileIntoSpace(CancellationToken CancellationToken)
     {
+        var testContext = TestContext.Current!;
         var originalDir = Directory.GetCurrentDirectory();
-        var tempDir = Path.Combine(Path.GetTempPath(), $"funge-io-{Guid.NewGuid():N}");
+        var path = Path.GetTempFileName();
+        if (File.Exists(path))
+            File.Delete(path);
+        var tempDir = Path.Combine(path, testContext.Isolation.GetIsolatedName("funge-input-io"));
         Directory.CreateDirectory(tempDir);
 
         try
         {
             Directory.SetCurrentDirectory(tempDir);
-            File.WriteAllText("input.txt", "A");
+            await File.WriteAllTextAsync("input.txt", "A", CancellationToken);
 
             // Va=(0,0,0), flags=0 (text mode), STR=0"input.txt" (0gnirts)
-            var output = Run("00000\"txt.tupni\"in000g.@");
-            Assert.AreEqual("65 ", output);
+            var output = await Run("00000\"txt.tupni\"in000g.@", CancellationToken: CancellationToken);
+            await Assert.That(output).IsEqualTo("65 ");
         }
         finally
         {
-            Directory.SetCurrentDirectory(originalDir);
-            Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(originalDir))
+                Directory.SetCurrentDirectory(originalDir);
+            if (Directory.Exists(tempDir))
+                try {
+                Directory.Delete(tempDir, recursive: true);
+                } catch { }
         }
     }
 
-    [TestMethod]
-    public void OutputFile_WritesSpaceRegion()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task OutputFile_WritesSpaceRegion(CancellationToken CancellationToken)
     {
+        var testContext = TestContext.Current!;
         var originalDir = Directory.GetCurrentDirectory();
-        var tempDir = Path.Combine(Path.GetTempPath(), $"funge-io-{Guid.NewGuid():N}");
+        var path = Path.GetTempFileName();
+        if (File.Exists(path))
+            File.Delete(path);
+        var tempDir = Path.Combine(path, testContext.Isolation.GetIsolatedName("funge-output-io"));
         Directory.CreateDirectory(tempDir);
 
         try
@@ -348,71 +359,82 @@ public class FungeProcessorTests(TestContext TestContext)
             Directory.SetCurrentDirectory(tempDir);
 
             // store 'A' at (0,0,0), then output Va=(0,0,0), Vb=(0,0,0), flags=0, STR=0"output.txt"
-            _ = Run("88*1+000p00000000\"txt.tuptuo\"o@");
+            await Run("88*1+000p00000000\"txt.tuptuo\"o@", CancellationToken: CancellationToken);
 
-            var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
-            CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
+            var bytes = await File.ReadAllBytesAsync(Path.Combine(tempDir, "output.txt"), CancellationToken);
+            await Assert.That(bytes).IsEquivalentTo((byte[]) [ 65 ], CollectionOrdering.Matching);
         }
         finally
         {
-            Directory.SetCurrentDirectory(originalDir);
-            Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(originalDir))
+                Directory.SetCurrentDirectory(originalDir);
+            if (Directory.Exists(tempDir))
+                try {
+                    Directory.Delete(tempDir, recursive: true);
+                } catch { }
         }
     }
 
-    [TestMethod]
-    public void SysInfo_ReportsFileIoSupportFlags()
-        => Assert.AreEqual("15 ", Run("1y.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task SysInfo_ReportsFileIoSupportFlags(CancellationToken CancellationToken)
+        => await Assert.That(Run("1y.@", CancellationToken: CancellationToken)).IsEqualTo("15 ");
 
-    [TestMethod]
-    public void SystemExec_ReturnsExitCode()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task SystemExec_ReturnsExitCode(CancellationToken CancellationToken)
     {
         const string command = "exit 7";
         var program = $"{EncodeZeroGnirts(command)}=.@";
-        Assert.AreEqual("7 ", Run(program));
+        await Assert.That(Run(program, CancellationToken: CancellationToken)).IsEqualTo("7 ");
     }
 
-    [TestMethod]
-    public void SystemExec_SetsNonZeroOnCommandFailure()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task SystemExec_SetsNonZeroOnCommandFailure(CancellationToken CancellationToken)
     {
         const string command = "this_command_should_not_exist_12345";
         var program = $"{EncodeZeroGnirts(command)}=q";
-        Assert.AreNotEqual(0, RunGetExitCode(program));
+        await Assert.That(RunGetExitCode(program, CancellationToken: CancellationToken)).IsNotEqualTo(0);
     }
 
     // ── Quit exit code ────────────────────────────────────────────────────
 
-    [TestMethod]
-    public void Quit_ExitCode7()
-        => Assert.AreEqual(7, RunGetExitCode("7q"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Quit_ExitCode7(CancellationToken CancellationToken)
+        => await Assert.That(RunGetExitCode("7q", CancellationToken: CancellationToken)).IsEqualTo(7);
 
-    [TestMethod]
-    public void StackUnderStack_U_TransfersFromSoss()
-        => Assert.AreEqual("2 ", Run("120{4u.@"));
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task StackUnderStack_U_TransfersFromSoss(CancellationToken CancellationToken)
+        => await Assert.That(Run("120{4u.@", CancellationToken: CancellationToken)).IsEqualTo("2 ");
 
-    [TestMethod]
-    public void RunToEnd_UsesProvidedTextIo()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task RunToEnd_UsesProvidedTextIo(CancellationToken CancellationToken)
     {
         var space = Parser.FungeParser.Parse("&.@");
         var output = new StringWriter();
         var input = new StringReader("42\n");
         var proc = new FungeProcessor(space);
 
-        var exitCode = RunToEnd(proc, input, output, TestCancellationToken);
+        var exitCode = RunToEnd(proc, input, output, CancellationToken);
 
-        Assert.AreEqual(0, exitCode);
-        Assert.AreEqual("42 ", output.ToString());
+        await Assert.That(exitCode).IsEqualTo(0);
+        await Assert.That(output.ToString()).IsEqualTo("42 ");
     }
 
-    [TestMethod]
-    public void RunToEndAsync_ReturnsExitCode()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task RunToEndAsync_ReturnsExitCode(CancellationToken CancellationToken)
     {
         var space = Parser.FungeParser.Parse("7q");
         var proc = new FungeProcessor(space);
 
-        var exitCode = RunToEnd(proc, TextReader.Null, TextWriter.Null, TestCancellationToken);
+        var exitCode = RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);
 
-        Assert.AreEqual(7, exitCode);
+        await Assert.That(exitCode).IsEqualTo(7);
     }
 }
 

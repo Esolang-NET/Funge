@@ -4,6 +4,7 @@
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net48;net8.0;net9.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net8.0;net9.0;net10.0</TargetFrameworks>
     <AssemblyName>Esolang.Funge.Generator.Tests</AssemblyName>
+    <NoWarn>$(NoWarn);RS1035</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,10 +25,6 @@
     <ProjectReference Include="..\Generator\Esolang.Funge.Generator.csproj" />
     <ProjectReference Include="..\Parser\Esolang.Funge.Parser.csproj" />
     <ProjectReference Include="..\Abstractions\Esolang.Funge.Abstractions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
-    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
   </ItemGroup>
 
 </Project>

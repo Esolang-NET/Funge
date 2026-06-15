@@ -10,12 +10,12 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class SinglePrecisionFloatFingerprintTests
 {
-    static FingerprintInstruction Instruction(SinglePrecisionFloatFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(SinglePrecisionFloatFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -45,118 +45,120 @@ public class SinglePrecisionFloatFingerprintTests
     static float PopFloat(TestContext ctx)
         => Int32BitsToSingle(ctx.Pop());
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x46505350, new SinglePrecisionFloatFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new SinglePrecisionFloatFingerprint().Handprint).EqualTo(0x46505350);
 
-    [TestMethod]
-    public void Instruction_A_Add()
+    [Test]
+    public async Task Instruction_A_Add()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 1.5f); PushFloat(ctx, 2.5f);
-        Instruction(fp, 'A')(ctx);
-        Assert.AreEqual(4.0f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'A'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(4.0f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_S_Subtract()
+    [Test]
+    public async Task Instruction_S_Subtract()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 5.0f); PushFloat(ctx, 2.0f);
-        Instruction(fp, 'S')(ctx);
-        Assert.AreEqual(3.0f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'S'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(3.0f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_M_Multiply()
+    [Test]
+
+    public async Task Instruction_M_MultiplyAsync()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 3.0f); PushFloat(ctx, 4.0f);
-        Instruction(fp, 'M')(ctx);
-        Assert.AreEqual(12.0f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'M'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(12.0f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_D_Divide()
+    [Test]
+
+    public async Task Instruction_D_DivideAsync()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 10.0f); PushFloat(ctx, 4.0f);
-        Instruction(fp, 'D')(ctx);
-        Assert.AreEqual(2.5f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(2.5f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_F_FromInt()
+    [Test]
+    public async Task Instruction_F_FromInt()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         ctx.Push(42);
-        Instruction(fp, 'F')(ctx);
-        Assert.AreEqual(42.0f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'F'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(42.0f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_I_Truncate()
+    [Test]
+    public async Task Instruction_I_Truncate()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 3.9f);
-        Instruction(fp, 'I')(ctx);
-        Assert.AreEqual(3, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(3);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_N_Negate()
+    [Test]
+    public async Task Instruction_N_Negate()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 5.0f);
-        Instruction(fp, 'N')(ctx);
-        Assert.AreEqual(-5.0f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'N'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(-5.0f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_Q_Sqrt()
+    [Test]
+    public async Task Instruction_Q_Sqrt()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 9.0f);
-        Instruction(fp, 'Q')(ctx);
-        Assert.AreEqual(3.0f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'Q'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(3.0f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_V_Abs()
+    [Test]
+    public async Task Instruction_V_Abs()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, -7.5f);
-        Instruction(fp, 'V')(ctx);
-        Assert.AreEqual(7.5f, PopFloat(ctx), 0.0001f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'V'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(7.5f).Within(0.0001f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_Y_Pow()
+    [Test]
+    public async Task Instruction_Y_Pow()
     {
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 2.0f); // y (base)
         PushFloat(ctx, 10.0f); // x (exponent, on top)
-        Instruction(fp, 'Y')(ctx);
-        Assert.AreEqual(1024.0f, PopFloat(ctx), 0.01f);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'Y'))(ctx);
+        await Assert.That(PopFloat(ctx)).IsEqualTo(1024.0f).Within(0.01f);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 }

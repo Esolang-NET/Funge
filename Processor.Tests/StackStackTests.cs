@@ -1,39 +1,38 @@
 namespace Esolang.Funge.Processor.Tests;
 
-[TestClass]
 public class StackStackTests
 {
-    [TestMethod]
-    public void PushPop_MaintainsLIFO()
+    [Test]
+    public async Task PushPop_MaintainsLIFO()
     {
         var ss = new StackStack();
         ss.Push(1);
         ss.Push(2);
-        Assert.AreEqual(2, ss.Pop());
-        Assert.AreEqual(1, ss.Pop());
-        Assert.AreEqual(0, ss.Pop()); // Empty returns 0
+        await Assert.That(ss.Pop()).IsEqualTo(2);
+        await Assert.That(ss.Pop()).IsEqualTo(1);
+        await Assert.That(ss.Pop()).IsEqualTo(0); // Empty returns 0
     }
 
-    [TestMethod]
-    public void StackStackOperations_ManageStacksCorrectly()
+    [Test]
+    public async Task StackStackOperations_ManageStacksCorrectly()
     {
         var ss = new StackStack();
         ss.Push(1);
         ss.PushNewStack();
         ss.Push(2);
 
-        Assert.AreEqual(2, ss.TOSS.Peek());
-        Assert.IsTrue(ss.HasSOSS);
-        Assert.AreEqual(2, ss.StackCount);
+        await Assert.That(ss.TOSS.Peek()).IsEqualTo(2);
+        await Assert.That(ss.HasSOSS).IsTrue();
+        await Assert.That(ss.StackCount).IsEqualTo(2);
 
         ss.PopCurrentStack();
-        Assert.AreEqual(1, ss.TOSS.Peek());
-        Assert.IsFalse(ss.HasSOSS);
-        Assert.AreEqual(1, ss.StackCount);
+        await Assert.That(ss.TOSS.Peek()).IsEqualTo(1);
+        await Assert.That(ss.HasSOSS).IsFalse();
+        await Assert.That(ss.StackCount).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Clone_CreatesDeepCopy()
+    [Test]
+    public async Task Clone_CreatesDeepCopy()
     {
         var ss = new StackStack();
         ss.Push(1);
@@ -41,9 +40,9 @@ public class StackStackTests
         ss.Push(2);
 
         var clone = ss.Clone();
-        Assert.AreEqual(2, clone.Pop());
+        await Assert.That(clone.Pop()).IsEqualTo(2);
 
         // Ensure original is unaffected
-        Assert.AreEqual(2, ss.TOSS.Peek());
+        await Assert.That(ss.TOSS.Peek()).IsEqualTo(2);
     }
 }

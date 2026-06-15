@@ -50,12 +50,12 @@ sealed class CoreOnlyContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class RandomFingerprintTests
 {
-    static FingerprintInstruction Instruction(RandomFingerprint fingerprint, char instruction)
+    static async Task<FingerprintInstruction> Instruction(RandomFingerprint fingerprint, char instruction)
     {
-        Assert.IsTrue(fingerprint.Instructions.TryGetValue(instruction, out var handler));
+        await Assert.That(fingerprint.Instructions.TryGetValue(instruction, out var handler)).IsTrue();
+        Assert.NotNull(handler);
         return handler;
     }
 
@@ -68,89 +68,89 @@ public class RandomFingerprintTests
         return context;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x52414E44, new RandomFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new RandomFingerprint().Handprint).IsEqualTo(0x52414E44);
 
-    [TestMethod]
-    public void I_UsesUnsignedUpperBound()
+    [Test]
+    public async Task I_UsesUnsignedUpperBound()
     {
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext(-1);
 
-        Instruction(fingerprint, 'I')(context);
+        (await Instruction(fingerprint, 'I'))(context);
 
-        Assert.AreEqual(uint.MaxValue, context.LastUpperBound);
-        Assert.AreEqual(-2, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.LastUpperBound).IsEqualTo(uint.MaxValue);
+        await Assert.That(context.Pop()).IsEqualTo(-2);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void I_ReflectsOnZeroUpperBound()
+    [Test]
+    public async Task I_ReflectsOnZeroUpperBound()
     {
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext(0);
 
-        Instruction(fingerprint, 'I')(context);
+        (await Instruction(fingerprint, 'I'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void M_PushesIntMaxValue()
+    [Test]
+    public async Task M_PushesIntMaxValue()
     {
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext();
 
-        Instruction(fingerprint, 'M')(context);
+        (await Instruction(fingerprint, 'M'))(context);
 
-        Assert.AreEqual(int.MaxValue, context.Pop());
+        await Assert.That(context.Pop()).IsEqualTo(int.MaxValue);
     }
 
-    [TestMethod]
-    public void R_PushesSinglePrecisionBits()
+    [Test]
+    public async Task R_PushesSinglePrecisionBits()
     {
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext();
 
-        Instruction(fingerprint, 'R')(context);
+        (await Instruction(fingerprint, 'R'))(context);
 
-        Assert.AreEqual(0.5f, BitConverter.ToSingle(BitConverter.GetBytes(context.Pop()), 0));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(BitConverter.ToSingle(BitConverter.GetBytes(context.Pop()), 0)).IsEqualTo(0.5f);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void S_ReseedsUsingCellBits()
+    [Test]
+    public async Task S_ReseedsUsingCellBits()
     {
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext(-1);
 
-        Instruction(fingerprint, 'S')(context);
+        (await Instruction(fingerprint, 'S'))(context);
 
-        Assert.AreEqual(uint.MaxValue, context.LastSeed);
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.LastSeed).IsEqualTo(uint.MaxValue);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void T_ReseedsFromTime()
+    [Test]
+    public async Task T_ReseedsFromTime()
     {
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext();
 
-        Instruction(fingerprint, 'T')(context);
+        (await Instruction(fingerprint, 'T'))(context);
 
-        Assert.IsTrue(context.TimeReseeded);
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.TimeReseeded).IsTrue();
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void MissingRandomCapability_Reflects()
+    [Test]
+    public async Task MissingRandomCapability_Reflects()
     {
         var fingerprint = new RandomFingerprint();
         var context = new CoreOnlyContext();
 
-        Instruction(fingerprint, 'R')(context);
+        (await Instruction(fingerprint, 'R'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 }

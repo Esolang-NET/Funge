@@ -21,111 +21,111 @@ sealed class NoIpContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class HighResTimerFingerprintTests
 {
-    static FingerprintInstruction Instruction(HighResTimerFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(HighResTimerFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x48525449, new HighResTimerFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new HighResTimerFingerprint().Handprint).IsEqualTo(0x48525449);
 
-    [TestMethod]
-    public void Instruction_G_PushesGranularity()
+    [Test]
+    public async Task Instruction_G_PushesGranularity()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'G')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.IsGreaterThanOrEqualTo(0, ctx.Pop());
+        (await Instruction(fp, 'G'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsGreaterThanOrEqualTo(0);
     }
 
-    [TestMethod]
-    public void Instruction_M_T_MeasuresElapsed()
+    [Test]
+    public async Task Instruction_M_T_MeasuresElapsed()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'M')(ctx);
+        (await Instruction(fp, 'M'))(ctx);
 
         Thread.Sleep(5);
-        Instruction(fp, 'T')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.IsGreaterThanOrEqualTo(0, ctx.Pop());
+        (await Instruction(fp, 'T'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsGreaterThanOrEqualTo(0);
     }
 
-    [TestMethod]
-    public void Instruction_T_NoMark_Reflects()
+    [Test]
+    public async Task Instruction_T_NoMark_Reflects()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'T')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'T'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_E_ErasesMarkSoT_Reflects()
+    [Test]
+    public async Task Instruction_E_ErasesMarkSoT_Reflects()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'M')(ctx);
-        Instruction(fp, 'E')(ctx);
+        (await Instruction(fp, 'M'))(ctx);
+        (await Instruction(fp, 'E'))(ctx);
         var ctx2 = new TestContext();
-        Instruction(fp, 'T')(ctx2);
-        Assert.IsTrue(ctx2.Reflected);
+        (await Instruction(fp, 'T'))(ctx2);
+        await Assert.That(ctx2.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_S_PushesSecondMicroseconds()
+    [Test]
+    public async Task Instruction_S_PushesSecondMicroseconds()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'S')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'S'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var val = ctx.Pop();
-        Assert.IsGreaterThanOrEqualTo(0, val);
-        Assert.IsLessThan(1_000_000, val);
+        await Assert.That(val).IsGreaterThanOrEqualTo(0);
+        await Assert.That(val).IsLessThan(1_000_000);
     }
 
-    [TestMethod]
-    public void Instruction_M_NoIpContext_Reflects()
+    [Test]
+    public async Task Instruction_M_NoIpContext_Reflects()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new NoIpContext();
-        Instruction(fp, 'M')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'M'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void OnCloned_CopiesMarkToChild()
+    [Test]
+    public async Task OnCloned_CopiesMarkToChild()
     {
         var fp = new HighResTimerFingerprint();
         var parentCtx = new TestContext { InstructionPointerId = 1 };
-        Instruction(fp, 'M')(parentCtx);
+        (await Instruction(fp, 'M'))(parentCtx);
 
         fp.OnInstructionPointerCloned(1, 2);
 
         var childCtx = new TestContext { InstructionPointerId = 2 };
 
         Thread.Sleep(1);
-        Instruction(fp, 'T')(childCtx);
-        Assert.IsFalse(childCtx.Reflected);
-        Assert.IsGreaterThanOrEqualTo(0, childCtx.Pop());
+        (await Instruction(fp, 'T'))(childCtx);
+        await Assert.That(childCtx.Reflected).IsFalse();
+        await Assert.That(childCtx.Pop()).IsGreaterThanOrEqualTo(0);
     }
 
-    [TestMethod]
-    public void OnTerminated_RemovesMark()
+    [Test]
+    public async Task OnTerminated_RemovesMark()
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext { InstructionPointerId = 5 };
-        Instruction(fp, 'M')(ctx);
+        (await Instruction(fp, 'M'))(ctx);
         fp.OnInstructionPointerTerminated(5);
 
         var ctx2 = new TestContext { InstructionPointerId = 5 };
-        Instruction(fp, 'T')(ctx2);
-        Assert.IsTrue(ctx2.Reflected);
+        (await Instruction(fp, 'T'))(ctx2);
+        await Assert.That(ctx2.Reflected).IsTrue();
     }
 }

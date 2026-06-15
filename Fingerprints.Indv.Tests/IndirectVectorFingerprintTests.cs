@@ -63,12 +63,12 @@ sealed class CoreOnlyContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class IndirectVectorFingerprintTests
 {
-    static FingerprintInstruction Instruction(IndirectVectorFingerprint fingerprint, char instruction)
+    static async Task<FingerprintInstruction> Instruction(IndirectVectorFingerprint fingerprint, char instruction)
     {
-        Assert.IsTrue(fingerprint.Instructions.TryGetValue(instruction, out var handler));
+        await Assert.That(fingerprint.Instructions.TryGetValue(instruction, out var handler)).IsTrue();
+        Assert.NotNull(handler);
         return handler;
     }
 
@@ -94,19 +94,19 @@ public class IndirectVectorFingerprintTests
         }
     }
 
-    static void AssertVector(TestContext context, int x, int y, int z)
+    static async Task AssertVector(TestContext context, int x, int y, int z)
     {
-        Assert.AreEqual(z, context.Pop());
-        Assert.AreEqual(y, context.Pop());
-        Assert.AreEqual(x, context.Pop());
+        await Assert.That(context.Pop()).IsEqualTo(z);
+        await Assert.That(context.Pop()).IsEqualTo(y);
+        await Assert.That(context.Pop()).IsEqualTo(x);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x494E4456, new IndirectVectorFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new IndirectVectorFingerprint().Handprint).IsEqualTo(0x494E4456);
 
-    [TestMethod]
-    public void G_AppliesStorageOffsetToPointerAndTarget()
+    [Test]
+    public async Task G_AppliesStorageOffsetToPointerAndTarget()
     {
         var fingerprint = new IndirectVectorFingerprint();
         var context = new TestContext
@@ -117,14 +117,14 @@ public class IndirectVectorFingerprintTests
         context.SetCell(17, 26, 25, 123);
         PushVector(context, 1, 2, 3);
 
-        Instruction(fingerprint, 'G')(context);
+        (await Instruction(fingerprint, 'G'))(context);
 
-        Assert.AreEqual(123, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(123);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void P_WritesCellThroughIndirectPointer()
+    [Test]
+    public async Task P_WritesCellThroughIndirectPointer()
     {
         var fingerprint = new IndirectVectorFingerprint();
         var context = new TestContext
@@ -135,14 +135,14 @@ public class IndirectVectorFingerprintTests
         context.Push(55);
         PushVector(context, 1, 0, 0);
 
-        Instruction(fingerprint, 'P')(context);
+        (await Instruction(fingerprint, 'P'))(context);
 
-        Assert.AreEqual(55, context.GetCell(11, 13, 15));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.GetCell(11, 13, 15)).IsEqualTo(55);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void V_ReadsVectorUsingLogicalOrder()
+    [Test]
+    public async Task V_ReadsVectorUsingLogicalOrder()
     {
         var fingerprint = new IndirectVectorFingerprint();
         var context = new TestContext(2);
@@ -150,14 +150,14 @@ public class IndirectVectorFingerprintTests
         SeedStoredVector(context, 9, 4, 0, 8, -3, 0);
         PushVector(context, 3, 4, 0);
 
-        Instruction(fingerprint, 'V')(context);
+        (await Instruction(fingerprint, 'V'))(context);
 
-        AssertVector(context, 8, -3, 0);
-        Assert.IsFalse(context.Reflected);
+        await AssertVector(context, 8, -3, 0);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void W_WritesVectorUsingLogicalOrder()
+    [Test]
+    public async Task W_WritesVectorUsingLogicalOrder()
     {
         var fingerprint = new IndirectVectorFingerprint();
         var context = new TestContext();
@@ -165,22 +165,22 @@ public class IndirectVectorFingerprintTests
         PushVector(context, 9, 8, 7);
         PushVector(context, 2, 2, 2);
 
-        Instruction(fingerprint, 'W')(context);
+        (await Instruction(fingerprint, 'W'))(context);
 
-        Assert.AreEqual(7, context.GetCell(7, 4, -1));
-        Assert.AreEqual(8, context.GetCell(8, 4, -1));
-        Assert.AreEqual(9, context.GetCell(9, 4, -1));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.GetCell(7, 4, -1)).IsEqualTo(7);
+        await Assert.That(context.GetCell(8, 4, -1)).IsEqualTo(8);
+        await Assert.That(context.GetCell(9, 4, -1)).IsEqualTo(9);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void MissingCapabilities_Reflects()
+    [Test]
+    public async Task MissingCapabilities_Reflects()
     {
         var fingerprint = new IndirectVectorFingerprint();
         var context = new CoreOnlyContext();
 
-        Instruction(fingerprint, 'G')(context);
+        (await Instruction(fingerprint, 'G'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 }

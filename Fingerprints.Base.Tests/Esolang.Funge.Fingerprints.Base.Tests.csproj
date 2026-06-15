@@ -6,10 +6,6 @@
     <RootNamespace>Esolang.Funge.Fingerprints.Base</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
-    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Fingerprints.Base\Esolang.Funge.Fingerprints.Base.csproj" />
   </ItemGroup>

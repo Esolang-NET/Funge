@@ -70,21 +70,21 @@ sealed class CoreOnlyContext : IFungeExecutionContext
     }
 }
 
-[TestClass]
 public class FileFingerprintTests
 {
-    static FingerprintInstruction Instruction(FileFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(FileFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsFileMagic()
-        => Assert.AreEqual(0x46494C45, new FileFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsFileMagic()
+        => await Assert.That(new FileFingerprint().Handprint).IsEqualTo(0x46494C45);
 
-    [TestMethod]
-    public void Open_Close_And_Tell_Work()
+    [Test]
+    public async Task Open_Close_And_Tell_Work()
     {
         var path = Path.GetTempFileName();
         try
@@ -95,20 +95,20 @@ public class FileFingerprintTests
             ctx.Push(1);
             ctx.PushString(path);
 
-            Instruction(fp, 'O')(ctx);
+            (await Instruction(fp, 'O'))(ctx);
 
-            Assert.IsFalse(ctx.Reflected);
+            await Assert.That(ctx.Reflected).IsFalse();
             var handle = ctx.Pop();
-            Assert.IsGreaterThan(0, handle);
+            await Assert.That(handle).IsGreaterThan(0);
 
             ctx.Push(handle);
-            Instruction(fp, 'L')(ctx);
-            Assert.AreEqual(0, ctx.Pop());
-            Assert.AreEqual(handle, ctx.Pop());
+            (await Instruction(fp, 'L'))(ctx);
+            await Assert.That(ctx.Pop()).IsEqualTo(0);
+            await Assert.That(ctx.Pop()).IsEqualTo(handle);
 
             ctx.Push(handle);
-            Instruction(fp, 'C')(ctx);
-            Assert.IsFalse(ctx.Reflected);
+            (await Instruction(fp, 'C'))(ctx);
+            await Assert.That(ctx.Reflected).IsFalse();
         }
         finally
         {
@@ -117,8 +117,8 @@ public class FileFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Put_And_Get_String_FollowSpecStackContract()
+    [Test]
+    public async Task Put_And_Get_String_FollowSpecStackContract()
     {
         var path = Path.GetTempFileName();
         try
@@ -128,26 +128,26 @@ public class FileFingerprintTests
             ctx.PushVector(0, 0, 0);
             ctx.Push(4);
             ctx.PushString(path);
-            Instruction(fp, 'O')(ctx);
+            (await Instruction(fp, 'O'))(ctx);
             var handle = ctx.Pop();
 
             ctx.Push(handle);
             ctx.PushString("foo\nbar\nbaz");
-            Instruction(fp, 'P')(ctx);
-            Assert.AreEqual(handle, ctx.Pop());
+            (await Instruction(fp, 'P'))(ctx);
+            await Assert.That(ctx.Pop()).IsEqualTo(handle);
 
             ctx.Push(handle);
             ctx.Push(0);
             ctx.Push(0);
-            Instruction(fp, 'S')(ctx);
-            Assert.AreEqual(handle, ctx.Pop());
+            (await Instruction(fp, 'S'))(ctx);
+            await Assert.That(ctx.Pop()).IsEqualTo(handle);
 
             ctx.Push(handle);
-            Instruction(fp, 'G')(ctx);
+            (await Instruction(fp, 'G'))(ctx);
             var length = ctx.Pop();
-            Assert.AreEqual("foo\n", ctx.PopString());
-            Assert.AreEqual(4, length);
-            Assert.AreEqual(handle, ctx.Pop());
+            await Assert.That(ctx.PopString()).IsEqualTo("foo\n");
+            await Assert.That(length).IsEqualTo(4);
+            await Assert.That(ctx.Pop()).IsEqualTo(handle);
         }
         finally
         {
@@ -156,8 +156,8 @@ public class FileFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Read_And_Write_Bytes_UseConfiguredBuffer()
+    [Test]
+    public async Task Read_And_Write_Bytes_UseConfiguredBuffer()
     {
         var path = Path.GetTempFileName();
         try
@@ -168,18 +168,18 @@ public class FileFingerprintTests
             readCtx.PushVector(2, 0, 0);
             readCtx.Push(0);
             readCtx.PushString(path);
-            Instruction(fp, 'O')(readCtx);
+            (await Instruction(fp, 'O'))(readCtx);
             var readHandle = readCtx.Pop();
 
             readCtx.Push(readHandle);
             readCtx.Push(7);
-            Instruction(fp, 'R')(readCtx);
-            Assert.AreEqual(readHandle, readCtx.Pop());
-            Assert.AreEqual('b', readCtx.GetCell(12, 20, 30));
-            Assert.AreEqual('a', readCtx.GetCell(13, 20, 30));
-            Assert.AreEqual('z', readCtx.GetCell(18, 20, 30));
+            (await Instruction(fp, 'R'))(readCtx);
+            await Assert.That(readCtx.Pop()).IsEqualTo(readHandle);
+            await Assert.That(readCtx.GetCell(12, 20, 30)).IsEqualTo('b');
+            await Assert.That(readCtx.GetCell(13, 20, 30)).IsEqualTo('a');
+            await Assert.That(readCtx.GetCell(18, 20, 30)).IsEqualTo('z');
             readCtx.Push(readHandle);
-            Instruction(fp, 'C')(readCtx);
+            (await Instruction(fp, 'C'))(readCtx);
 
             var writePath = path + ".copy";
             var writeCtx = new TestContext { StorageOffset = (10, 20, 30) };
@@ -188,16 +188,16 @@ public class FileFingerprintTests
             writeCtx.PushVector(2, 0, 0);
             writeCtx.Push(4);
             writeCtx.PushString(writePath);
-            Instruction(fp, 'O')(writeCtx);
+            (await Instruction(fp, 'O'))(writeCtx);
             var writeHandle = writeCtx.Pop();
 
             writeCtx.Push(writeHandle);
             writeCtx.Push(7);
-            Instruction(fp, 'W')(writeCtx);
-            Assert.AreEqual(writeHandle, writeCtx.Pop());
+            (await Instruction(fp, 'W'))(writeCtx);
+            await Assert.That(writeCtx.Pop()).IsEqualTo(writeHandle);
             writeCtx.Push(writeHandle);
-            Instruction(fp, 'C')(writeCtx);
-            Assert.AreEqual("bar\nbaz", System.IO.File.ReadAllText(writePath));
+            (await Instruction(fp, 'C'))(writeCtx);
+            await Assert.That(System.IO.File.ReadAllText(writePath)).IsEqualTo("bar\nbaz");
             System.IO.File.Delete(writePath);
         }
         finally
@@ -207,8 +207,8 @@ public class FileFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Seek_MovesFilePointer()
+    [Test]
+    public async Task Seek_MovesFilePointer()
     {
         var path = Path.GetTempFileName();
         try
@@ -219,18 +219,18 @@ public class FileFingerprintTests
             ctx.PushVector(0, 0, 0);
             ctx.Push(3);
             ctx.PushString(path);
-            Instruction(fp, 'O')(ctx);
+            (await Instruction(fp, 'O'))(ctx);
             var handle = ctx.Pop();
 
             ctx.Push(handle);
             ctx.Push(0);
             ctx.Push(2);
-            Instruction(fp, 'S')(ctx);
-            Assert.AreEqual(handle, ctx.Pop());
+            (await Instruction(fp, 'S'))(ctx);
+            await Assert.That(ctx.Pop()).IsEqualTo(handle);
 
             ctx.Push(handle);
-            Instruction(fp, 'L')(ctx);
-            Assert.AreEqual(2, ctx.Pop());
+            (await Instruction(fp, 'L'))(ctx);
+            await Assert.That(ctx.Pop()).IsEqualTo(2);
         }
         finally
         {
@@ -239,35 +239,35 @@ public class FileFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Delete_RemovesExistingFile()
+    [Test]
+    public async Task Delete_RemovesExistingFile()
     {
         var path = Path.GetTempFileName();
         using var fp = new FileFingerprint();
         var ctx = new TestContext();
         ctx.PushString(path);
 
-        Instruction(fp, 'D')(ctx);
+        (await Instruction(fp, 'D'))(ctx);
 
-        Assert.IsFalse(ctx.Reflected);
-        Assert.IsFalse(System.IO.File.Exists(path));
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(System.IO.File.Exists(path)).IsFalse();
     }
 
-    [TestMethod]
-    public void MissingBufferCapability_Reflects()
+    [Test]
+    public async Task MissingBufferCapability_Reflects()
     {
         using var fp = new FileFingerprint();
         var ctx = new CoreOnlyContext();
         ctx.Push(1);
         ctx.PushString("file.tmp");
 
-        Instruction(fp, 'O')(ctx);
+        (await Instruction(fp, 'O'))(ctx);
 
-        Assert.IsTrue(ctx.Reflected);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Handles_AreScopedPerInstructionPointer_AndCopiedOnClone()
+    [Test]
+    public async Task Handles_AreScopedPerInstructionPointer_AndCopiedOnClone()
     {
         var path = Path.GetTempFileName();
         try
@@ -278,39 +278,39 @@ public class FileFingerprintTests
             parent.PushVector(0, 0, 0);
             parent.Push(3);
             parent.PushString(path);
-            Instruction(fp, 'O')(parent);
+            (await Instruction(fp, 'O'))(parent);
             var handle = parent.Pop();
 
             parent.Push(handle);
             parent.Push(0);
             parent.Push(2);
-            Instruction(fp, 'S')(parent);
-            Assert.AreEqual(handle, parent.Pop());
+            (await Instruction(fp, 'S'))(parent);
+            await Assert.That(parent.Pop()).IsEqualTo(handle);
 
             fp.OnInstructionPointerCloned(1, 2);
             var child = new TestContext { InstructionPointerId = 2 };
             child.Push(handle);
-            Instruction(fp, 'L')(child);
-            Assert.AreEqual(2, child.Pop());
-            Assert.AreEqual(handle, child.Pop());
+            (await Instruction(fp, 'L'))(child);
+            await Assert.That(child.Pop()).IsEqualTo(2);
+            await Assert.That(child.Pop()).IsEqualTo(handle);
 
             child.Push(handle);
             parent.Push(handle);
             parent.Push(0);
             parent.Push(1);
-            Instruction(fp, 'S')(parent);
-            Assert.AreEqual(handle, parent.Pop());
+            (await Instruction(fp, 'S'))(parent);
+            await Assert.That(parent.Pop()).IsEqualTo(handle);
 
             child.Push(handle);
-            Instruction(fp, 'L')(child);
-            Assert.AreEqual(2, child.Pop());
-            Assert.AreEqual(handle, child.Pop());
+            (await Instruction(fp, 'L'))(child);
+            await Assert.That(child.Pop()).IsEqualTo(2);
+            await Assert.That(child.Pop()).IsEqualTo(handle);
 
             fp.OnInstructionPointerTerminated(1);
             child.Push(handle);
-            Instruction(fp, 'L')(child);
-            Assert.AreEqual(2, child.Pop());
-            Assert.AreEqual(handle, child.Pop());
+            (await Instruction(fp, 'L'))(child);
+            await Assert.That(child.Pop()).IsEqualTo(2);
+            await Assert.That(child.Pop()).IsEqualTo(handle);
         }
         finally
         {

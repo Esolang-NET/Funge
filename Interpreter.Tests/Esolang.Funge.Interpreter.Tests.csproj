@@ -9,8 +9,4 @@
     <ProjectReference Include="..\Interpreter\Esolang.Funge.Interpreter.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
-    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
-  </ItemGroup>
-
 </Project>

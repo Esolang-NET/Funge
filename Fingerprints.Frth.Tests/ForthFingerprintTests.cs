@@ -1,3 +1,4 @@
+using TUnit.Assertions.Enums;
 namespace Esolang.Funge.Fingerprints.Frth;
 
 sealed class TestContext : IFungeExecutionContext, IFungeStackContext
@@ -17,12 +18,12 @@ sealed class TestContext : IFungeExecutionContext, IFungeStackContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class ForthFingerprintTests
 {
-    static FingerprintInstruction Instruction(ForthFingerprint fingerprint, char instruction)
+    static async Task<FingerprintInstruction> Instruction(ForthFingerprint fingerprint, char instruction)
     {
-        Assert.IsTrue(fingerprint.Instructions.TryGetValue(instruction, out var handler));
+        await Assert.That(fingerprint.Instructions.TryGetValue(instruction, out var handler)).IsTrue();
+        Assert.NotNull(handler);
         return handler;
     }
 
@@ -44,126 +45,126 @@ public class ForthFingerprintTests
         return [.. values];
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x46525448, new ForthFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new ForthFingerprint().Handprint).IsEqualTo(0x46525448);
 
-    [TestMethod]
-    public void D_PushesStackDepth()
+    [Test]
+    public async Task D_PushesStackDepth()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        Instruction(fingerprint, 'D')(context);
+        (await Instruction(fingerprint, 'D'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 2, 3, 3 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 3 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void O_PerformsForthOver()
+    [Test]
+    public async Task O_PerformsForthOver()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2);
 
-        Instruction(fingerprint, 'O')(context);
+        (await Instruction(fingerprint, 'O'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 2, 1 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 1 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void R_PerformsForthRot()
+    [Test]
+    public async Task R_PerformsForthRot()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        Instruction(fingerprint, 'R')(context);
+        (await Instruction(fingerprint, 'R'))(context);
 
-        CollectionAssert.AreEqual(new[] { 2, 3, 1 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 2, 3, 1 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void P_PicksIndexedValue()
+    [Test]
+    public async Task P_PicksIndexedValue()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 0);
 
-        Instruction(fingerprint, 'P')(context);
+        (await Instruction(fingerprint, 'P'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 2, 3, 3 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 3 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void P_PushesZeroWhenIndexIsTooDeep()
+    [Test]
+    public async Task P_PushesZeroWhenIndexIsTooDeep()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 5);
 
-        Instruction(fingerprint, 'P')(context);
+        (await Instruction(fingerprint, 'P'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 2, 3, 0 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 0 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void P_ReflectsOnNegativeIndex()
+    [Test]
+    public async Task P_ReflectsOnNegativeIndex()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, -1);
 
-        Instruction(fingerprint, 'P')(context);
+        (await Instruction(fingerprint, 'P'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void L_RollsIndexedValueToTop()
+    [Test]
+    public async Task L_RollsIndexedValueToTop()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 4, 5, 3);
 
-        Instruction(fingerprint, 'L')(context);
+        (await Instruction(fingerprint, 'L'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 3, 4, 5, 2 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 3, 4, 5, 2 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void L_WithPositiveIndexPastDepth_PushesZero()
+    [Test]
+    public async Task L_WithPositiveIndexPastDepth_PushesZero()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 5);
 
-        Instruction(fingerprint, 'L')(context);
+        (await Instruction(fingerprint, 'L'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 2, 3, 0 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 3, 0 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void L_WithNegativeIndexMovesTopDeeper()
+    [Test]
+    public async Task L_WithNegativeIndexMovesTopDeeper()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 4, 5, -3);
 
-        Instruction(fingerprint, 'L')(context);
+        (await Instruction(fingerprint, 'L'))(context);
 
-        CollectionAssert.AreEqual(new[] { 1, 2, 5, 3, 4 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 1, 2, 5, 3, 4 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void L_WithNegativeIndexBeyondDepth_PadsWithZeroes()
+    [Test]
+    public async Task L_WithNegativeIndexBeyondDepth_PadsWithZeroes()
     {
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, -5);
 
-        Instruction(fingerprint, 'L')(context);
+        (await Instruction(fingerprint, 'L'))(context);
 
-        CollectionAssert.AreEqual(new[] { 3, 0, 0, 1, 2 }, PopAll(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopAll(context)).IsEquivalentTo((int[])[ 3, 0, 0, 1, 2 ], CollectionOrdering.Matching);
+        await Assert.That(context.Reflected).IsFalse();
     }
 }

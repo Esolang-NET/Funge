@@ -1,9 +1,13 @@
 <Solution>
   <Folder Name="/Esoalng.Funge.Fingerprints/">
+    <Project Path="Fingerprints.Arry.Tests/Esolang.Funge.Fingerprints.Arry.Tests.csproj" />
+    <Project Path="Fingerprints.Arry/Esolang.Funge.Fingerprints.Arry.csproj" />
     <Project Path="Fingerprints.Base.Tests/Esolang.Funge.Fingerprints.Base.Tests.csproj" />
     <Project Path="Fingerprints.Base/Esolang.Funge.Fingerprints.Base.csproj" />
     <Project Path="Fingerprints.Bool.Tests/Esolang.Funge.Fingerprints.Bool.Tests.csproj" />
     <Project Path="Fingerprints.Bool/Esolang.Funge.Fingerprints.Bool.csproj" />
+    <Project Path="Fingerprints.Date.Tests/Esolang.Funge.Fingerprints.Date.Tests.csproj" />
+    <Project Path="Fingerprints.Date/Esolang.Funge.Fingerprints.Date.csproj" />
     <Project Path="Fingerprints.File.Tests/Esolang.Funge.Fingerprints.File.Tests.csproj" />
     <Project Path="Fingerprints.File/Esolang.Funge.Fingerprints.File.csproj" />
     <Project Path="Fingerprints.Fixp.Tests/Esolang.Funge.Fingerprints.Fixp.Tests.csproj" />

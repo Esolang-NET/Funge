@@ -11,151 +11,158 @@ sealed class TestContext : IFungeExecutionContext, IFungeInstructionPointerConte
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class TimeFingerprintTests
 {
-    static FingerprintInstruction Instruction(TimeFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(TimeFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    static bool IsWithin(int value, int lower, int upper)
-        => lower <= upper
-            ? value >= lower && value <= upper
-            : value >= lower || value <= upper;
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new TimeFingerprint().Handprint).IsEqualTo(0x54494D45);
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x54494D45, new TimeFingerprint().Handprint);
-
-    [TestMethod]
-    public void D_PushesDayOfMonth()
+    [Test]
+    public async Task D_PushesDayOfMonth()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Day;
-        Instruction(fp, 'D')(ctx);
+        (await Instruction(fp, 'D'))(ctx);
         var after = DateTime.Now.Day;
 
-        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+        await Assert.That(ctx.Pop())
+            .IsGreaterThanOrEqualTo(Math.Min(before, after))
+            .And.IsLessThanOrEqualTo(Math.Max(before, after));
     }
 
-    [TestMethod]
-    public void F_PushesZeroBasedDayOfYear()
+    [Test]
+    public async Task F_PushesZeroBasedDayOfYear()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.DayOfYear - 1;
-        Instruction(fp, 'F')(ctx);
+        (await Instruction(fp, 'F'))(ctx);
         var after = DateTime.Now.DayOfYear - 1;
 
-        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+        await Assert.That(ctx.Pop())
+            .IsGreaterThanOrEqualTo(Math.Min(before, after))
+            .And.IsLessThanOrEqualTo(Math.Max(before, after));
     }
 
-    [TestMethod]
-    public void G_And_L_SwitchBetweenGmtAndLocalMode()
+    [Test]
+    public async Task G_And_L_SwitchBetweenGmtAndLocalMode()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext { InstructionPointerId = 1 };
 
-        Instruction(fp, 'G')(ctx);
+        (await Instruction(fp, 'G'))(ctx);
         var utcYear = DateTime.UtcNow.Year;
-        Instruction(fp, 'Y')(ctx);
-        Assert.AreEqual(utcYear, ctx.Pop());
+        (await Instruction(fp, 'Y'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(utcYear);
 
-        Instruction(fp, 'L')(ctx);
+        (await Instruction(fp, 'L'))(ctx);
         var localYear = DateTime.Now.Year;
-        Instruction(fp, 'Y')(ctx);
-        Assert.AreEqual(localYear, ctx.Pop());
+        (await Instruction(fp, 'Y'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(localYear);
     }
 
-    [TestMethod]
-    public void GmtMode_IsScopedPerInstructionPointer_AndCopiedOnClone()
+    [Test]
+    public async Task GmtMode_IsScopedPerInstructionPointer_AndCopiedOnClone()
     {
         var fp = new TimeFingerprint();
         var parent = new TestContext { InstructionPointerId = 1 };
         var child = new TestContext { InstructionPointerId = 2 };
 
-        Instruction(fp, 'G')(parent);
+        (await Instruction(fp, 'G'))(parent);
         fp.OnInstructionPointerCloned(1, 2);
         fp.OnInstructionPointerTerminated(1);
 
         var utcYear = DateTime.UtcNow.Year;
-        Instruction(fp, 'Y')(child);
-        Assert.AreEqual(utcYear, child.Pop());
+        (await Instruction(fp, 'Y'))(child);
+        await Assert.That(child.Pop()).IsEqualTo(utcYear);
 
-        Instruction(fp, 'L')(child);
+        (await Instruction(fp, 'L'))(child);
         var localYear = DateTime.Now.Year;
-        Instruction(fp, 'Y')(child);
-        Assert.AreEqual(localYear, child.Pop());
+        (await Instruction(fp, 'Y'))(child);
+        await Assert.That(child.Pop()).IsEqualTo(localYear);
     }
 
-    [TestMethod]
-    public void H_PushesHour()
+    [Test]
+    public async Task H_PushesHour()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Hour;
-        Instruction(fp, 'H')(ctx);
+        (await Instruction(fp, 'H'))(ctx);
         var after = DateTime.Now.Hour;
 
-        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+        await Assert.That(ctx.Pop())
+            .IsGreaterThanOrEqualTo(Math.Min(before, after))
+            .And.IsLessThanOrEqualTo(Math.Max(before, after));
     }
 
-    [TestMethod]
-    public void M_PushesMinute()
+    [Test]
+    public async Task M_PushesMinute()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Minute;
-        Instruction(fp, 'M')(ctx);
+        (await Instruction(fp, 'M'))(ctx);
         var after = DateTime.Now.Minute;
 
-        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+        await Assert.That(ctx.Pop())
+            .IsGreaterThanOrEqualTo(Math.Min(before, after))
+            .And.IsLessThanOrEqualTo(Math.Max(before, after));
     }
 
-    [TestMethod]
-    public void O_PushesMonth()
+    [Test]
+    public async Task O_PushesMonth()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Month;
-        Instruction(fp, 'O')(ctx);
+        (await Instruction(fp, 'O'))(ctx);
         var after = DateTime.Now.Month;
 
-        Assert.IsTrue(IsWithin(ctx.Pop(), Math.Min(before, after), Math.Max(before, after)));
+        await Assert.That(ctx.Pop())
+            .IsGreaterThanOrEqualTo(Math.Min(before, after))
+            .And.IsLessThanOrEqualTo(Math.Max(before, after));
     }
 
-    [TestMethod]
-    public void S_PushesSecond()
+    [Test]
+    public async Task S_PushesSecond()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Second;
-        Instruction(fp, 'S')(ctx);
+        (await Instruction(fp, 'S'))(ctx);
         var after = DateTime.Now.Second;
 
-        Assert.IsTrue(IsWithin(ctx.Pop(), before, after));
+        await Assert.That(ctx.Pop())
+            .IsGreaterThanOrEqualTo(Math.Min(before, after))
+            .And.IsLessThanOrEqualTo(Math.Max(before, after));
     }
 
-    [TestMethod]
-    public void W_PushesSundayBasedDayOfWeek()
+    [Test]
+    public async Task W_PushesSundayBasedDayOfWeek()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
 
-        Instruction(fp, 'W')(ctx);
+        (await Instruction(fp, 'W'))(ctx);
 
-        Assert.AreEqual((int)DateTime.Now.DayOfWeek + 1, ctx.Pop());
+        await Assert.That(ctx.Pop()).IsEqualTo((int)DateTime.Now.DayOfWeek + 1);
     }
 
-    [TestMethod]
-    public void Y_PushesYear()
+    [Test]
+    public async Task Y_PushesYear()
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'Y')(ctx);
-        Assert.AreEqual(DateTime.Now.Year, ctx.Pop());
+        (await Instruction(fp, 'Y'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(DateTime.Now.Year);
     }
 }

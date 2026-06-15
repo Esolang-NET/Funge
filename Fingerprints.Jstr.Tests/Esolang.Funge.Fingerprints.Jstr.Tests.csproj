@@ -10,8 +10,4 @@
     <ProjectReference Include="..\Fingerprints.Jstr\Esolang.Funge.Fingerprints.Jstr.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
-    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
-  </ItemGroup>
-
 </Project>

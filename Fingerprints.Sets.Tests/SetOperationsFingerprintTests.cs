@@ -1,3 +1,4 @@
+using TUnit.Assertions.Enums;
 namespace Esolang.Funge.Fingerprints.Sets;
 
 sealed class TestContext : IFungeExecutionContext
@@ -10,12 +11,12 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class SetOperationsFingerprintTests
 {
-    static FingerprintInstruction Instruction(SetOperationsFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(SetOperationsFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -35,149 +36,149 @@ public class SetOperationsFingerprintTests
         return set;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x53455453, new SetOperationsFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new SetOperationsFingerprint().Handprint).IsEqualTo(0x53455453);
 
-    [TestMethod]
-    public void Instruction_A_AddElement()
+    [Test]
+    public async Task Instruction_A_AddElement()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         ctx.Push(4);
-        Instruction(fp, 'A')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'A'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        Assert.IsTrue(result.SetEquals(new HashSet<int> { 1, 2, 3, 4 }));
+        await Assert.That(result).IsEquivalentTo((int[])[1, 2,3,4], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_A_AddExisting_NoChange()
+    [Test]
+    public async Task Instruction_A_AddExisting_NoChange()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2);
         ctx.Push(2);
-        Instruction(fp, 'A')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'A'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        Assert.IsTrue(result.SetEquals(new HashSet<int> { 1, 2 }));
+        await Assert.That(result).IsEquivalentTo((int[])[1, 2], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_U_Union()
+    [Test]
+    public async Task Instruction_U_Union()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2);
         PushSet(ctx, 2, 3);
-        Instruction(fp, 'U')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'U'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        Assert.IsTrue(result.SetEquals(new HashSet<int> { 1, 2, 3 }));
+        await Assert.That(result).IsEquivalentTo((int[])[1, 2, 3], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_I_Intersect()
+    [Test]
+    public async Task Instruction_I_Intersect()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         PushSet(ctx, 2, 3, 4);
-        Instruction(fp, 'I')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        Assert.IsTrue(result.SetEquals(new HashSet<int> { 2, 3 }));
+        await Assert.That(result).IsEquivalentTo((int[])[2, 3], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_S_Subtract()
+    [Test]
+    public async Task Instruction_S_Subtract()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         PushSet(ctx, 2, 3);
-        Instruction(fp, 'S')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'S'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        Assert.IsTrue(result.SetEquals(new HashSet<int> { 1 }));
+        await Assert.That(result).IsEquivalentTo((int[])[1], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_R_Remove()
+    [Test]
+    public async Task Instruction_R_Remove()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         ctx.Push(2);
-        Instruction(fp, 'R')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
-        Assert.IsTrue(result.SetEquals(new HashSet<int> { 1, 3 }));
+        await Assert.That(result).IsEquivalentTo((int[])[1, 3], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_M_Member_Found()
+    [Test]
+    public async Task Instruction_M_Member_Found()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         ctx.Push(2);
         PushSet(ctx, 1, 2, 3);
-        Instruction(fp, 'M')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(1, ctx.Pop());
+        (await Instruction(fp, 'M'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Instruction_M_Member_NotFound()
+    [Test]
+    public async Task Instruction_M_Member_NotFound()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         ctx.Push(99);
         PushSet(ctx, 1, 2, 3);
-        Instruction(fp, 'M')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(0, ctx.Pop());
+        (await Instruction(fp, 'M'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Instruction_Z_Discard()
+    [Test]
+    public async Task Instruction_Z_Discard()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
-        Instruction(fp, 'Z')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(0, ctx.Pop()); // stack empty
+        (await Instruction(fp, 'Z'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsEqualTo(0); // stack empty
     }
 
-    [TestMethod]
-    public void Instruction_D_Duplicate()
+    [Test]
+    public async Task Instruction_D_Duplicate()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 5, 6);
-        Instruction(fp, 'D')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var first = PopSet(ctx);
         var second = PopSet(ctx);
-        Assert.IsTrue(first.SetEquals(new HashSet<int> { 5, 6 }));
-        Assert.IsTrue(second.SetEquals(new HashSet<int> { 5, 6 }));
+        await Assert.That(first).IsEquivalentTo((int[])[5, 6], CollectionOrdering.Any);
+        await Assert.That(second).IsEquivalentTo((int[])[5, 6], CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void Instruction_X_Exchange()
+    [Test]
+    public async Task Instruction_X_Exchange()
     {
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2);
         PushSet(ctx, 3, 4);
-        Instruction(fp, 'X')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'X'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var top = PopSet(ctx);
         var bottom = PopSet(ctx);
-        Assert.IsTrue(top.SetEquals(new HashSet<int> { 1, 2 }));
-        Assert.IsTrue(bottom.SetEquals(new HashSet<int> { 3, 4 }));
+        await Assert.That(top).IsEquivalentTo((int[])[1, 2], CollectionOrdering.Any);
+        await Assert.That(bottom).IsEquivalentTo((int[])[3, 4], CollectionOrdering.Any);
     }
 }

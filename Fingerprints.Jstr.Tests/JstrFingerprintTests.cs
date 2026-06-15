@@ -41,12 +41,12 @@ sealed class BasicContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class JstrFingerprintTests
 {
-    static FingerprintInstruction Instruction(JstrFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(JstrFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -59,12 +59,12 @@ public class JstrFingerprintTests
         return new string([.. chars]);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x4A535452, new JstrFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new JstrFingerprint().Handprint).IsEqualTo(0x4A535452);
 
-    [TestMethod]
-    public void Instruction_P_G_RoundTrip()
+    [Test]
+    public async Task Instruction_P_G_RoundTrip()
     {
         var fp = new JstrFingerprint();
         var ctx = new TestContext();
@@ -78,37 +78,37 @@ public class JstrFingerprintTests
         // pos (0,0,0)
         ctx.Push(0); ctx.Push(0); ctx.Push(0);
         ctx.Push(5); // n
-        Instruction(fp, 'P')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'P'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
 
         // Now G: push delta (1,0,0), pos (0,0,0), n=5
         ctx.Push(1); ctx.Push(0); ctx.Push(0);
         ctx.Push(0); ctx.Push(0); ctx.Push(0);
         ctx.Push(5);
-        Instruction(fp, 'G')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual("Hello", Pop0gnirts(ctx));
+        (await Instruction(fp, 'G'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(Pop0gnirts(ctx)).IsEqualTo("Hello");
     }
 
-    [TestMethod]
-    public void Instruction_G_NegativeN_Reflects()
+    [Test]
+    public async Task Instruction_G_NegativeN_Reflects()
     {
         var fp = new JstrFingerprint();
         var ctx = new TestContext();
         ctx.Push(1); ctx.Push(0); ctx.Push(0); // delta
         ctx.Push(0); ctx.Push(0); ctx.Push(0); // pos
         ctx.Push(-1); // n
-        Instruction(fp, 'G')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'G'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_G_NoContexts_Reflects()
+    [Test]
+    public async Task Instruction_G_NoContexts_Reflects()
     {
         var fp = new JstrFingerprint();
         var ctx = new BasicContext();
         ctx.Push(0);
-        Instruction(fp, 'G')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'G'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

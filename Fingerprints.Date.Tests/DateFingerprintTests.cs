@@ -12,12 +12,12 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class DateFingerprintTests
 {
-    static FingerprintInstruction Instruction(DateFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(DateFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -28,133 +28,133 @@ public class DateFingerprintTests
         ctx.Push(day);
     }
 
-    static void AssertDate(TestContext ctx, int year, int month, int day)
+    static async Task AssertDate(TestContext ctx, int year, int month, int day)
     {
-        Assert.AreEqual(day, ctx.Pop());
-        Assert.AreEqual(month, ctx.Pop());
-        Assert.AreEqual(year, ctx.Pop());
+        await Assert.That(ctx.Pop()).IsEqualTo(day);
+        await Assert.That(ctx.Pop()).IsEqualTo(month);
+        await Assert.That(ctx.Pop()).IsEqualTo(year);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x44415445, new DateFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new DateFingerprint().Handprint).IsEqualTo(0x44415445);
 
-    [TestMethod]
-    public void Instruction_A_AddsDays()
+    [Test]
+    public async Task Instruction_A_AddsDays()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         PushDate(ctx, 2024, 2, 27);
         ctx.Push(3);
 
-        Instruction(fp, 'A')(ctx);
+        (await Instruction(fp, 'A'))(ctx);
 
-        AssertDate(ctx, 2024, 3, 1);
-        Assert.IsFalse(ctx.Reflected);
+        await AssertDate(ctx, 2024, 3, 1);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_C_ConvertsJulianDayToCalendarDate()
+    [Test]
+    public async Task Instruction_C_ConvertsJulianDayToCalendarDate()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         ctx.Push(2451545);
 
-        Instruction(fp, 'C')(ctx);
+        (await Instruction(fp, 'C'))(ctx);
 
-        AssertDate(ctx, 2000, 1, 1);
-        Assert.IsFalse(ctx.Reflected);
+        await AssertDate(ctx, 2000, 1, 1);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_D_ComputesDaysBetweenDates()
+    [Test]
+    public async Task Instruction_D_ComputesDaysBetweenDates()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         PushDate(ctx, 2024, 2, 28);
         PushDate(ctx, 2024, 3, 1);
 
-        Instruction(fp, 'D')(ctx);
+        (await Instruction(fp, 'D'))(ctx);
 
-        Assert.AreEqual(2, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Pop()).IsEqualTo(2);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_J_ConvertsCalendarDateToJulianDay()
+    [Test]
+    public async Task Instruction_J_ConvertsCalendarDateToJulianDay()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         PushDate(ctx, 2000, 1, 1);
 
-        Instruction(fp, 'J')(ctx);
+        (await Instruction(fp, 'J'))(ctx);
 
-        Assert.AreEqual(2451545, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Pop()).IsEqualTo(2451545);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_T_ConvertsZeroBasedDayOfYearToDate()
+    [Test]
+    public async Task Instruction_T_ConvertsZeroBasedDayOfYearToDate()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         ctx.Push(2024);
         ctx.Push(59);
 
-        Instruction(fp, 'T')(ctx);
+        (await Instruction(fp, 'T'))(ctx);
 
-        AssertDate(ctx, 2024, 2, 29);
-        Assert.IsFalse(ctx.Reflected);
+        await AssertDate(ctx, 2024, 2, 29);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_W_PushesMondayBasedDayOfWeek()
+    [Test]
+    public async Task Instruction_W_PushesMondayBasedDayOfWeek()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         PushDate(ctx, 2024, 6, 3);
 
-        Instruction(fp, 'W')(ctx);
+        (await Instruction(fp, 'W'))(ctx);
 
-        Assert.AreEqual(0, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_Y_PushesZeroBasedDayOfYear()
+    [Test]
+    public async Task Instruction_Y_PushesZeroBasedDayOfYear()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         PushDate(ctx, 2024, 12, 31);
 
-        Instruction(fp, 'Y')(ctx);
+        (await Instruction(fp, 'Y'))(ctx);
 
-        Assert.AreEqual(365, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        await Assert.That(ctx.Pop()).IsEqualTo(365);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void InvalidDate_Reflects()
+    [Test]
+    public async Task InvalidDate_Reflects()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         PushDate(ctx, 2024, 2, 30);
 
-        Instruction(fp, 'J')(ctx);
+        (await Instruction(fp, 'J'))(ctx);
 
-        Assert.IsTrue(ctx.Reflected);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void InvalidDayOfYear_Reflects()
+    [Test]
+    public async Task InvalidDayOfYear_Reflects()
     {
         var fp = new DateFingerprint();
         var ctx = new TestContext();
         ctx.Push(2023);
         ctx.Push(365);
 
-        Instruction(fp, 'T')(ctx);
+        (await Instruction(fp, 'T'))(ctx);
 
-        Assert.IsTrue(ctx.Reflected);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

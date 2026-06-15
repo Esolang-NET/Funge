@@ -10,64 +10,64 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class ModuloFingerprintTests
 {
-    static FingerprintInstruction Instruction(ModuloFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(ModuloFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x4D4F4455, new ModuloFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new ModuloFingerprint().Handprint).IsEqualTo(0x4D4F4455);
 
-    [TestMethod]
-    [DataRow(7, 3, 1)]     // 7 % 3 = 1
-    [DataRow(-7, 3, 2)]    // -7 % 3 = 2 (sign of divisor 3)
-    [DataRow(7, -3, -2)]   // 7 % -3 = -2 (sign of divisor -3)
-    [DataRow(-7, -3, -1)]  // -7 % -3 = -1 (sign of divisor -3)
-    [DataRow(7, 0, 0)]     // division by zero
-    public void M_SignedResultModulo(int a, int b, int expected)
+    [Test]
+    [Arguments(7, 3, 1)]     // 7 % 3 = 1
+    [Arguments(-7, 3, 2)]    // -7 % 3 = 2 (sign of divisor 3)
+    [Arguments(7, -3, -2)]   // 7 % -3 = -2 (sign of divisor -3)
+    [Arguments(-7, -3, -1)]  // -7 % -3 = -1 (sign of divisor -3)
+    [Arguments(7, 0, 0)]     // division by zero
+    public async Task M_SignedResultModulo(int a, int b, int expected)
     {
         var fp = new ModuloFingerprint();
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        Instruction(fp, 'M')(ctx);
-        Assert.AreEqual(expected, ctx.Pop());
+        (await Instruction(fp, 'M'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(expected);
     }
 
-    [TestMethod]
-    [DataRow(7, 3, 1)]     // 7 % 3 = 1
-    [DataRow(-7, 3, -1)]   // -7 % 3 = -1 (sign of dividend -7)
-    [DataRow(7, -3, 1)]    // 7 % -3 = 1 (sign of dividend 7)
-    [DataRow(-7, -3, -1)]  // -7 % -3 = -1 (sign of dividend -7)
-    [DataRow(7, 0, 0)]     // division by zero
-    public void R_Remainder(int a, int b, int expected)
+    [Test]
+    [Arguments(7, 3, 1)]     // 7 % 3 = 1
+    [Arguments(-7, 3, -1)]   // -7 % 3 = -1 (sign of dividend -7)
+    [Arguments(7, -3, 1)]    // 7 % -3 = 1 (sign of dividend 7)
+    [Arguments(-7, -3, -1)]  // -7 % -3 = -1 (sign of dividend -7)
+    [Arguments(7, 0, 0)]     // division by zero
+    public async Task R_Remainder(int a, int b, int expected)
     {
         var fp = new ModuloFingerprint();
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        Instruction(fp, 'R')(ctx);
-        Assert.AreEqual(expected, ctx.Pop());
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(expected);
     }
 
-    [TestMethod]
-    [DataRow(7, 3, 1)]     // 7 % 3 = 1
-    [DataRow(-7, 3, 2)]    // -7 % 3 = 2 (always positive)
-    [DataRow(7, -3, 1)]    // 7 % -3 = 1 (always positive)
-    [DataRow(-7, -3, 2)]   // -7 % -3 = 2 (always positive)
-    [DataRow(7, 0, 0)]     // division by zero
-    public void U_UnsignedResultModulo(int a, int b, int expected)
+    [Test]
+    [Arguments(7, 3, 1)]     // 7 % 3 = 1
+    [Arguments(-7, 3, 2)]    // -7 % 3 = 2 (always positive)
+    [Arguments(7, -3, 1)]    // 7 % -3 = 1 (always positive)
+    [Arguments(-7, -3, 2)]   // -7 % -3 = 2 (always positive)
+    [Arguments(7, 0, 0)]     // division by zero
+    public async Task U_UnsignedResultModulo(int a, int b, int expected)
     {
         var fp = new ModuloFingerprint();
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        Instruction(fp, 'U')(ctx);
-        Assert.AreEqual(expected, ctx.Pop());
+        (await Instruction(fp, 'U'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(expected);
     }
 }

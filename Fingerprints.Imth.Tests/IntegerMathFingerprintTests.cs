@@ -38,12 +38,12 @@ sealed class OutputContext : IFungeExecutionContext, IFungeOutputContext
     public string Output => _output.ToString();
 }
 
-[TestClass]
 public class IntegerMathFingerprintTests
 {
-    static FingerprintInstruction Instruction(IntegerMathFingerprint fingerprint, char instruction)
+    static async Task<FingerprintInstruction> Instruction(IntegerMathFingerprint fingerprint, char instruction)
     {
-        Assert.IsTrue(fingerprint.Instructions.TryGetValue(instruction, out var handler));
+        await Assert.That(fingerprint.Instructions.TryGetValue(instruction, out var handler)).IsTrue();
+        Assert.NotNull(handler);
         return handler;
     }
 
@@ -58,256 +58,256 @@ public class IntegerMathFingerprintTests
         return context;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x494D5448, new IntegerMathFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new IntegerMathFingerprint().Handprint).IsEqualTo(0x494D5448);
 
-    [TestMethod]
-    [DataRow('B', -7, 7)]
-    [DataRow('C', 7, 700)]
-    [DataRow('E', 3, 30000)]
-    [DataRow('H', 2, 2000)]
-    [DataRow('T', 9, 90)]
-    [DataRow('Z', 7, -7)]
-    public void SingleOperandMath_InstructionsProduceExpectedResult(char instruction, int input, int expected)
+    [Test]
+    [Arguments('B', -7, 7)]
+    [Arguments('C', 7, 700)]
+    [Arguments('E', 3, 30000)]
+    [Arguments('H', 2, 2000)]
+    [Arguments('T', 9, 90)]
+    [Arguments('Z', 7, -7)]
+    public async Task SingleOperandMath_InstructionsProduceExpectedResult(char instruction, int input, int expected)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        Instruction(fingerprint, instruction)(context);
+        (await Instruction(fingerprint, instruction))(context);
 
-        Assert.AreEqual(expected, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(expected);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(5, 4)]
-    [DataRow(-5, -4)]
-    [DataRow(0, 0)]
-    public void D_DecrementsTowardsZero(int input, int expected)
+    [Test]
+    [Arguments(5, 4)]
+    [Arguments(-5, -4)]
+    [Arguments(0, 0)]
+    public async Task D_DecrementsTowardsZero(int input, int expected)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        Instruction(fingerprint, 'D')(context);
+        (await Instruction(fingerprint, 'D'))(context);
 
-        Assert.AreEqual(expected, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(expected);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(5, 6)]
-    [DataRow(-5, -6)]
-    [DataRow(0, 0)]
-    public void I_IncrementsAwayFromZero(int input, int expected)
+    [Test]
+    [Arguments(5, 6)]
+    [Arguments(-5, -6)]
+    [Arguments(0, 0)]
+    public async Task I_IncrementsAwayFromZero(int input, int expected)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        Instruction(fingerprint, 'I')(context);
+        (await Instruction(fingerprint, 'I'))(context);
 
-        Assert.AreEqual(expected, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(expected);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(-9, -1)]
-    [DataRow(0, 0)]
-    [DataRow(12, 1)]
-    public void G_ReturnsSign(int input, int expected)
+    [Test]
+    [Arguments(-9, -1)]
+    [Arguments(0, 0)]
+    [Arguments(12, 1)]
+    public async Task G_ReturnsSign(int input, int expected)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        Instruction(fingerprint, 'G')(context);
+        (await Instruction(fingerprint, 'G'))(context);
 
-        Assert.AreEqual(expected, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(expected);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(0, 1)]
-    [DataRow(5, 120)]
-    public void F_ComputesFactorial(int input, int expected)
+    [Test]
+    [Arguments(0, 1)]
+    [Arguments(5, 120)]
+    public async Task F_ComputesFactorial(int input, int expected)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        Instruction(fingerprint, 'F')(context);
+        (await Instruction(fingerprint, 'F'))(context);
 
-        Assert.AreEqual(expected, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(expected);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void F_ReflectsOnNegativeInput()
+    [Test]
+    public async Task F_ReflectsOnNegativeInput()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-1);
 
-        Instruction(fingerprint, 'F')(context);
+        (await Instruction(fingerprint, 'F'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void A_AveragesRequestedValues()
+    [Test]
+    public async Task A_AveragesRequestedValues()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(2, 4, 6, 3);
 
-        Instruction(fingerprint, 'A')(context);
+        (await Instruction(fingerprint, 'A'))(context);
 
-        Assert.AreEqual(4, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(4);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void A_TreatsMissingValuesAsZero()
+    [Test]
+    public async Task A_TreatsMissingValuesAsZero()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(2, 4, 4);
 
-        Instruction(fingerprint, 'A')(context);
+        (await Instruction(fingerprint, 'A'))(context);
 
-        Assert.AreEqual(1, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(1);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void A_ReturnsZeroForZeroCount()
+    [Test]
+    public async Task A_ReturnsZeroForZeroCount()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(0);
 
-        Instruction(fingerprint, 'A')(context);
+        (await Instruction(fingerprint, 'A'))(context);
 
-        Assert.AreEqual(0, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(0);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void A_ReflectsOnNegativeCount()
+    [Test]
+    public async Task A_ReflectsOnNegativeCount()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-1);
 
-        Instruction(fingerprint, 'A')(context);
+        (await Instruction(fingerprint, 'A'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void S_SumsRequestedValues()
+    [Test]
+    public async Task S_SumsRequestedValues()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(1, 2, 3, 3);
 
-        Instruction(fingerprint, 'S')(context);
+        (await Instruction(fingerprint, 'S'))(context);
 
-        Assert.AreEqual(6, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(6);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void S_ReturnsZeroForZeroCount()
+    [Test]
+    public async Task S_ReturnsZeroForZeroCount()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(0);
 
-        Instruction(fingerprint, 'S')(context);
+        (await Instruction(fingerprint, 'S'))(context);
 
-        Assert.AreEqual(0, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(0);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void S_ReflectsOnNegativeCount()
+    [Test]
+    public async Task S_ReflectsOnNegativeCount()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-1);
 
-        Instruction(fingerprint, 'S')(context);
+        (await Instruction(fingerprint, 'S'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    [DataRow('L', 3, 2, 12)]
-    [DataRow('L', 8, -1, 4)]
-    [DataRow('L', 1, 32, 1)]
-    [DataRow('R', 8, 1, 4)]
-    [DataRow('R', 3, -2, 12)]
-    [DataRow('R', 1, 32, 1)]
-    public void ShiftInstructions_RespectDirectionAndModulo(char instruction, int value, int count, int expected)
+    [Test]
+    [Arguments('L', 3, 2, 12)]
+    [Arguments('L', 8, -1, 4)]
+    [Arguments('L', 1, 32, 1)]
+    [Arguments('R', 8, 1, 4)]
+    [Arguments('R', 3, -2, 12)]
+    [Arguments('R', 1, 32, 1)]
+    public async Task ShiftInstructions_RespectDirectionAndModulo(char instruction, int value, int count, int expected)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(value, count);
 
-        Instruction(fingerprint, instruction)(context);
+        (await Instruction(fingerprint, instruction))(context);
 
-        Assert.AreEqual(expected, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(expected);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void N_ComputesMinimumAcrossMissingValues()
+    [Test]
+    public async Task N_ComputesMinimumAcrossMissingValues()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(5, -2, 3);
 
-        Instruction(fingerprint, 'N')(context);
+        (await Instruction(fingerprint, 'N'))(context);
 
-        Assert.AreEqual(-2, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(-2);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void X_ComputesMaximumAcrossMissingValues()
+    [Test]
+    public async Task X_ComputesMaximumAcrossMissingValues()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-5, 2);
 
-        Instruction(fingerprint, 'X')(context);
+        (await Instruction(fingerprint, 'X'))(context);
 
-        Assert.AreEqual(0, context.Pop());
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Pop()).IsEqualTo(0);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow('N')]
-    [DataRow('X')]
-    public void MinMax_ReflectsWhenCountIsNotPositive(char instruction)
+    [Test]
+    [Arguments('N')]
+    [Arguments('X')]
+    public async Task MinMax_ReflectsWhenCountIsNotPositive(char instruction)
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(0);
 
-        Instruction(fingerprint, instruction)(context);
+        (await Instruction(fingerprint, instruction))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void U_WritesUnsignedDecimalWithTrailingSpace()
+    [Test]
+    public async Task U_WritesUnsignedDecimalWithTrailingSpace()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = new OutputContext();
         context.Push(-1);
 
-        Instruction(fingerprint, 'U')(context);
+        (await Instruction(fingerprint, 'U'))(context);
 
-        Assert.AreEqual(uint.MaxValue.ToString(CultureInfo.InvariantCulture) + " ", context.Output);
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(context.Output).IsEqualTo(uint.MaxValue.ToString(CultureInfo.InvariantCulture) + " ");
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void U_ReflectsWithoutOutputCapability()
+    [Test]
+    public async Task U_ReflectsWithoutOutputCapability()
     {
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(5);
 
-        Instruction(fingerprint, 'U')(context);
+        (await Instruction(fingerprint, 'U'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 }

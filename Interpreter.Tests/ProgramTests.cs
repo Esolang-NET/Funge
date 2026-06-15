@@ -1,45 +1,41 @@
 namespace Esolang.Funge.Interpreter.Tests;
 
-[TestClass]
-public class ProgramTests(TestContext TestContext)
+public class ProgramTests
 {
-#pragma warning disable MSTEST0054
-    CancellationToken CancellationToken => TestContext.CancellationTokenSource.Token;
-#pragma warning restore MSTEST0054
 
     static int Run(string[] args)
     {
         var entryPoint = typeof(Program).Assembly.EntryPoint;
-        Assert.IsNotNull(entryPoint);
+        Assert.NotNull(entryPoint);
         object?[] parameters = [args];
         var result = entryPoint.Invoke(null, parameters) as int?;
-        Assert.IsNotNull(result);
+        Assert.NotNull(result);
         return result.Value;
     }
 
-    [TestMethod]
-    public void Run_Default_ReturnsOne()
+    [Test]
+    public async Task Run_Default_ReturnsOne()
     {
         var exitCode = Run([]);
-        Assert.AreEqual(1, exitCode);
+        await Assert.That(exitCode).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Run_HelpOption_ReturnsZero()
+    [Test]
+    public async Task Run_HelpOption_ReturnsZero()
     {
         var exitCode = Run(["--help"]);
-        Assert.AreEqual(0, exitCode);
+        await Assert.That(exitCode).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public async Task Run_HelloWorld_ReturnsZero()
+    [Test]
+    public async Task Run_HelloWorld_ReturnsZero(CancellationToken CancellationToken)
     {
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
         try
         {
             await File.WriteAllTextAsync(path, "64+\"!dlroW ,olleH\">:#,_@", CancellationToken);
             var exitCode = Run(["--path", path]);
-            Assert.AreEqual(0, exitCode);
+            await Assert.That(exitCode).IsEqualTo(0);
         }
         finally
         {
@@ -48,47 +44,47 @@ public class ProgramTests(TestContext TestContext)
         }
     }
 
-    [TestMethod]
-    public void Run_WithFingerprintBool_ReturnsZero()
+    [Test]
+    public async Task Run_WithFingerprintBool_ReturnsZero()
     {
         const string source = "\"LOOB\"4(0N0AN1-q";
         var exitCode = Run(["--source", source, "--fingerprint-bool"]);
-        Assert.AreEqual(0, exitCode);
+        await Assert.That(exitCode).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Run_WithFingerprintArry_ReturnsZero()
+    [Test]
+    public async Task Run_WithFingerprintArry_ReturnsZero()
     {
         const string source = "\"YRRA\"4(G3-q";
         var exitCode = Run(["--source", source, "--fingerprint-arry"]);
-        Assert.AreEqual(0, exitCode);
+        await Assert.That(exitCode).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Run_WithFingerprintDate_ReturnsZero()
+    [Test]
+    public async Task Run_WithFingerprintDate_ReturnsZero()
     {
         const string source = "\"ETAD\"4(.@";
         var exitCode = Run(["--source", source, "--fingerprint-date"]);
-        Assert.AreEqual(0, exitCode);
+        await Assert.That(exitCode).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Run_SourceOptionWithMultilineCode_ReturnsZero()
+    [Test]
+    public async Task Run_SourceOptionWithMultilineCode_ReturnsZero()
     {
         const string source = "v\n>25*\"!dlroW ,olleH\",,,,@";
         var exitCode = Run(["--source", source]);
-        Assert.AreEqual(0, exitCode);
+        await Assert.That(exitCode).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public async Task Run_PathAndSourceTogether_ReturnsOne()
+    [Test]
+    public async Task Run_PathAndSourceTogether_ReturnsOne(CancellationToken CancellationToken)
     {
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
         try
         {
             await File.WriteAllTextAsync(path, "@", CancellationToken);
             var exitCode = Run(["--path", path, "--source", "@"]);
-            Assert.AreEqual(1, exitCode);
+            await Assert.That(exitCode).IsEqualTo(1);
         }
         finally
         {
@@ -97,8 +93,8 @@ public class ProgramTests(TestContext TestContext)
         }
     }
 
-    [TestMethod]
-    public async Task RunAsync_CancelledToken_StopsInfiniteProgram()
+    [Test]
+    public async Task RunAsync_CancelledToken_StopsInfiniteProgram(CancellationToken CancellationToken)
     {
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.b98");
         try
@@ -109,7 +105,7 @@ public class ProgramTests(TestContext TestContext)
             cancellation.Cancel();
 
             var exitCode = await Program.RunAsync(["--path", path], cancellationToken: cancellation.Token);
-            Assert.AreEqual(0, exitCode);
+            await Assert.That(exitCode).IsEqualTo(0);
         }
         finally
         {

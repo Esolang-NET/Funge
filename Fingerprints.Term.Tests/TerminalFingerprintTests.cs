@@ -24,114 +24,114 @@ sealed class NoOutputContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class TerminalFingerprintTests
 {
-    static FingerprintInstruction Instruction(TerminalFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(TerminalFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x5445524D, new TerminalFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new TerminalFingerprint().Handprint).IsEqualTo(0x5445524D);
 
-    [TestMethod]
-    public void Instruction_C_ClearsScreen()
+    [Test]
+    public async Task Instruction_C_ClearsScreen()
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'C')(ctx);
-        Assert.AreEqual("\x1b[2J", ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'C'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[2J");
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_H_Home()
+    [Test]
+    public async Task Instruction_H_Home()
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'H')(ctx);
-        Assert.AreEqual("\x1b[H", ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'H'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[H");
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_G_GotoPosition()
+    [Test]
+    public async Task Instruction_G_GotoPosition()
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(2); // r
         ctx.Push(4); // c
-        Instruction(fp, 'G')(ctx);
-        Assert.AreEqual("\x1b[3;5H", ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'G'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[3;5H");
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(3, "\x1b[3B")]
-    [DataRow(-2, "\x1b[2A")]
-    public void Instruction_D_CursorDown(int n, string expected)
+    [Test]
+    [Arguments(3, "\x1b[3B")]
+    [Arguments(-2, "\x1b[2A")]
+    public async Task Instruction_D_CursorDown(int n, string expected)
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(n);
-        Instruction(fp, 'D')(ctx);
-        Assert.AreEqual(expected, ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo(expected);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_D_Zero_NoOutput()
+    [Test]
+    public async Task Instruction_D_Zero_NoOutput()
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(0);
-        Instruction(fp, 'D')(ctx);
-        Assert.AreEqual("", ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo("");
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(3, "\x1b[3A")]
-    [DataRow(-2, "\x1b[2B")]
-    public void Instruction_U_CursorUp(int n, string expected)
+    [Test]
+    [Arguments(3, "\x1b[3A")]
+    [Arguments(-2, "\x1b[2B")]
+    public async Task Instruction_U_CursorUp(int n, string expected)
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(n);
-        Instruction(fp, 'U')(ctx);
-        Assert.AreEqual(expected, ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'U'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo(expected);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_L_ClearToEndOfLine()
+    [Test]
+    public async Task Instruction_L_ClearToEndOfLine()
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'L')(ctx);
-        Assert.AreEqual("\x1b[K", ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'L'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[K");
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_S_ClearToEndOfScreen()
+    [Test]
+    public async Task Instruction_S_ClearToEndOfScreen()
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'S')(ctx);
-        Assert.AreEqual("\x1b[J", ctx.Output.ToString());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'S'))(ctx);
+        await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[J");
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_C_NoOutput_Reflects()
+    [Test]
+    public async Task Instruction_C_NoOutput_Reflects()
     {
         var fp = new TerminalFingerprint();
         var ctx = new NoOutputContext();
-        Instruction(fp, 'C')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'C'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

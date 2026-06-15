@@ -2,11 +2,10 @@ using Esolang.Funge.Parser;
 
 namespace Esolang.Funge.Processor.Tests;
 
-[TestClass]
 public class InstructionPointerTests
 {
-    [TestMethod]
-    public void CreateChild_CopiesStateCorrectly()
+    [Test]
+    public async Task CreateChild_CopiesStateCorrectly()
     {
         var parent = new InstructionPointer(1)
         {
@@ -19,15 +18,15 @@ public class InstructionPointerTests
 
         var child = parent.CreateChild(2);
 
-        Assert.AreEqual(2, child.Id);
-        Assert.AreEqual(parent.Position, child.Position);
-        Assert.AreNotEqual(parent.Delta, child.Delta); // Should be reflected
-        Assert.AreEqual(parent.Offset, child.Offset);
-        Assert.AreEqual(parent.StringMode, child.StringMode);
+        await Assert.That(child.Id).IsEqualTo(2);
+        await Assert.That(child.Position).IsEqualTo(parent.Position);
+        await Assert.That(child.Delta).IsNotEqualTo(parent.Delta); // Should be reflected
+        await Assert.That(child.Offset).IsEqualTo(parent.Offset);
+        await Assert.That(child.StringMode).IsEqualTo(parent.StringMode);
 
         // Stack should be cloned
-        Assert.AreEqual(42, child.StackStack.Pop());
+        await Assert.That(child.StackStack.Pop()).IsEqualTo(42);
         child.StackStack.Push(99);
-        Assert.AreEqual(42, parent.StackStack.Pop()); // Original unaffected
+        await Assert.That(parent.StackStack.Pop()).IsEqualTo(42); // Original unaffected
     }
 }

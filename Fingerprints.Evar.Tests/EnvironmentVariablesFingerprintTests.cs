@@ -10,12 +10,12 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class EnvironmentVariablesFingerprintTests
 {
-    static FingerprintInstruction Instruction(EnvironmentVariablesFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(EnvironmentVariablesFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -28,19 +28,19 @@ public class EnvironmentVariablesFingerprintTests
 
     static string Pop0gnirts(TestContext ctx)
     {
-        var chars = new System.Collections.Generic.List<char>();
+        var chars = new List<char>();
         int c;
         while ((c = ctx.Pop()) != 0)
             chars.Insert(0, (char)c);
         return new string([.. chars]);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x45564152, new EnvironmentVariablesFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new EnvironmentVariablesFingerprint().Handprint).IsEqualTo(0x45564152);
 
-    [TestMethod]
-    public void Instruction_P_G_RoundTrip()
+    [Test]
+    public async Task Instruction_P_G_RoundTrip()
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
@@ -49,13 +49,13 @@ public class EnvironmentVariablesFingerprintTests
         try
         {
             Push0gnirts(ctx, $"{key}={value}");
-            Instruction(fp, 'P')(ctx);
-            Assert.IsFalse(ctx.Reflected);
+            (await Instruction(fp, 'P'))(ctx);
+            await Assert.That(ctx.Reflected).IsFalse();
 
             Push0gnirts(ctx, key);
-            Instruction(fp, 'G')(ctx);
-            Assert.IsFalse(ctx.Reflected);
-            Assert.AreEqual(value, Pop0gnirts(ctx));
+            (await Instruction(fp, 'G'))(ctx);
+            await Assert.That(ctx.Reflected).IsFalse();
+            await Assert.That(Pop0gnirts(ctx)).IsEqualTo(value);
         }
         finally
         {
@@ -63,54 +63,54 @@ public class EnvironmentVariablesFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Instruction_G_NotFound_ReturnsEmpty()
+    [Test]
+    public async Task Instruction_G_NotFound_ReturnsEmpty()
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, "EVAR_SURELY_NOT_SET_XYZ12345");
-        Instruction(fp, 'G')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(string.Empty, Pop0gnirts(ctx));
+        (await Instruction(fp, 'G'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(Pop0gnirts(ctx)).IsEqualTo(string.Empty);
     }
 
-    [TestMethod]
-    public void Instruction_P_NoEquals_Reflects()
+    [Test]
+    public async Task Instruction_P_NoEquals_Reflects()
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, "NO_EQUALS_HERE");
-        Instruction(fp, 'P')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'P'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_N_PushesCount()
+    [Test]
+    public async Task Instruction_N_PushesCount()
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, 'N')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.IsGreaterThan(0, ctx.Pop());
+        (await Instruction(fp, 'N'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsGreaterThan(0);
     }
 
-    [TestMethod]
-    public void Instruction_V_OutOfRange_Reflects()
+    [Test]
+    public async Task Instruction_V_OutOfRange_Reflects()
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         ctx.Push(int.MaxValue);
-        Instruction(fp, 'V')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'V'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_V_NegativeIndex_Reflects()
+    [Test]
+    public async Task Instruction_V_NegativeIndex_Reflects()
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         ctx.Push(-1);
-        Instruction(fp, 'V')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'V'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

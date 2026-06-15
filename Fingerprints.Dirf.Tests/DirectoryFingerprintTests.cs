@@ -10,12 +10,12 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class DirectoryFingerprintTests
 {
-    static FingerprintInstruction Instruction(DirectoryFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(DirectoryFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -26,12 +26,12 @@ public class DirectoryFingerprintTests
             ctx.Push(value[i]);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x44495246, new DirectoryFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new DirectoryFingerprint().Handprint).IsEqualTo(0x44495246);
 
-    [TestMethod]
-    public void Instruction_M_CreateDirectory_Succeeds()
+    [Test]
+    public async Task Instruction_M_CreateDirectory_Succeeds()
     {
         var fp = new DirectoryFingerprint();
         var ctx = new TestContext();
@@ -39,9 +39,9 @@ public class DirectoryFingerprintTests
         try
         {
             Push0gnirts(ctx, path);
-            Instruction(fp, 'M')(ctx);
-            Assert.IsFalse(ctx.Reflected);
-            Assert.IsTrue(Directory.Exists(path));
+            (await Instruction(fp, 'M'))(ctx);
+            await Assert.That(ctx.Reflected).IsFalse();
+            await Assert.That(Directory.Exists(path)).IsTrue();
         }
         finally
         {
@@ -50,41 +50,41 @@ public class DirectoryFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Instruction_M_InvalidPath_Reflects()
+    [Test]
+    public async Task Instruction_M_InvalidPath_Reflects()
     {
         var fp = new DirectoryFingerprint();
         var ctx = new TestContext();
         ctx.Push(0); // empty path — Directory.CreateDirectory("") throws ArgumentException
-        Instruction(fp, 'M')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'M'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_R_RemoveDirectory_Succeeds()
+    [Test]
+    public async Task Instruction_R_RemoveDirectory_Succeeds()
     {
         var fp = new DirectoryFingerprint();
         var ctx = new TestContext();
         var path = Path.Combine(Path.GetTempPath(), "dirf_remove_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
         Push0gnirts(ctx, path);
-        Instruction(fp, 'R')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.IsFalse(Directory.Exists(path));
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(Directory.Exists(path)).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_R_NonExistent_Reflects()
+    [Test]
+    public async Task Instruction_R_NonExistent_Reflects()
     {
         var fp = new DirectoryFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, Path.Combine(Path.GetTempPath(), "dirf_nonexistent_" + Guid.NewGuid().ToString("N")));
-        Instruction(fp, 'R')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_C_ChangesDirectory()
+    [Test]
+    public async Task Instruction_C_ChangesDirectory()
     {
         var fp = new DirectoryFingerprint();
         var ctx = new TestContext();
@@ -93,8 +93,8 @@ public class DirectoryFingerprintTests
         try
         {
             Push0gnirts(ctx, path);
-            Instruction(fp, 'C')(ctx);
-            Assert.IsFalse(ctx.Reflected);
+            (await Instruction(fp, 'C'))(ctx);
+            await Assert.That(ctx.Reflected).IsFalse();
         }
         finally
         {
@@ -102,13 +102,13 @@ public class DirectoryFingerprintTests
         }
     }
 
-    [TestMethod]
-    public void Instruction_C_InvalidPath_Reflects()
+    [Test]
+    public async Task Instruction_C_InvalidPath_Reflects()
     {
         var fp = new DirectoryFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, "\0invalid");
-        Instruction(fp, 'C')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'C'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

@@ -10,33 +10,33 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class RomanFingerprintTests
 {
-    static FingerprintInstruction Instruction(RomanFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(RomanFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x524F4D41, new RomanFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new RomanFingerprint().Handprint).IsEqualTo(0x524F4D41);
 
-    [TestMethod]
-    [DataRow('I', 1)]
-    [DataRow('V', 5)]
-    [DataRow('X', 10)]
-    [DataRow('L', 50)]
-    [DataRow('C', 100)]
-    [DataRow('D', 500)]
-    [DataRow('M', 1000)]
-    public void Instructions_PushCorrectValues(char ch, int expected)
+    [Test]
+    [Arguments('I', 1)]
+    [Arguments('V', 5)]
+    [Arguments('X', 10)]
+    [Arguments('L', 50)]
+    [Arguments('C', 100)]
+    [Arguments('D', 500)]
+    [Arguments('M', 1000)]
+    public async Task Instructions_PushCorrectValues(char ch, int expected)
     {
         var fp = new RomanFingerprint();
         var ctx = new TestContext();
-        Instruction(fp, ch)(ctx);
-        Assert.AreEqual(expected, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, ch))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(expected);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 }

@@ -6,25 +6,23 @@ using System.Collections.Immutable;
 using System.IO.Pipelines;
 using System.Reflection;
 using System.Text;
+using TUnit.Assertions.Exceptions;
+using TUnit.Assertions.Enums;
 
 namespace Esolang.Funge.Generator.Tests;
 
-[TestClass]
 public class FungeMethodGeneratorTests
 {
 
-    void LogWriteLine(string message) => TestContext.WriteLine(message);
-#pragma warning disable MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
-    CancellationToken CancellationToken => TestContext.CancellationTokenSource.Token;
-#pragma warning restore MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
+    void LogWriteLine(string message) => TestContext.OutputWriter.WriteLine(message);
 
     readonly Compilation baseCompilation = default!;
 
     readonly TestContext TestContext;
 
-    public FungeMethodGeneratorTests(TestContext TestContext)
+    public FungeMethodGeneratorTests()
     {
-        this.TestContext = TestContext;
+        TestContext = TestContext.Current!;
         IEnumerable<PortableExecutableReference> references =
 #if NET10_0_OR_GREATER
             Net100.References.All;
@@ -90,8 +88,8 @@ public class FungeMethodGeneratorTests
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    [TestMethod]
-    public void TestGenerateWithStaticLoggerParameter()
+    [Test]
+    public async Task TestGenerateWithStaticLoggerParameter(CancellationToken CancellationToken)
     {
         var source = $$"""
             using Esolang.Funge;
@@ -113,18 +111,18 @@ public class FungeMethodGeneratorTests
             var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
 
             // Should use the parameter name directly, without 'this.' or field prefix
-            Assert.Contains("logger: logger", generatedSource);
-            Assert.DoesNotContain("logger: this.logger", generatedSource);
+            await Assert.That(generatedSource).Contains("logger: logger");
+            await Assert.That(generatedSource).DoesNotContain("logger: this.logger");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void TestGenerateWithNullableLoggerParameter()
+    [Test]
+    public async Task TestGenerateWithNullableLoggerParameter(CancellationToken CancellationToken)
     {
         var source = $$"""
             using Esolang.Funge;
@@ -146,17 +144,17 @@ public class FungeMethodGeneratorTests
             var runResult = driver.GetRunResult();
             var generatedSource = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
 
-            Assert.Contains("logger: logger", generatedSource);
+            await Assert.That(generatedSource).Contains("logger: logger");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public async Task TestFunctionalLoggingInvocation()
+    [Test]
+    public async Task TestFunctionalLoggingInvocation(CancellationToken CancellationToken)
     {
         var source = $$"""
             using Esolang.Funge;
@@ -193,8 +191,8 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diagnostics, outputCompilation);
 
-            var asm = Emit(outputCompilation, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(outputCompilation, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestNamespace.TestClass")!;
                 var instance = Activator.CreateInstance(t)!;
@@ -206,19 +204,19 @@ public class FungeMethodGeneratorTests
                 var logs = (List<string>)logger.Logs;
 
                 // Check if we have logs for '1' and '@'
-                Assert.Contains(l => l.Contains("'1'"), logs);
-                Assert.Contains(l => l.Contains("'@'"), logs);
+                await Assert.That(logs).Contains(l => l.Contains("'1'"));
+                await Assert.That(logs).Contains(l => l.Contains("'@'"));
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diagnostics, outputCompilation);
+            LogDiagnostics(diagnostics, outputCompilation, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public async Task TestFunctionalLoggingInvocation_PrimaryConstructor()
+    [Test]
+    public async Task TestFunctionalLoggingInvocation_PrimaryConstructor(CancellationToken CancellationToken)
     {
         var source = $$"""
             using Esolang.Funge;
@@ -254,8 +252,8 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diagnostics, outputCompilation);
 
-            var asm = Emit(outputCompilation, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(outputCompilation, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestNamespace.TestClass")!;
                 var loggerType = asm.GetType("TestNamespace.FakeLogger")!;
@@ -266,19 +264,19 @@ public class FungeMethodGeneratorTests
 
                 var logs = (List<string>)loggerType.GetField("Logs")!.GetValue(loggerInstance)!;
 
-                Assert.Contains(l => l.Contains("'1'"), logs);
-                Assert.Contains(l => l.Contains("'@'"), logs);
+                await Assert.That(logs).Contains(l => l.Contains("'1'"));
+                await Assert.That(logs).Contains(l => l.Contains("'@'"));
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diagnostics, outputCompilation);
+            LogDiagnostics(diagnostics, outputCompilation, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public async Task TestFunctionalFingerprintLogging()
+    [Test]
+    public async Task TestFunctionalFingerprintLogging(CancellationToken CancellationToken)
     {
         // 0x524f4d41 = 'ROMA'
         // 'y' (121) pushes sysinfo
@@ -320,8 +318,8 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diagnostics, outputCompilation);
 
-            var asm = Emit(outputCompilation, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(outputCompilation, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestNamespace.TestClass")!;
                 var instance = Activator.CreateInstance(t)!;
@@ -335,18 +333,18 @@ public class FungeMethodGeneratorTests
                 LogWriteLine("Actual Logs:\n" + string.Join("\n", logs));
 
                 // Check for System Information log
-                Assert.Contains(l => l.Contains("System information requested") && l.Contains("Argument: 1"), logs);
+                await Assert.That(logs).Contains(l => l.Contains("System information requested") && l.Contains("Argument: 1"));
 
                 // Check for Fingerprint Loaded log ('AMOR' because we pushed 'ROMA' and pop 4 times)
-                Assert.Contains("IP 0: Fingerprint 'AMOR' loaded", logs);
+                await Assert.That(logs).Contains("IP 0: Fingerprint 'AMOR' loaded");
 
                 // Check for Fingerprint Unloaded log ('ROMA' because we pushed 'AMOR' and pop 4 times)
-                Assert.Contains("IP 0: Fingerprint 'ROMA' unloaded", logs);
+                await Assert.That(logs).Contains("IP 0: Fingerprint 'ROMA' unloaded");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diagnostics, outputCompilation);
+            LogDiagnostics(diagnostics, outputCompilation, CancellationToken);
             throw;
         }
     }
@@ -381,15 +379,15 @@ public class FungeMethodGeneratorTests
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out outputCompilation, out diagnostics, cancellationToken);
     }
 
-    Assembly Emit(Compilation compilation, CancellationToken cancellationToken)
+    async Task<Assembly> EmitAsync(Compilation compilation, CancellationToken cancellationToken)
     {
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms, cancellationToken: cancellationToken);
-        Assert.IsTrue(result.Success);
+        await Assert.That(result.Success).IsTrue();
         ms.Seek(0, SeekOrigin.Begin);
 
 #if NET48
-        return Assembly.Load(ms.ToArray());
+        return System.Reflection.Assembly.Load(ms.ToArray());
 #else
         var ctx = new System.Runtime.Loader.AssemblyLoadContext(nameof(FungeMethodGeneratorTests), isCollectible: true);
         return ctx.LoadFromStream(ms);
@@ -412,15 +410,15 @@ public class FungeMethodGeneratorTests
             LogWriteLine(d.ToString());
     }
 
-    void LogDiagnostics(Compilation compilation)
+    void LogDiagnostics(Compilation compilation, CancellationToken CancellationToken)
     {
         foreach (var d in compilation.GetDiagnostics(CancellationToken))
             LogWriteLine(d.ToString());
     }
-    void LogDiagnostics(ImmutableArray<Diagnostic> diagnostics, Compilation compilation)
+    void LogDiagnostics(ImmutableArray<Diagnostic> diagnostics, Compilation compilation, CancellationToken CancellationToken)
     {
         LogDiagnostics(diagnostics);
-        LogDiagnostics(compilation);
+        LogDiagnostics(compilation, CancellationToken);
         LogSyntaxTrees(compilation);
     }
     void LogSyntaxTrees(Compilation compilation)
@@ -442,9 +440,9 @@ public class FungeMethodGeneratorTests
     // Basic tests
     // -----------------------------------------------------------------------
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void EmptyProgram_Void_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task EmptyProgram_Void_NoErrors(CancellationToken CancellationToken)
     {
         // "@" is the Funge "stop" instruction — program terminates immediately
         var source = """
@@ -468,19 +466,19 @@ public class FungeMethodGeneratorTests
             var expectedFiles = new[] { "input.cs", "GenerateFungeMethodAttribute.cs", "GenerateFungeMethod.g.cs" };
             foreach (var expected in expectedFiles)
             {
-                Assert.Contains(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase), actualPaths, $"Missing file: {expected}");
+                await Assert.That(actualPaths).Contains(p => p.Contains(expected, StringComparison.OrdinalIgnoreCase)).Because($"Missing file: {expected}");
             }
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task HelloWorld_StringReturn()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task HelloWorld_StringReturn(CancellationToken CancellationToken)
     {
         // Classic Hello World in Funge-98
         const string helloWorld =
@@ -502,26 +500,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("Hello, World!", result);
+                await Assert.That(result).IsEqualTo("Hello, World!");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task StringMode_SgmlStyleSpaces_StringReturn()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task StringMode_SgmlStyleSpaces_StringReturn(CancellationToken CancellationToken   )
     {
         const string program = "\"   \"..@";
 
@@ -541,26 +539,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (string?)m.Invoke(null, [CancellationToken])!;
-                Assert.AreEqual("32 0 ", result);
+                await Assert.That(result).IsEqualTo("32 0 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Iterate_K_ExecutesOperandCorrectly_StringReturn()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Iterate_K_ExecutesOperandCorrectly_StringReturn(CancellationToken CancellationToken)
     {
         const string program = "2k6...@";
 
@@ -580,26 +578,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("6 6 6 ", result);
+                await Assert.That(result).IsEqualTo("6 6 6 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_Void_TextWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_Void_TextWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -618,16 +616,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_Int_TextWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_Int_TextWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -646,16 +644,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_TaskInt_TextWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_TaskInt_TextWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -675,16 +673,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_ValueTaskInt_TextWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_ValueTaskInt_TextWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -704,16 +702,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_Int_PipeWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_Int_PipeWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -732,16 +730,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_TaskInt_PipeWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_TaskInt_PipeWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -761,16 +759,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_ValueTaskInt_PipeWriter()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_ValueTaskInt_PipeWriter(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -790,16 +788,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_Task_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_Task_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -818,16 +816,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_Int_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_Int_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -845,16 +843,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_TaskInt_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_TaskInt_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -873,16 +871,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_ValueTaskInt_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_ValueTaskInt_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -901,16 +899,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_TaskString_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_TaskString_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -929,16 +927,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_ValueTask_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_ValueTask_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -957,16 +955,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_ValueTaskString_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_ValueTaskString_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -985,16 +983,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_IEnumerableByte_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_IEnumerableByte_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1013,16 +1011,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void ReturnType_IAsyncEnumerableByte_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void ReturnType_IAsyncEnumerableByte_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1042,15 +1040,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Input_TextReader_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void Input_TextReader_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1069,15 +1068,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Input_String_NoErrors()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void Input_String_NoErrors(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1095,15 +1095,16 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void RuntimeTemplate_NullabilityWarnings_NotEmitted()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task RuntimeTemplate_NullabilityWarnings_NotEmitted(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1140,11 +1141,11 @@ public class FungeMethodGeneratorTests
                     LogWriteLine(d.ToString());
             }
 
-            Assert.IsEmpty(runtimeNullabilityErrors, "FungeRuntime.g.cs must not produce CS8602/CS8603.");
+            await Assert.That(runtimeNullabilityErrors).IsEmpty().Because("FungeRuntime.g.cs must not produce CS8602/CS8603.");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
@@ -1153,8 +1154,9 @@ public class FungeMethodGeneratorTests
     // Diagnostic tests
     // -----------------------------------------------------------------------
 
-    [TestMethod]
-    public void Diagnostic_InvalidReturnType_FG0002()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Diagnostic_InvalidReturnType_FG0002(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1170,18 +1172,18 @@ public class FungeMethodGeneratorTests
             cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0002", diag, "Expected FG0002");
+            await Assert.That(diag).Any(d => d.Id == "FG0002").Because("Expected FG0002");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_ExitCode_IntReturn_QReturnsStackTop()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_ExitCode_IntReturn_QReturnsStackTop(CancellationToken CancellationToken)
     {
         const string program = "5q@";
 
@@ -1201,26 +1203,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(5, result);
+                await Assert.That(result).IsEqualTo(5);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_ExitCode_IntReturn_AtReturnsZero()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_ExitCode_IntReturn_AtReturnsZero(CancellationToken CancellationToken)
     {
         const string program = "@";
 
@@ -1240,26 +1242,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(0, result);
+                await Assert.That(result).IsEqualTo(0);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_3D_GoLow_ExitCode()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_3D_GoLow_ExitCode(CancellationToken CancellationToken)
     {
         const string program = "l\f>7q";
 
@@ -1279,26 +1281,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(7, result);
+                await Assert.That(result).IsEqualTo(7);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_3D_GoHigh_ExitCode()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_3D_GoHigh_ExitCode(CancellationToken CancellationToken)
     {
         const string program = "h\f\f>7q";
 
@@ -1318,26 +1320,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(7, result);
+                await Assert.That(result).IsEqualTo(7);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_3D_HighLowIf_SelectsDirection()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_3D_HighLowIf_SelectsDirection(CancellationToken CancellationToken)
     {
         const string programLow = "0m\f >1q\f >2q";
         const string programHigh = "1m\f >1q\f >2q";
@@ -1361,30 +1363,30 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var mLow = t.GetMethod("RunLow");
-                Assert.IsNotNull(mLow);
+                await Assert.That(mLow).IsNotNull();
                 var mHigh = t.GetMethod("RunHigh");
-                Assert.IsNotNull(mHigh);
+                await Assert.That(mHigh).IsNotNull();
                 var low = (int?)mLow.Invoke(null, [CancellationToken]);
                 var high = (int?)mHigh.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(1, low);
-                Assert.AreEqual(2, high);
+                await Assert.That(low).IsEqualTo(1);
+                await Assert.That(high).IsEqualTo(2);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_3D_GetPut_UsesXYZ()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_3D_GetPut_UsesXYZ(CancellationToken CancellationToken)
     {
         const string program = "88*1+500p500gq";
 
@@ -1404,26 +1406,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(65, result);
+                await Assert.That(result).IsEqualTo(65);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_StorageOffset_AppliesToGetPut()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_StorageOffset_AppliesToGetPut(CancellationToken CancellationToken)
     {
         const string program = "0{88*1+000p000gq";
 
@@ -1443,26 +1445,26 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                await Assert.That(m).IsNotNull();
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(65, result);
+                await Assert.That(result).IsEqualTo(65);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_StackStack_U_TransfersFromSoss()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_StackStack_U_TransfersFromSoss(CancellationToken CancellationToken)
     {
         const string program = "120{4u.@";
 
@@ -1483,7 +1485,7 @@ public class FungeMethodGeneratorTests
             AssertNoErrors(diag, comp);
 
             // Capture the compilation
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
 
             // Print generated code for inspection
             var syntaxTrees = comp.SyntaxTrees;
@@ -1495,24 +1497,24 @@ public class FungeMethodGeneratorTests
                 }
             }
 
-            await Task.Factory.StartNew(() =>
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run", [typeof(CancellationToken)])!;
+                var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("2 ", result);
+                await Assert.That(result).IsEqualTo("2 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_SystemInfo_FlagsIncludesConcurrentFileExec()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SystemInfo_FlagsIncludesConcurrentFileExec(CancellationToken CancellationToken)
     {
         const string program = "1yq";
 
@@ -1532,25 +1534,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(15, result);
+                await Assert.That(result).IsEqualTo(15);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_FileInput_LoadsIntoSpace()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_FileInput_LoadsIntoSpace(CancellationToken CancellationToken)
     {
         var originalDir = Directory.GetCurrentDirectory();
         var tempDir = Path.Combine(Path.GetTempPath(), $"funge-gen-io-{Guid.NewGuid():N}");
@@ -1580,31 +1582,35 @@ public class FungeMethodGeneratorTests
             {
                 AssertNoErrors(diag, comp);
 
-                var asm = Emit(comp, CancellationToken);
-                await Task.Factory.StartNew(() =>
+                var asm = await EmitAsync(comp, CancellationToken);
+                await Task.Factory.StartNew(async () =>
                 {
                     var t = asm.GetType("TestProject.TestClass")!;
                     var m = t.GetMethod("Run")!;
                     var result = (int?)m.Invoke(null, [CancellationToken]);
-                    Assert.AreEqual(65, result);
+                    await Assert.That(result).IsEqualTo(65);
                 }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
             }
-            catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+            catch (Exception e) when (e is AssertionException or TargetInvocationException)
             {
-                LogDiagnostics(diag, comp);
+                LogDiagnostics(diag, comp, CancellationToken);
                 throw;
             }
         }
         finally
         {
-            Directory.SetCurrentDirectory(originalDir);
-            Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(originalDir))
+                Directory.SetCurrentDirectory(originalDir);
+            if (Directory.Exists(tempDir))
+                try {
+                    Directory.Delete(tempDir, recursive: true);
+                }catch {}
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_FileOutput_WritesRegion()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_FileOutput_WritesRegion(CancellationToken CancellationToken)
     {
         var originalDir = Directory.GetCurrentDirectory();
         var tempDir = Path.Combine(Path.GetTempPath(), $"funge-gen-io-{Guid.NewGuid():N}");
@@ -1633,8 +1639,8 @@ public class FungeMethodGeneratorTests
             {
                 AssertNoErrors(diag, comp);
 
-                var asm = Emit(comp, CancellationToken);
-                await Task.Factory.StartNew(() =>
+                var asm = await EmitAsync(comp, CancellationToken);
+                await Task.Factory.StartNew(async () =>
                 {
                     var t = asm.GetType("TestProject.TestClass")!;
                     var m = t.GetMethod("Run")!;
@@ -1642,24 +1648,28 @@ public class FungeMethodGeneratorTests
                 }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
                 var bytes = File.ReadAllBytes(Path.Combine(tempDir, "output.txt"));
-                CollectionAssert.AreEqual(new byte[] { 65 }, bytes);
+                await Assert.That(bytes).IsEquivalentTo((byte[]) [ 65 ], CollectionOrdering.Matching);
             }
-            catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+            catch (Exception e) when (e is AssertionException or TargetInvocationException)
             {
-                LogDiagnostics(diag, comp);
+                LogDiagnostics(diag, comp, CancellationToken);
                 throw;
             }
         }
         finally
         {
-            Directory.SetCurrentDirectory(originalDir);
-            Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(originalDir))
+                Directory.SetCurrentDirectory(originalDir);
+            if (Directory.Exists(tempDir))
+                try {
+                    Directory.Delete(tempDir, recursive: true);
+                } catch { }
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_SystemExec_ReturnsExitCode()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SystemExec_ReturnsExitCode(CancellationToken CancellationToken)
     {
         const string command = "exit 7";
         var reversed = new string([.. command.Reverse()]);
@@ -1681,25 +1691,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int)((int?)m.Invoke(null, [CancellationToken]))!;
-                Assert.AreEqual(7, result);
+                await Assert.That(result).IsEqualTo(7);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_SystemExec_FailureIsNonZero()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SystemExec_FailureIsNonZero(CancellationToken CancellationToken)
     {
         const string command = "this_command_should_not_exist_12345";
         var reversed = new string([.. command.Reverse()]);
@@ -1721,24 +1731,24 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async() =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreNotEqual(0, result);
+                await Assert.That(result).IsNotEqualTo(0);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Generated_TaskReturn_UsesTaskRuntimeFacade()
+    [Test]
+    public async Task Generated_TaskReturn_UsesTaskRuntimeFacade(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1760,17 +1770,17 @@ public class FungeMethodGeneratorTests
             var generated = comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("Generated from: task-facade.b98", StringComparison.Ordinal));
-            Assert.Contains("FungeRuntime.RunTask(", generated);
+            await Assert.That(generated).Contains("FungeRuntime.RunTask(");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Generated_ValueTaskStringReturn_UsesValueTaskRuntimeFacade()
+    [Test]
+    public async Task Generated_ValueTaskStringReturn_UsesValueTaskRuntimeFacade(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1792,18 +1802,18 @@ public class FungeMethodGeneratorTests
             var generated = comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("Generated from: valuetask-facade.b98", StringComparison.Ordinal));
-            Assert.Contains("FungeRuntime.RunValueTaskString(", generated);
+            await Assert.That(generated).Contains("FungeRuntime.RunValueTaskString(");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_AsyncEnumerableByte_ReturnsOutputBytes()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_AsyncEnumerableByte_ReturnsOutputBytes(CancellationToken CancellationToken)
     {
         const string program = "\"A\",@";
 
@@ -1825,11 +1835,11 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
             var stream = (IAsyncEnumerable<byte>?)m.Invoke(null, [CancellationToken]);
-            Assert.IsNotNull(stream);
+            Assert.NotNull(stream);
 
             var bytes = new List<byte>();
             var enumerator = stream!.GetAsyncEnumerator(CancellationToken);
@@ -1843,18 +1853,18 @@ public class FungeMethodGeneratorTests
                 await enumerator.DisposeAsync();
             }
 
-            CollectionAssert.AreEqual(new byte[] { (byte)'A' }, bytes);
+            await Assert.That(bytes).IsEquivalentTo((byte[]) [ (byte)'A' ], CollectionOrdering.Matching);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void Generated_SyncWithCancellationToken_UsesRunSyncWithToken()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Generated_SyncWithCancellationToken_UsesRunSyncWithToken(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1876,18 +1886,18 @@ public class FungeMethodGeneratorTests
             var generated = comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("Generated from: sync-token.b98", StringComparison.Ordinal));
-            Assert.Contains("FungeRuntime.RunSync(", generated);
-            Assert.Contains("cancellationToken", generated);
+            await Assert.That(generated).Contains("FungeRuntime.RunSync(");
+            await Assert.That(generated).Contains("cancellationToken");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Generated_Runtime_EmitsOnlyRequiredFacades_ForIntReturn()
+    [Test]
+    public async Task Generated_Runtime_EmitsOnlyRequiredFacades_ForIntReturn(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1909,20 +1919,21 @@ public class FungeMethodGeneratorTests
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
 
-            Assert.Contains("internal static int RunSync(", runtime);
-            Assert.IsFalse(runtime.Contains("internal static Task RunTask(", StringComparison.Ordinal));
-            Assert.IsFalse(runtime.Contains("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal));
-            Assert.IsFalse(runtime.Contains("internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal));
+            await Assert.That(runtime)
+                .Contains("internal static int RunSync(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static Task RunTask(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Generated_Runtime_EmitsOnlyRequiredFacades_ForValueTaskString()
+    [Test]
+    public async Task Generated_Runtime_EmitsOnlyRequiredFacades_ForValueTaskString(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1945,21 +1956,22 @@ public class FungeMethodGeneratorTests
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
 
-            Assert.Contains("internal static ValueTask<string> RunValueTaskString(", runtime);
-            Assert.IsFalse(runtime.Contains("internal static int RunSync(", StringComparison.Ordinal));
-            Assert.IsFalse(runtime.Contains("internal static Task<int> RunTaskInt(", StringComparison.Ordinal));
-            Assert.IsFalse(runtime.Contains("internal static IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal));
+            await Assert.That(runtime)
+                .Contains("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static int RunSync(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static Task<int> RunTaskInt(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void Runtime_SyncCancellationToken_CancelsInfiniteLoop()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SyncCancellationToken_CancelsInfiniteLoop(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -1978,27 +1990,27 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run")!;
-            Assert.IsNotNull(m);
+            Assert.NotNull(m);
 
             using var cts = new CancellationTokenSource();
             cts.Cancel();
 
             var ex = Assert.Throws<TargetInvocationException>(() => m.Invoke(null, [cts.Token]));
-            Assert.IsNotNull(ex?.InnerException);
-            Assert.IsInstanceOfType(ex!.InnerException, typeof(OperationCanceledException));
+            Assert.NotNull(ex?.InnerException);
+            await Assert.That(ex!.InnerException).IsTypeOf<OperationCanceledException>();
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Diagnostic_SourceFileNotFound_FG0004()
+    [Test]
+    public async Task Diagnostic_SourceFileNotFound_FG0004(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2012,17 +2024,17 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0004", diag, "Expected FG0004");
+            await Assert.That(diag).Contains(d => d.Id == "FG0004").Because("Expected FG0004");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Diagnostic_DuplicateInputParameter_FG0006()
+    [Test]
+    public async Task Diagnostic_DuplicateInputParameter_FG0006(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2039,17 +2051,17 @@ public class FungeMethodGeneratorTests
             cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0006", diag, "Expected FG0006");
+            await Assert.That(diag).Contains(d => d.Id == "FG0006").Because("Expected FG0006");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void Diagnostic_ReturnOutputConflict_FG0007()
+    [Test]
+    public async Task Diagnostic_ReturnOutputConflict_FG0007(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2066,18 +2078,18 @@ public class FungeMethodGeneratorTests
             cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0007", diag, "Expected FG0007");
+            await Assert.That(diag).Contains(d => d.Id == "FG0007").Because("Expected FG0007");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_Int_TextWriter_ReturnsExitCodeAndWritesOutput()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_Int_TextWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2096,28 +2108,28 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                Assert.NotNull(m);
                 using var output = new StringWriter();
                 var result = (int)m.Invoke(null, [output, CancellationToken])!;
-                Assert.AreEqual(5, result);
-                Assert.AreEqual("30 ", output.ToString());
+                await Assert.That(result).IsEqualTo(5);
+                await Assert.That(output.ToString()).IsEqualTo("30 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_Int_PipeWriter_ReturnsExitCodeAndWritesOutput()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_Int_PipeWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2136,25 +2148,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
+            Assert.NotNull(m);
             var pipe = new Pipe();
             var result = (int)m.Invoke(null, [pipe.Writer, CancellationToken])!;
-            Assert.AreEqual(5, result);
-            Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+            await Assert.That(result).IsEqualTo(5);
+            await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_TaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_TaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2174,25 +2186,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
+            Assert.NotNull(m);
             var pipe = new Pipe();
             var result = await (Task<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
-            Assert.AreEqual(5, result);
-            Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+            await Assert.That(result).IsEqualTo(5);
+            await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_ValueTaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_ValueTaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2212,25 +2224,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")!;
             var m = t.GetMethod("Run");
-            Assert.IsNotNull(m);
+            Assert.NotNull(m);
             var pipe = new Pipe();
             var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
-            Assert.AreEqual(5, result);
-            Assert.AreEqual("30 ", await ReadPipeOutputAsync(pipe));
+            await Assert.That(result).IsEqualTo(5);
+            await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void Runtime_SelfModifiedOutputWithoutOutputInterface_Throws()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SelfModifiedOutputWithoutOutputInterface_Throws(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2248,29 +2260,28 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")
                 ?? asm.GetType("TestClass");
-            Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
+            Assert.NotNull(t, "Failed to find generated type TestProject.TestClass.");
             var m = t.GetMethod("Run");
-            Assert.IsNotNull(m, "Failed to find generated method Run.");
+            Assert.NotNull(m, "Failed to find generated method Run.");
 
             var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [CancellationToken]));
-            Assert.IsNotNull(ex);
-            Assert.IsNotNull(ex.InnerException);
-            Assert.IsInstanceOfType<InvalidOperationException>(ex.InnerException);
-            Assert.Contains("without an output interface", ex.InnerException!.Message);
+            Assert.NotNull(ex.InnerException);
+            await Assert.That(ex.InnerException).IsTypeOf<InvalidOperationException>();;
+            await Assert.That(ex.InnerException).HasMessageContaining("without an output interface");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public void Runtime_SelfModifiedInputWithoutInputInterface_Throws()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SelfModifiedInputWithoutInputInterface_Throws(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2288,22 +2299,22 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
+            var asm = await EmitAsync(comp, CancellationToken);
             var t = asm.GetType("TestProject.TestClass")
                 ?? asm.GetType("TestClass");
-            Assert.IsNotNull(t, "Failed to find generated type TestProject.TestClass.");
+            Assert.NotNull(t, "Failed to find generated type TestProject.TestClass.");
             var m = t.GetMethod("Run");
-            Assert.IsNotNull(m, "Failed to find generated method Run.");
+            Assert.NotNull(m, "Failed to find generated method Run.");
 
             var ex = Assert.Throws<TargetInvocationException>(() => m!.Invoke(null, [CancellationToken]));
-            Assert.IsNotNull(ex);
-            Assert.IsNotNull(ex.InnerException);
-            Assert.IsInstanceOfType<InvalidOperationException>(ex.InnerException);
-            Assert.Contains("without an input interface", ex.InnerException!.Message);
+            Assert.NotNull(ex);
+            Assert.NotNull(ex.InnerException);
+            await Assert.That(ex.InnerException).IsTypeOf<InvalidOperationException>();
+            await Assert.That(ex.InnerException).HasMessageContaining("without an input interface");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
@@ -2312,8 +2323,8 @@ public class FungeMethodGeneratorTests
     // InlineSource with multiple lines
     // -----------------------------------------------------------------------
 
-    [TestMethod]
-    public void InlineSource_RawStringWithInnerQuotes_InspectGenerated()
+    [Test]
+    public async Task InlineSource_RawStringWithInnerQuotes_InspectGenerated(CancellationToken CancellationToken)
     {
         // Inspect how the generator processes raw string literals in InlineSource
         // This test outputs the generated code to verify the processing
@@ -2336,25 +2347,25 @@ public class FungeMethodGeneratorTests
             var generated = comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
-            Assert.Contains("__cells[(0, 0, 0)] = 64;", generated);
+            await Assert.That(generated).Contains("__cells[(0, 0, 0)] = 64;");
 
             // Output all generated syntax trees for inspection
             LogWriteLine("=== Generated Syntax Trees ===");
             foreach (var tree in comp.SyntaxTrees)
             {
                 LogWriteLine($"\n--- {tree.FilePath} ---");
-                LogWriteLine(tree.GetText(TestContext.CancellationToken).ToString());
+                LogWriteLine(tree.GetText(CancellationToken).ToString());
             }
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void InlineSource_MultiLine_BasicProgram()
+    [Test]
+    public async Task InlineSource_MultiLine_BasicProgram(CancellationToken CancellationToken)
     {
         // Verify multiline raw string is mapped to X/Y at Z=0 as expected.
         var source = """"
@@ -2377,20 +2388,20 @@ public class FungeMethodGeneratorTests
             var generated = comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Single(static text => text.Contains("Generated from: <inline>", StringComparison.Ordinal));
-            Assert.Contains("__cells[(0, 0, 0)] = 62;", generated); // '>'
-            Assert.Contains("__cells[(1, 0, 0)] = 118;", generated); // 'v'
-            Assert.Contains("__cells[(0, 1, 0)] = 94;", generated); // '^'
-            Assert.Contains("__cells[(1, 1, 0)] = 64;", generated); // '@'
+            await Assert.That(generated).Contains("__cells[(0, 0, 0)] = 62;"); // '>'
+            await Assert.That(generated).Contains("__cells[(1, 0, 0)] = 118;"); // 'v'
+            await Assert.That(generated).Contains("__cells[(0, 1, 0)] = 94;"); // '^'
+            await Assert.That(generated).Contains("__cells[(1, 1, 0)] = 64;"); // '@'
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void InlineSource_WithEscapedNewlines()
+    [Test]
+    public async Task InlineSource_WithEscapedNewlines(CancellationToken CancellationToken)
     {
         // Test InlineSource with escaped newlines (\n) instead of literal raw strings
         // This avoids indentation issues with raw string literals
@@ -2408,15 +2419,15 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task Runtime_SystemInfo_ReportsCustomArgs()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task Runtime_SystemInfo_ReportsCustomArgs(CancellationToken CancellationToken)
     {
         // Verify that the generated method can accept string[] args and string[] envs
         // and that they are correctly passed to the runtime.
@@ -2438,20 +2449,20 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run");
-                Assert.IsNotNull(m);
+                Assert.NotNull(m);
                 // Verify we can call it with the new parameters
                 var result = (int?)m.Invoke(null, [new[] { "test" }, new[] { "VAR=VAL" }, CancellationToken]);
-                Assert.AreEqual(0, result);
+                await Assert.That(result).IsEqualTo(0);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
@@ -2460,8 +2471,8 @@ public class FungeMethodGeneratorTests
     // FingerprintsProvider tests
     // -----------------------------------------------------------------------
 
-    [TestMethod]
-    public void FingerprintsProvider_Property_GeneratesArgument()
+    [Test]
+    public async Task FingerprintsProvider_Property_GeneratesArgument(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2483,18 +2494,18 @@ public class FungeMethodGeneratorTests
             var allGenerated = string.Join("\n", comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Where(static text => text.Contains("Generated from:", StringComparison.Ordinal)));
-            Assert.Contains("fingerprints:", allGenerated);
-            Assert.Contains("this.MyFingerprints", allGenerated);
+            await Assert.That(allGenerated).Contains("fingerprints:");
+            await Assert.That(allGenerated).Contains("this.MyFingerprints");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_Method_GeneratesArgument()
+    [Test]
+    public async Task FingerprintsProvider_Method_GeneratesArgument(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2516,18 +2527,18 @@ public class FungeMethodGeneratorTests
             var allGenerated = string.Join("\n", comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Where(static text => text.Contains("Generated from:", StringComparison.Ordinal)));
-            Assert.Contains("fingerprints:", allGenerated);
-            Assert.Contains("this.GetFingerprints()", allGenerated);
+            await Assert.That(allGenerated).Contains("fingerprints:");
+            await Assert.That(allGenerated).Contains("this.GetFingerprints()");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_StaticMethod_GeneratesQualifiedExpression()
+    [Test]
+    public async Task FingerprintsProvider_StaticMethod_GeneratesQualifiedExpression(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2549,19 +2560,19 @@ public class FungeMethodGeneratorTests
             var allGenerated = string.Join("\n", comp.SyntaxTrees
                 .Select(static t => t.ToString())
                 .Where(static text => text.Contains("Generated from:", StringComparison.Ordinal)));
-            Assert.Contains("fingerprints:", allGenerated);
+            await Assert.That(allGenerated).Contains("fingerprints:");
             // Static member reference is fully qualified with global:: prefix
-            Assert.Contains("global::TestProject.TestClass.GetFingerprints()", allGenerated);
+            await Assert.That(allGenerated).Contains("global::TestProject.TestClass.GetFingerprints()");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_InvalidMember_EmitsFG0012()
+    [Test]
+    public async Task FingerprintsProvider_InvalidMember_EmitsFG0012(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2575,17 +2586,17 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0012", diag, "Expected FG0012 for unknown FingerprintsProvider member");
+            await Assert.That(diag).Contains(d => d.Id == "FG0012").Because("Expected FG0012 for unknown FingerprintsProvider member");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_InvalidMethodReturnType_EmitsFG0012()
+    [Test]
+    public async Task FingerprintsProvider_InvalidMethodReturnType_EmitsFG0012(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2601,17 +2612,17 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0012", diag, "Expected FG0012 for invalid FingerprintsProvider return type");
+            await Assert.That(diag).Contains(d => d.Id == "FG0012").Because("Expected FG0012 for invalid FingerprintsProvider return type");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_InvalidPropertyType_EmitsFG0012()
+    [Test]
+    public async Task FingerprintsProvider_InvalidPropertyType_EmitsFG0012(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2627,17 +2638,17 @@ public class FungeMethodGeneratorTests
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            Assert.Contains(d => d.Id == "FG0012", diag, "Expected FG0012 for invalid FingerprintsProvider property type");
+            await Assert.That(diag).Contains(d => d.Id == "FG0012").Because("Expected FG0012 for invalid FingerprintsProvider property type");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_EnablesFingerprintSupportRuntime()
+    [Test]
+    public async Task FingerprintsProvider_EnablesFingerprintSupportRuntime(CancellationToken CancellationToken)
     {
         // When FingerprintsProvider is set, the generated runtime should include RuntimeFungeExecutionContext.
         var source = """
@@ -2658,17 +2669,17 @@ public class FungeMethodGeneratorTests
             AssertNoErrors(diag, comp);
 
             var runtime = string.Join("\n", comp.SyntaxTrees.Select(static t => t.ToString()));
-            Assert.Contains("RuntimeFungeExecutionContext", runtime);
+            await Assert.That(runtime).Contains("RuntimeFungeExecutionContext");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    public void FingerprintsProvider_Runtime_GatesOptionalCapabilityInterfaces_WhenAbstractionsTypesAreMissing()
+    [Test]
+    public async Task FingerprintsProvider_Runtime_GatesOptionalCapabilityInterfaces_WhenAbstractionsTypesAreMissing(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2715,27 +2726,27 @@ public class FungeMethodGeneratorTests
             AssertNoErrors(diag, comp);
 
             var runtime = string.Join("\n", comp.SyntaxTrees.Select(static t => t.ToString()));
-            Assert.Contains("global::Esolang.Funge.IFungeExecutionContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeInstructionPointerContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeInstructionPointerLifecycle", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeStackContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeInputContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeOutputContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeVectorContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeSpaceContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeStorageOffsetContext", runtime);
-            Assert.DoesNotContain("global::Esolang.Funge.IFungeRandomContext", runtime);
+            await Assert.That(runtime).Contains("global::Esolang.Funge.IFungeExecutionContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeInstructionPointerContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeInstructionPointerLifecycle");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeStackContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeInputContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeOutputContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeVectorContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeSpaceContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeStorageOffsetContext");
+            await Assert.That(runtime).DoesNotContain("global::Esolang.Funge.IFungeRandomContext");
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_DispatchesInstruction()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_DispatchesInstruction(CancellationToken CancellationToken)
     {
         // Integration test: FingerprintsProvider wires up a real fingerprint.
         // PEST fingerprint with 'A' → pushes 42, program outputs it as integer.
@@ -2765,25 +2776,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("42 ", result);
+                await Assert.That(result).IsEqualTo("42 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_VectorAndSpaceCapabilities_UseGeneratedRuntimeCapabilities()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_VectorAndSpaceCapabilities_UseGeneratedRuntimeCapabilities(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2825,25 +2836,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("42 ", result);
+                await Assert.That(result).IsEqualTo("42 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_InstructionPointerCapability_UsesGeneratedRuntimeCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_InstructionPointerCapability_UsesGeneratedRuntimeCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2882,25 +2893,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("0 ", result);
+                await Assert.That(result).IsEqualTo("0 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_StackCapability_UsesGeneratedRuntimeCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_StackCapability_UsesGeneratedRuntimeCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2939,25 +2950,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("2 ", result);
+                await Assert.That(result).IsEqualTo("2 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_RandomCapability_UsesGeneratedRuntimeCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_RandomCapability_UsesGeneratedRuntimeCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -2997,25 +3008,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("1 ", result);
+                await Assert.That(result).IsEqualTo("1 ");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_OutputCapability_UsesGeneratedOutputCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_OutputCapability_UsesGeneratedOutputCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -3054,25 +3065,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (string?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual("OK", result);
+                await Assert.That(result).IsEqualTo("OK");
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_OutputCapability_ReflectsWithoutGeneratedOutputCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_OutputCapability_ReflectsWithoutGeneratedOutputCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -3111,25 +3122,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(0, result);
+                await Assert.That(result).IsEqualTo(0);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_InputCapability_UsesGeneratedInputCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_InputCapability_UsesGeneratedInputCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -3176,25 +3187,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, ["5", CancellationToken]);
-                Assert.AreEqual(5, result);
+                await Assert.That(result).IsEqualTo(5);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_InputCapability_ReflectsWithoutGeneratedInputCapability()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_InputCapability_ReflectsWithoutGeneratedInputCapability(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -3241,25 +3252,25 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(0, result);
+                await Assert.That(result).IsEqualTo(0);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }
 
-    [TestMethod]
-    [Timeout(Constant.Timeout, CooperativeCancellation = true)]
-    public async Task FingerprintsProvider_Functional_InstructionPointerLifecycle_NotifiesCloneAndTermination()
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public async Task FingerprintsProvider_Functional_InstructionPointerLifecycle_NotifiesCloneAndTermination(CancellationToken CancellationToken)
     {
         var source = """
             using Esolang.Funge;
@@ -3294,22 +3305,22 @@ public class FungeMethodGeneratorTests
         {
             AssertNoErrors(diag, comp);
 
-            var asm = Emit(comp, CancellationToken);
-            await Task.Factory.StartNew(() =>
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
                 var t = asm.GetType("TestProject.TestClass")!;
                 var m = t.GetMethod("Run")!;
                 var result = (int?)m.Invoke(null, [CancellationToken]);
-                Assert.AreEqual(1, result);
+                await Assert.That(result).IsEqualTo(1);
 
                 var fingerprint = t.GetProperty("Fingerprint", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
                 var events = (IEnumerable<string>)fingerprint.GetType().GetProperty("Events")!.GetValue(fingerprint)!;
-                CollectionAssert.AreEqual(new[] { "clone:0->1", "term:0", "term:1" }, events.ToArray());
+                await Assert.That(events).IsEquivalentTo((string[])["clone:0->1", "term:0", "term:1"], CollectionOrdering.Any);
             }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        catch (Exception e) when (e is AssertFailedException or TargetInvocationException)
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            LogDiagnostics(diag, comp);
+            LogDiagnostics(diag, comp, CancellationToken);
             throw;
         }
     }

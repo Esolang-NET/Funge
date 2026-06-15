@@ -10,7 +10,4 @@
     <ProjectReference Include="..\Fingerprints.Fixp\Esolang.Funge.Fingerprints.Fixp.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
-    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage" />
-  </ItemGroup>
 </Project>

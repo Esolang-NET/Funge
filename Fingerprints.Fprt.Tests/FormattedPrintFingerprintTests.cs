@@ -10,12 +10,12 @@ sealed class TestContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class FormattedPrintFingerprintTests
 {
-    static FingerprintInstruction Instruction(FormattedPrintFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(FormattedPrintFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
@@ -35,55 +35,55 @@ public class FormattedPrintFingerprintTests
         return new string([.. chars]);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x46505254, new FormattedPrintFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new FormattedPrintFingerprint().Handprint).IsEqualTo(0x46505254);
 
-    [TestMethod]
-    public void Instruction_I_FormatInteger()
+    [Test]
+    public async Task Instruction_I_FormatInteger()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
         ctx.Push(42); // value
         Push0gnirts(ctx, "%d"); // format
-        Instruction(fp, 'I')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual("42", Pop0gnirts(ctx));
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(Pop0gnirts(ctx)).IsEqualTo("42");
     }
 
-    [TestMethod]
-    public void Instruction_I_HexFormat()
+    [Test]
+    public async Task Instruction_I_HexFormat()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
         ctx.Push(255); // value
         Push0gnirts(ctx, "%x"); // format
-        Instruction(fp, 'I')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual("ff", Pop0gnirts(ctx));
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(Pop0gnirts(ctx)).IsEqualTo("ff");
     }
 
-    [TestMethod]
-    public void Instruction_I_NoSpecifier_Reflects()
+    [Test]
+    public async Task Instruction_I_NoSpecifier_Reflects()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
         ctx.Push(42);
         Push0gnirts(ctx, "no specifier");
-        Instruction(fp, 'I')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 
-    [TestMethod]
-    public void Instruction_S_FormatString()
+    [Test]
+    public async Task Instruction_S_FormatString()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, "world"); // value (bottom)
         Push0gnirts(ctx, "Hello %s!"); // format (top)
-        Instruction(fp, 'S')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual("Hello world!", Pop0gnirts(ctx));
+        (await Instruction(fp, 'S'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(Pop0gnirts(ctx)).IsEqualTo("Hello world!");
     }
 
     static int SingleToInt32Bits(float value)
@@ -97,27 +97,27 @@ public class FormattedPrintFingerprintTests
     }
 
 
-    [TestMethod]
-    public void Instruction_F_FormatFloat()
+    [Test]
+    public async Task Instruction_F_FormatFloat()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
         ctx.Push(SingleToInt32Bits(3.14f)); // value
         Push0gnirts(ctx, "%.2f"); // format
-        Instruction(fp, 'F')(ctx);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'F'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
         var result = Pop0gnirts(ctx);
-        Assert.IsTrue(result.StartsWith("3.14", StringComparison.Ordinal));
+        await Assert.That(result).StartsWith("3.14", StringComparison.Ordinal);
     }
 
-    [TestMethod]
-    public void Instruction_I_MultipleSpecifiers_Reflects()
+    [Test]
+    public async Task Instruction_I_MultipleSpecifiers_Reflects()
     {
         var fp = new FormattedPrintFingerprint();
         var ctx = new TestContext();
         ctx.Push(1);
         Push0gnirts(ctx, "%d %d");
-        Instruction(fp, 'I')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

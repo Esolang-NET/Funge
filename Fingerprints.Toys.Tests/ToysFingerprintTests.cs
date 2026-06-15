@@ -38,186 +38,186 @@ sealed class BasicContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class ToysFingerprintTests
 {
-    static FingerprintInstruction Instruction(ToysFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(ToysFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x544F5953, new ToysFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new ToysFingerprint().Handprint).IsEqualTo(0x544F5953);
 
-    [TestMethod]
-    public void Instruction_A_Replicate()
+    [Test]
+    public async Task Instruction_A_Replicate()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(42); // value
         ctx.Push(3);  // n
-        Instruction(fp, 'A')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(42, ctx.Pop());
-        Assert.AreEqual(42, ctx.Pop());
-        Assert.AreEqual(42, ctx.Pop());
+        (await Instruction(fp, 'A'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsEqualTo(42);
+        await Assert.That(ctx.Pop()).IsEqualTo(42);
+        await Assert.That(ctx.Pop()).IsEqualTo(42);
     }
 
-    [TestMethod]
-    public void Instruction_B_Butterfly()
+    [Test]
+    public async Task Instruction_B_Butterfly()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(3); // a
         ctx.Push(5); // b
-        Instruction(fp, 'B')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(-2, ctx.Pop()); // a-b
-        Assert.AreEqual(8, ctx.Pop());  // a+b
+        (await Instruction(fp, 'B'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.Pop()).IsEqualTo(-2); // a-b
+        await Assert.That(ctx.Pop()).IsEqualTo(8);  // a+b
     }
 
-    [TestMethod]
-    public void Instruction_D_Decrement()
+    [Test]
+    public async Task Instruction_D_Decrement()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(10);
-        Instruction(fp, 'D')(ctx);
-        Assert.AreEqual(9, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'D'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(9);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_I_Increment()
+    [Test]
+    public async Task Instruction_I_Increment()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(9);
-        Instruction(fp, 'I')(ctx);
-        Assert.AreEqual(10, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'I'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(10);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_N_Negate()
+    [Test]
+    public async Task Instruction_N_Negate()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(5);
-        Instruction(fp, 'N')(ctx);
-        Assert.AreEqual(-5, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'N'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(-5);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_H_Shift()
+    [Test]
+    public async Task Instruction_H_Shift()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(4); // a
         ctx.Push(2); // b
-        Instruction(fp, 'H')(ctx);
-        Assert.AreEqual(16, ctx.Pop()); // 4 << 2
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'H'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(16); // 4 << 2
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_E_Sum()
+    [Test]
+    public async Task Instruction_E_Sum()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(1); ctx.Push(2); ctx.Push(3);
-        Instruction(fp, 'E')(ctx);
-        Assert.AreEqual(6, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'E'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(6);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_P_Product()
+    [Test]
+    public async Task Instruction_P_Product()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(2); ctx.Push(3); ctx.Push(4);
-        Instruction(fp, 'P')(ctx);
-        Assert.AreEqual(24, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'P'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(24);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_X_IncrementX()
+    [Test]
+    public async Task Instruction_X_IncrementX()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (3, 4, 0) };
-        Instruction(fp, 'X')(ctx);
-        Assert.AreEqual((4, 4, 0), ctx.Position);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'X'))(ctx);
+        await Assert.That(ctx.Position).IsEqualTo((4, 4, 0));
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_Y_IncrementY()
+    [Test]
+    public async Task Instruction_Y_IncrementY()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (3, 4, 0) };
-        Instruction(fp, 'Y')(ctx);
-        Assert.AreEqual((3, 5, 0), ctx.Position);
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'Y'))(ctx);
+        await Assert.That(ctx.Position).IsEqualTo((3, 5, 0));
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_R_PeekRight()
+    [Test]
+    public async Task Instruction_R_PeekRight()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.SetCell(6, 5, 0, 99);
-        Instruction(fp, 'R')(ctx);
-        Assert.AreEqual(99, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'R'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(99);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_L_PeekLeft()
+    [Test]
+    public async Task Instruction_L_PeekLeft()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.SetCell(4, 5, 0, 77);
-        Instruction(fp, 'L')(ctx);
-        Assert.AreEqual(77, ctx.Pop());
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'L'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(77);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_Q_SetPrevious()
+    [Test]
+    public async Task Instruction_Q_SetPrevious()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.Push(42);
-        Instruction(fp, 'Q')(ctx);
-        Assert.AreEqual(42, ctx.GetCell(4, 5, 0));
-        Assert.IsFalse(ctx.Reflected);
+        (await Instruction(fp, 'Q'))(ctx);
+        await Assert.That(ctx.GetCell(4, 5, 0)).IsEqualTo(42);
+        await Assert.That(ctx.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Instruction_S_FillSpace()
+    [Test]
+    public async Task Instruction_S_FillSpace()
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(7); // value
         ctx.Push(3); ctx.Push(2); ctx.Push(0); // size (3,2)
         ctx.Push(0); ctx.Push(0); ctx.Push(0); // dest (0,0,0)
-        Instruction(fp, 'S')(ctx);
-        Assert.IsFalse(ctx.Reflected);
-        Assert.AreEqual(7, ctx.GetCell(0, 0, 0));
-        Assert.AreEqual(7, ctx.GetCell(2, 1, 0));
+        (await Instruction(fp, 'S'))(ctx);
+        await Assert.That(ctx.Reflected).IsFalse();
+        await Assert.That(ctx.GetCell(0, 0, 0)).IsEqualTo(7);
+        await Assert.That(ctx.GetCell(2, 1, 0)).IsEqualTo(7);
     }
 
-    [TestMethod]
-    public void Instruction_E_NoStackContext_Reflects()
+    [Test]
+    public async Task Instruction_E_NoStackContext_Reflects()
     {
         var fp = new ToysFingerprint();
         var ctx = new BasicContext();
-        Instruction(fp, 'E')(ctx);
-        Assert.IsTrue(ctx.Reflected);
+        (await Instruction(fp, 'E'))(ctx);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

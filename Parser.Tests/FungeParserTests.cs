@@ -1,165 +1,162 @@
 namespace Esolang.Funge.Parser.Tests;
 
-[TestClass]
 public class FungeParserTests
 {
-    [TestMethod]
-    public void ParseSingleChar_StoresCorrectly()
+    [Test]
+    public async Task ParseSingleChar_StoresCorrectly()
     {
         var space = FungeParser.Parse("@");
-        Assert.AreEqual('@', space[new FungeVector(0, 0)]);
+        await Assert.That(space[new FungeVector(0, 0)]).IsEqualTo('@');
     }
 
-    [TestMethod]
-    public void ParseSpace_ReturnsDefaultCell()
+    [Test]
+    public async Task ParseSpace_ReturnsDefaultCell()
     {
         var space = FungeParser.Parse(" @");
-        Assert.AreEqual(' ', space[new FungeVector(0, 0)]);
-        Assert.AreEqual('@', space[new FungeVector(1, 0)]);
+        await Assert.That(space[new FungeVector(0, 0)]).IsEqualTo(' ');
+        await Assert.That(space[new FungeVector(1, 0)]).IsEqualTo('@');
     }
 
-    [TestMethod]
-    public void ParseMultiLine_CorrectCoordinates()
+    [Test]
+    public async Task ParseMultiLine_CorrectCoordinates()
     {
         var source = "AB\nCD";
         var space = FungeParser.Parse(source);
-        Assert.AreEqual('A', space[new FungeVector(0, 0)]);
-        Assert.AreEqual('B', space[new FungeVector(1, 0)]);
-        Assert.AreEqual('C', space[new FungeVector(0, 1)]);
-        Assert.AreEqual('D', space[new FungeVector(1, 1)]);
+        await Assert.That(space[new FungeVector(0, 0)]).IsEqualTo('A');
+        await Assert.That(space[new FungeVector(1, 0)]).IsEqualTo('B');
+        await Assert.That(space[new FungeVector(0, 1)]).IsEqualTo('C');
+        await Assert.That(space[new FungeVector(1, 1)]).IsEqualTo('D');
     }
 
-    [TestMethod]
-    public void ParseCrLf_IgnoresCarriageReturn()
+    [Test]
+    public async Task ParseCrLf_IgnoresCarriageReturn()
     {
         var space = FungeParser.Parse("A\r\nB");
-        Assert.AreEqual('A', space[new FungeVector(0, 0)]);
-        Assert.AreEqual('B', space[new FungeVector(0, 1)]);
+        await Assert.That(space[new FungeVector(0, 0)]).IsEqualTo('A');
+        await Assert.That(space[new FungeVector(0, 1)]).IsEqualTo('B');
     }
 
-    [TestMethod]
-    public void UnsetCell_ReturnsSpace()
+    [Test]
+    public async Task UnsetCell_ReturnsSpace()
     {
         var space = FungeParser.Parse("@");
-        Assert.AreEqual(' ', space[new FungeVector(99, 99)]);
+        await Assert.That(space[new FungeVector(99, 99)]).IsEqualTo(' ');
     }
 
-    [TestMethod]
-    public void BoundingBox_CorrectAfterParse()
+    [Test]
+    public async Task BoundingBox_CorrectAfterParse()
     {
         var space = FungeParser.Parse("AB\nCD");
-        Assert.AreEqual(0, space.MinX);
-        Assert.AreEqual(0, space.MinY);
-        Assert.AreEqual(0, space.MinZ);
-        Assert.AreEqual(1, space.MaxX);
-        Assert.AreEqual(1, space.MaxY);
-        Assert.AreEqual(0, space.MaxZ);
+        await Assert.That(space.MinX).IsEqualTo(0);
+        await Assert.That(space.MinY).IsEqualTo(0);
+        await Assert.That(space.MinZ).IsEqualTo(0);
+        await Assert.That(space.MaxX).IsEqualTo(1);
+        await Assert.That(space.MaxY).IsEqualTo(1);
+        await Assert.That(space.MaxZ).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void BoundingBox_IncludesSpacesInSource()
+    [Test]
+    public async Task BoundingBox_IncludesSpacesInSource()
     {
         var space = FungeParser.Parse("A  ");
-        Assert.AreEqual(0, space.MinX);
-        Assert.AreEqual(2, space.MaxX);
-        Assert.AreEqual(0, space.MinY);
-        Assert.AreEqual(0, space.MaxY);
-        Assert.AreEqual(0, space.MinZ);
-        Assert.AreEqual(0, space.MaxZ);
+        await Assert.That(space.MinX).IsEqualTo(0);
+        await Assert.That(space.MaxX).IsEqualTo(2);
+        await Assert.That(space.MinY).IsEqualTo(0);
+        await Assert.That(space.MaxY).IsEqualTo(0);
+        await Assert.That(space.MinZ).IsEqualTo(0);
+        await Assert.That(space.MaxZ).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Parse_SgmlSpaces_AreTreatedAsSpaceCells()
+    [Test]
+    public async Task Parse_SgmlSpaces_AreTreatedAsSpaceCells()
     {
         var space = FungeParser.Parse("A\t\vB");
-        Assert.AreEqual('A', space[new FungeVector(0, 0)]);
-        Assert.AreEqual(' ', space[new FungeVector(1, 0)]);
-        Assert.AreEqual(' ', space[new FungeVector(2, 0)]);
-        Assert.AreEqual('B', space[new FungeVector(3, 0)]);
+        await Assert.That(space[new FungeVector(0, 0)]).IsEqualTo('A');
+        await Assert.That(space[new FungeVector(1, 0)]).IsEqualTo(' ');
+        await Assert.That(space[new FungeVector(2, 0)]).IsEqualTo(' ');
+        await Assert.That(space[new FungeVector(3, 0)]).IsEqualTo('B');
     }
 
-    [TestMethod]
-    public void Parse_FormFeed_StartsNewLayer()
+    [Test]
+    public async Task Parse_FormFeed_StartsNewLayer()
     {
         var space = FungeParser.Parse("A\fB");
-        Assert.AreEqual('A', space[new FungeVector(0, 0, 0)]);
-        Assert.AreEqual('B', space[new FungeVector(0, 0, 1)]);
-        Assert.AreEqual(0, space.MinZ);
-        Assert.AreEqual(1, space.MaxZ);
+        await Assert.That(space[new FungeVector(0, 0, 0)]).IsEqualTo('A');
+        await Assert.That(space[new FungeVector(0, 0, 1)]).IsEqualTo('B');
+        await Assert.That(space.MinZ).IsEqualTo(0);
+        await Assert.That(space.MaxZ).IsEqualTo(1);
     }
 }
 
-[TestClass]
 public class FungeVectorTests
 {
-    [TestMethod]
-    public void RotateRight_EastBecomeSouth()
-        => Assert.AreEqual(FungeVector.South, FungeVector.East.RotateRight());
+    [Test]
+    public async Task RotateRight_EastBecomeSouth()
+        => await Assert.That(FungeVector.East.RotateRight()).IsEqualTo(FungeVector.South);
 
-    [TestMethod]
-    public void RotateRight_SouthBecomeWest()
-        => Assert.AreEqual(FungeVector.West, FungeVector.South.RotateRight());
+    [Test]
+    public async Task RotateRight_SouthBecomeWest()
+        => await Assert.That(FungeVector.South.RotateRight()).IsEqualTo(FungeVector.West);
 
-    [TestMethod]
-    public void RotateLeft_EastBecomeNorth()
-        => Assert.AreEqual(FungeVector.North, FungeVector.East.RotateLeft());
+    [Test]
+    public async Task RotateLeft_EastBecomeNorth()
+        => await Assert.That(FungeVector.East.RotateLeft()).IsEqualTo(FungeVector.North);
 
-    [TestMethod]
-    public void Reflect_EastBecomeWest()
-        => Assert.AreEqual(FungeVector.West, FungeVector.East.Reflect());
+    [Test]
+    public async Task Reflect_EastBecomeWest()
+        => await Assert.That(FungeVector.East.Reflect()).IsEqualTo(FungeVector.West);
 
-    [TestMethod]
-    public void Addition()
-        => Assert.AreEqual(new FungeVector(3, 5, 7), new FungeVector(1, 2, 3) + new FungeVector(2, 3, 4));
+    [Test]
+    public async Task Addition()
+        => await Assert.That(new FungeVector(1, 2, 3) + new FungeVector(2, 3, 4)).IsEqualTo(new FungeVector(3, 5, 7));
 }
 
-[TestClass]
 public class FungeSpaceTests
 {
-    [TestMethod]
-    public void Advance_WrapsEastBeyondMaxX()
+    [Test]
+    public async Task Advance_WrapsEastBeyondMaxX()
     {
         var space = FungeParser.Parse("ABC");
         // MinX=0, MaxX=2, Width=3
         // Advance East from (2,0): next (3,0) -> wraps to (0,0)
         var next = space.Advance(new FungeVector(2, 0), FungeVector.East);
-        Assert.AreEqual(new FungeVector(0, 0), next);
+        await Assert.That(next).IsEqualTo(new FungeVector(0, 0));
     }
 
-    [TestMethod]
-    public void Advance_WrapsWestBeyondMinX()
+    [Test]
+    public async Task Advance_WrapsWestBeyondMinX()
     {
         var space = FungeParser.Parse("ABC");
         var next = space.Advance(new FungeVector(0, 0), FungeVector.West);
-        Assert.AreEqual(new FungeVector(2, 0), next);
+        await Assert.That(next).IsEqualTo(new FungeVector(2, 0));
     }
 
-    [TestMethod]
-    public void Advance_WrapsSouthBeyondMaxY()
+    [Test]
+    public async Task Advance_WrapsSouthBeyondMaxY()
     {
         var space = FungeParser.Parse("A\nB\nC");
         var next = space.Advance(new FungeVector(0, 2), FungeVector.South);
-        Assert.AreEqual(new FungeVector(0, 0), next);
+        await Assert.That(next).IsEqualTo(new FungeVector(0, 0));
     }
 
-    [TestMethod]
-    public void SetCell_UpdatesBoundingBox()
+    [Test]
+    public async Task SetCell_UpdatesBoundingBox()
     {
         var space = new FungeSpace();
         space[new FungeVector(5, 10, 15)] = 'X';
-        Assert.AreEqual(5, space.MinX);
-        Assert.AreEqual(5, space.MaxX);
-        Assert.AreEqual(10, space.MinY);
-        Assert.AreEqual(10, space.MaxY);
-        Assert.AreEqual(15, space.MinZ);
-        Assert.AreEqual(15, space.MaxZ);
+        await Assert.That(space.MinX).IsEqualTo(5);
+        await Assert.That(space.MaxX).IsEqualTo(5);
+        await Assert.That(space.MinY).IsEqualTo(10);
+        await Assert.That(space.MaxY).IsEqualTo(10);
+        await Assert.That(space.MinZ).IsEqualTo(15);
+        await Assert.That(space.MaxZ).IsEqualTo(15);
     }
 
-    [TestMethod]
-    public void Advance_WrapsLowBeyondMaxZ()
+    [Test]
+    public async Task Advance_WrapsLowBeyondMaxZ()
     {
         var space = FungeParser.Parse("A\fB");
         var next = space.Advance(new FungeVector(0, 0, 1), FungeVector.Low);
-        Assert.AreEqual(new FungeVector(0, 0, 0), next);
+        await Assert.That(next).IsEqualTo(new FungeVector(0, 0, 0));
     }
 }

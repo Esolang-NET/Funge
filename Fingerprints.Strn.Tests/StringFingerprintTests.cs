@@ -71,86 +71,86 @@ sealed class CoreOnlyContext : IFungeExecutionContext
     public void Reflect() => Reflected = true;
 }
 
-[TestClass]
 public class StringFingerprintTests
 {
-    static FingerprintInstruction Instruction(StringFingerprint fp, char ch)
+    static async Task<FingerprintInstruction> Instruction(StringFingerprint fp, char ch)
     {
-        Assert.IsTrue(fp.Instructions.TryGetValue(ch, out var instr));
+        await Assert.That(fp.Instructions.TryGetValue(ch, out var instr)).IsTrue();
+        Assert.NotNull(instr);
         return instr;
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x5354524E, new StringFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new StringFingerprint().Handprint).IsEqualTo(0x5354524E);
 
-    [TestMethod]
-    public void A_Append_AppendsBottomStringToUpperString()
+    [Test]
+    public async Task A_Append_AppendsBottomStringToUpperString()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("Hello");
         ctx.PushString("World");
 
-        Instruction(fp, 'A')(ctx);
+        (await Instruction(fp, 'A'))(ctx);
 
-        Assert.AreEqual("WorldHello", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("WorldHello");
     }
 
-    [TestMethod]
-    public void C_Compare_UsesUpperThenBottomString()
+    [Test]
+    public async Task C_Compare_UsesUpperThenBottomString()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
 
         ctx.PushString("Foo");
         ctx.PushString("foo");
-        Instruction(fp, 'C')(ctx);
-        Assert.IsGreaterThan(0, ctx.Pop());
+        (await Instruction(fp, 'C'))(ctx);
+        await Assert.That(ctx.Pop()).IsGreaterThan(0);
 
         ctx.PushString("bar");
         ctx.PushString("Bar");
-        Instruction(fp, 'C')(ctx);
-        Assert.IsLessThan(0, ctx.Pop());
+        (await Instruction(fp, 'C'))(ctx);
+        await Assert.That(ctx.Pop()).IsLessThan(0);
 
         ctx.PushString("qUx");
         ctx.PushString("qUx");
-        Instruction(fp, 'C')(ctx);
-        Assert.AreEqual(0, ctx.Pop());
+        (await Instruction(fp, 'C'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void D_Display_WritesString()
+    [Test]
+    public async Task D_Display_WritesString()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("Hello");
 
-        Instruction(fp, 'D')(ctx);
+        (await Instruction(fp, 'D'))(ctx);
 
-        Assert.AreEqual("Hello", ctx.Output);
+        await Assert.That(ctx.Output).IsEqualTo("Hello");
     }
 
-    [TestMethod]
-    public void F_Search_PushesMatchedSuffixOrEmptyString()
+    [Test]
+    public async Task F_Search_PushesMatchedSuffixOrEmptyString()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("Bra");
         ctx.PushString("FooBraBaz");
 
-        Instruction(fp, 'F')(ctx);
+        (await Instruction(fp, 'F'))(ctx);
 
-        Assert.AreEqual("BraBaz", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("BraBaz");
 
         ctx.PushString("xyz");
         ctx.PushString("FooBraBaz");
-        Instruction(fp, 'F')(ctx);
-        Assert.AreEqual(string.Empty, ctx.PopString());
+        (await Instruction(fp, 'F'))(ctx);
+        await Assert.That(ctx.PopString()).IsEqualTo(string.Empty);
     }
 
-    [TestMethod]
-    public void G_Get_ReadsStringUsingStorageOffset()
+    [Test]
+    public async Task G_Get_ReadsStringUsingStorageOffset()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext { StorageOffset = (10, 20, 30) };
@@ -159,38 +159,38 @@ public class StringFingerprintTests
         ctx.SetCell(14, 20, 30, 0);
         ctx.PushVector(2, 0, 0);
 
-        Instruction(fp, 'G')(ctx);
+        (await Instruction(fp, 'G'))(ctx);
 
-        Assert.AreEqual("Hi", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("Hi");
     }
 
-    [TestMethod]
-    public void I_Input_PushesReadLineWithoutTrailingNewline()
+    [Test]
+    public async Task I_Input_PushesReadLineWithoutTrailingNewline()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.EnqueueInput("Testing, testing.");
 
-        Instruction(fp, 'I')(ctx);
+        (await Instruction(fp, 'I'))(ctx);
 
-        Assert.AreEqual("Testing, testing.", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("Testing, testing.");
     }
 
-    [TestMethod]
-    public void L_Left_ReturnsLeftmostCharacters()
+    [Test]
+    public async Task L_Left_ReturnsLeftmostCharacters()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("Baz");
         ctx.Push(2);
 
-        Instruction(fp, 'L')(ctx);
+        (await Instruction(fp, 'L'))(ctx);
 
-        Assert.AreEqual("Ba", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("Ba");
     }
 
-    [TestMethod]
-    public void M_Slice_ReturnsRequestedWindow()
+    [Test]
+    public async Task M_Slice_ReturnsRequestedWindow()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
@@ -198,82 +198,82 @@ public class StringFingerprintTests
         ctx.Push(3);
         ctx.Push(4);
 
-        Instruction(fp, 'M')(ctx);
+        (await Instruction(fp, 'M'))(ctx);
 
-        Assert.AreEqual("BarB", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("BarB");
     }
 
-    [TestMethod]
-    public void N_Length_KeepsStringAndPushesLength()
+    [Test]
+    public async Task N_Length_KeepsStringAndPushesLength()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("foo");
 
-        Instruction(fp, 'N')(ctx);
+        (await Instruction(fp, 'N'))(ctx);
 
-        Assert.AreEqual(3, ctx.Pop());
-        Assert.AreEqual("foo", ctx.PopString());
+        await Assert.That(ctx.Pop()).IsEqualTo(3);
+        await Assert.That(ctx.PopString()).IsEqualTo("foo");
     }
 
-    [TestMethod]
-    public void P_Put_WritesStringAndTerminatorUsingStorageOffset()
+    [Test]
+    public async Task P_Put_WritesStringAndTerminatorUsingStorageOffset()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext { StorageOffset = (10, 20, 30) };
         ctx.PushString("Hi");
         ctx.PushVector(2, 0, 0);
 
-        Instruction(fp, 'P')(ctx);
+        (await Instruction(fp, 'P'))(ctx);
 
-        Assert.AreEqual('H', ctx.GetCell(12, 20, 30));
-        Assert.AreEqual('i', ctx.GetCell(13, 20, 30));
-        Assert.AreEqual(0, ctx.GetCell(14, 20, 30));
+        await Assert.That(ctx.GetCell(12, 20, 30)).IsEqualTo('H');
+        await Assert.That(ctx.GetCell(13, 20, 30)).IsEqualTo('i');
+        await Assert.That(ctx.GetCell(14, 20, 30)).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void R_Right_ReturnsRightmostCharacters()
+    [Test]
+    public async Task R_Right_ReturnsRightmostCharacters()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("Baz");
         ctx.Push(2);
 
-        Instruction(fp, 'R')(ctx);
+        (await Instruction(fp, 'R'))(ctx);
 
-        Assert.AreEqual("az", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("az");
     }
 
-    [TestMethod]
-    public void S_NumberToString_ConvertsToDecimalString()
+    [Test]
+    public async Task S_NumberToString_ConvertsToDecimalString()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.Push(1234567890);
 
-        Instruction(fp, 'S')(ctx);
+        (await Instruction(fp, 'S'))(ctx);
 
-        Assert.AreEqual("1234567890", ctx.PopString());
+        await Assert.That(ctx.PopString()).IsEqualTo("1234567890");
     }
 
-    [TestMethod]
-    public void V_StringToNumber_UsesAtoiStyleParsing()
+    [Test]
+    public async Task V_StringToNumber_UsesAtoiStyleParsing()
     {
         var fp = new StringFingerprint();
         var ctx = new TestContext();
         ctx.PushString("123abc");
 
-        Instruction(fp, 'V')(ctx);
+        (await Instruction(fp, 'V'))(ctx);
 
-        Assert.AreEqual(123, ctx.Pop());
+        await Assert.That(ctx.Pop()).IsEqualTo(123);
 
         ctx.PushString("abc");
-        Instruction(fp, 'V')(ctx);
-        Assert.AreEqual(0, ctx.Pop());
+        (await Instruction(fp, 'V'))(ctx);
+        await Assert.That(ctx.Pop()).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void MissingCapability_Reflects()
+    [Test]
+    public async Task MissingCapability_Reflects()
     {
         var fp = new StringFingerprint();
         var ctx = new CoreOnlyContext();
@@ -284,8 +284,8 @@ public class StringFingerprintTests
         ctx.Push('e');
         ctx.Push('H');
 
-        Instruction(fp, 'D')(ctx);
+        (await Instruction(fp, 'D'))(ctx);
 
-        Assert.IsTrue(ctx.Reflected);
+        await Assert.That(ctx.Reflected).IsTrue();
     }
 }

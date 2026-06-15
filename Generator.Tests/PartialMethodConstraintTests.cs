@@ -3,15 +3,11 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Esolang.Funge.Generator.Tests;
 
-[TestClass]
-public class PartialMethodConstraintTests(TestContext TestContext)
+public class PartialMethodConstraintTests
 {
 
-#pragma warning disable MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
-    CancellationToken Cancellationtoken => TestContext.CancellationTokenSource.Token;
-#pragma warning restore MSTEST0054 // TestContext.CancellationTokenSource.Token の代わりに TestContext.CancellationToken を使用する
-    [TestMethod]
-    public void Generator_NonPartialMethod_ReportsError()
+    [Test]
+    public async Task Generator_NonPartialMethod_ReportsError(CancellationToken CancellationToken)
     {
         const string source = """
             namespace Demo;
@@ -24,13 +20,13 @@ public class PartialMethodConstraintTests(TestContext TestContext)
             """;
 
         var compilation = CSharpCompilation.Create("Test",
-            [CSharpSyntaxTree.ParseText(source, cancellationToken: Cancellationtoken)],
+            [CSharpSyntaxTree.ParseText(source, cancellationToken: CancellationToken)],
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
 
         var generator = new MethodGenerator();
         var driver = CSharpGeneratorDriver.Create(generator);
-        driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics, Cancellationtoken);
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics, CancellationToken);
 
-        Assert.Contains(d => d.Id == "FG0011", diagnostics, "Expected diagnostic FG0011 (Method must be partial)");
+        await Assert.That(diagnostics).Contains(d => d.Id == "FG0011").Because("Expected diagnostic FG0011 (Method must be partial)");
     }
 }

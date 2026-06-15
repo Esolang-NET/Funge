@@ -23,12 +23,12 @@ sealed class TestContext : IFungeExecutionContext, IFungeOutputContext
     public string Output => _output.ToString();
 }
 
-[TestClass]
 public class LongIntegerFingerprintTests
 {
-    static FingerprintInstruction Instruction(LongIntegerFingerprint fingerprint, char instruction)
+    static async Task<FingerprintInstruction> Instruction(LongIntegerFingerprint fingerprint, char instruction)
     {
-        Assert.IsTrue(fingerprint.Instructions.TryGetValue(instruction, out var handler));
+        await Assert.That(fingerprint.Instructions.TryGetValue(instruction, out var handler)).IsTrue();
+        Assert.NotNull(handler);
         return handler;
     }
 
@@ -52,189 +52,189 @@ public class LongIntegerFingerprintTests
             context.Push(ch);
     }
 
-    [TestMethod]
-    public void Handprint_IsCorrect()
-        => Assert.AreEqual(0x4C4F4E47, new LongIntegerFingerprint().Handprint);
+    [Test]
+    public async Task Handprint_IsCorrect()
+        => await Assert.That(new LongIntegerFingerprint().Handprint).IsEqualTo(0x4C4F4E47);
 
-    [TestMethod]
-    public void A_AddsLongIntegers()
+    [Test]
+    public async Task A_AddsLongIntegers()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 3_000_000_000L);
         PushLong(context, 2_000_000_000L);
 
-        Instruction(fingerprint, 'A')(context);
+        (await Instruction(fingerprint, 'A'))(context);
 
-        Assert.AreEqual(5_000_000_000L, PopLong(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopLong(context)).IsEqualTo(5_000_000_000L);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void B_ReturnsAbsoluteValue()
+    [Test]
+    public async Task B_ReturnsAbsoluteValue()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, -5_000_000_000L);
 
-        Instruction(fingerprint, 'B')(context);
+        (await Instruction(fingerprint, 'B'))(context);
 
-        Assert.AreEqual(5_000_000_000L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(5_000_000_000L);
     }
 
-    [TestMethod]
-    public void D_DividesLongIntegers()
+    [Test]
+    public async Task D_DividesLongIntegers()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 8_000_000_000L);
         PushLong(context, 2_000_000_000L);
 
-        Instruction(fingerprint, 'D')(context);
+        (await Instruction(fingerprint, 'D'))(context);
 
-        Assert.AreEqual(4L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(4L);
     }
 
-    [TestMethod]
-    public void D_ReturnsZeroOnDivisionByZero()
+    [Test]
+    public async Task D_ReturnsZeroOnDivisionByZero()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 8_000_000_000L);
         PushLong(context, 0);
 
-        Instruction(fingerprint, 'D')(context);
+        (await Instruction(fingerprint, 'D'))(context);
 
-        Assert.AreEqual(0L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(0L);
     }
 
-    [TestMethod]
-    public void E_SignExtendsSingleCell()
+    [Test]
+    public async Task E_SignExtendsSingleCell()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         context.Push(-42);
 
-        Instruction(fingerprint, 'E')(context);
+        (await Instruction(fingerprint, 'E'))(context);
 
-        Assert.AreEqual(-42L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(-42L);
     }
 
-    [TestMethod]
-    [DataRow('L', 1L, 2, 4L)]
-    [DataRow('L', 8L, -1, 4L)]
-    [DataRow('R', 8L, 1, 4L)]
-    [DataRow('R', 1L, -2, 4L)]
-    public void ShiftInstructions_HandlePositiveAndNegativeCounts(char instruction, long value, int count, long expected)
+    [Test]
+    [Arguments('L', 1L, 2, 4L)]
+    [Arguments('L', 8L, -1, 4L)]
+    [Arguments('R', 8L, 1, 4L)]
+    [Arguments('R', 1L, -2, 4L)]
+    public async Task ShiftInstructions_HandlePositiveAndNegativeCounts(char instruction, long value, int count, long expected)
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, value);
         context.Push(count);
 
-        Instruction(fingerprint, instruction)(context);
+        (await Instruction(fingerprint, instruction))(context);
 
-        Assert.AreEqual(expected, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(expected);
     }
 
-    [TestMethod]
-    public void M_MultipliesLongIntegers()
+    [Test]
+    public async Task M_MultipliesLongIntegers()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 3_000_000L);
         PushLong(context, 2_000_000L);
 
-        Instruction(fingerprint, 'M')(context);
+        (await Instruction(fingerprint, 'M'))(context);
 
-        Assert.AreEqual(6_000_000_000_000L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(6_000_000_000_000L);
     }
 
-    [TestMethod]
-    public void N_NegatesLongInteger()
+    [Test]
+    public async Task N_NegatesLongInteger()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 5_000_000_000L);
 
-        Instruction(fingerprint, 'N')(context);
+        (await Instruction(fingerprint, 'N'))(context);
 
-        Assert.AreEqual(-5_000_000_000L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(-5_000_000_000L);
     }
 
-    [TestMethod]
-    public void O_ComputesModulo()
+    [Test]
+    public async Task O_ComputesModulo()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 9L);
         PushLong(context, 4L);
 
-        Instruction(fingerprint, 'O')(context);
+        (await Instruction(fingerprint, 'O'))(context);
 
-        Assert.AreEqual(1L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(1L);
     }
 
-    [TestMethod]
-    public void O_ReturnsZeroOnDivisionByZero()
+    [Test]
+    public async Task O_ReturnsZeroOnDivisionByZero()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 9L);
         PushLong(context, 0L);
 
-        Instruction(fingerprint, 'O')(context);
+        (await Instruction(fingerprint, 'O'))(context);
 
-        Assert.AreEqual(0L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(0L);
     }
 
-    [TestMethod]
-    public void P_PrintsLongInteger()
+    [Test]
+    public async Task P_PrintsLongInteger()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, -5_000_000_000L);
 
-        Instruction(fingerprint, 'P')(context);
+        (await Instruction(fingerprint, 'P'))(context);
 
-        Assert.AreEqual((-5_000_000_000L).ToString(CultureInfo.InvariantCulture) + " ", context.Output);
+        await Assert.That(context.Output).IsEqualTo((-5_000_000_000L).ToString(CultureInfo.InvariantCulture) + " ");
     }
 
-    [TestMethod]
-    public void S_SubtractsLongIntegers()
+    [Test]
+    public async Task S_SubtractsLongIntegers()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         PushLong(context, 9L);
         PushLong(context, 4L);
 
-        Instruction(fingerprint, 'S')(context);
+        (await Instruction(fingerprint, 'S'))(context);
 
-        Assert.AreEqual(5L, PopLong(context));
+        await Assert.That(PopLong(context)).IsEqualTo(5L);
     }
 
-    [TestMethod]
-    public void Z_ParsesLongInteger()
+    [Test]
+    public async Task Z_ParsesLongInteger()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         Push0gnirts(context, "-5000000000");
 
-        Instruction(fingerprint, 'Z')(context);
+        (await Instruction(fingerprint, 'Z'))(context);
 
-        Assert.AreEqual(-5_000_000_000L, PopLong(context));
-        Assert.IsFalse(context.Reflected);
+        await Assert.That(PopLong(context)).IsEqualTo(-5_000_000_000L);
+        await Assert.That(context.Reflected).IsFalse();
     }
 
-    [TestMethod]
-    public void Z_ReflectsOnInvalidInput()
+    [Test]
+    public async Task Z_ReflectsOnInvalidInput()
     {
         var fingerprint = new LongIntegerFingerprint();
         var context = new TestContext();
         Push0gnirts(context, "12x");
 
-        Instruction(fingerprint, 'Z')(context);
+        (await Instruction(fingerprint, 'Z'))(context);
 
-        Assert.IsTrue(context.Reflected);
+        await Assert.That(context.Reflected).IsTrue();
     }
 }

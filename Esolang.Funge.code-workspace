@@ -49,14 +49,6 @@
 			"path": "samples"
 		},
 		{
-			"name": "Esolang.Funge.Fingerprints.3dsp",
-			"path": "Fingerprints.ThreeDsp"
-		},
-		{
-			"name": "Esolang.Funge.Fingerprints.3dsp.Tests",
-			"path": "Fingerprints.ThreeDsp.Tests"
-		},
-		{
 			"name": "Esolang.Funge.Fingerprints.Arry",
 			"path": "Fingerprints.Arry"
 		},
@@ -137,20 +129,20 @@
 			"path": "Fingerprints.Fpdp.Tests"
 		},
 		{
-			"name": "Esolang.Funge.Fingerprints.Fpsp",
-			"path": "Fingerprints.Fpsp"
-		},
-		{
-			"name": "Esolang.Funge.Fingerprints.Fpsp.Tests",
-			"path": "Fingerprints.Fpsp.Tests"
-		},
-		{
 			"name": "Esolang.Funge.Fingerprints.Fprt",
 			"path": "Fingerprints.Fprt"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Fprt.Tests",
 			"path": "Fingerprints.Fprt.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Fpsp",
+			"path": "Fingerprints.Fpsp"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Fpsp.Tests",
+			"path": "Fingerprints.Fpsp.Tests"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Frth",
@@ -279,6 +271,14 @@
 		{
 			"name": "Esolang.Funge.Fingerprints.Term.Tests",
 			"path": "Fingerprints.Term.Tests"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.ThreeDsp",
+			"path": "Fingerprints.ThreeDsp"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.ThreeDsp.Tests",
+			"path": "Fingerprints.ThreeDsp.Tests"
 		},
 		{
 			"name": "Esolang.Funge.Fingerprints.Time",
