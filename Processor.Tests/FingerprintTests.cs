@@ -210,7 +210,7 @@ public class FingerprintTests
         // NullFingerprint maps every A-Z to Reflect. After loading, 'A' reflects.
         // "NULL" reversed = "LLUN" for correct pop order.
         var fp = NullFingerprint.Instance;
-        var result = Run("\"LLUN\"4(A@", [fp], CancellationToken: CancellationToken);
+        var result = Run("\"LLUN\"4(#@A", [fp], CancellationToken: CancellationToken);
         await Assert.That(result).IsEqualTo(string.Empty);
     }
 
