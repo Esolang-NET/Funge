@@ -55,13 +55,13 @@ public class FungeProcessorTests
         var space = new Parser.FungeSpace();
         var pos1 = new Parser.FungeVector(0, 0, 0);
         var pos2 = new Parser.FungeVector(1, 0, 0);
-        var pos3 = new Parser.FungeVector(0, 1, 0);
-        var pos4 = new Parser.FungeVector(0, 2, 0);
-        var pos5 = new Parser.FungeVector(0, 3, 0);
+        var pos3 = new Parser.FungeVector(1, 1, 0);
+        var pos4 = new Parser.FungeVector(0, 1, 0);
+        var pos5 = new Parser.FungeVector(0, 2, 0);
 
         space[pos1] = '>';
-        space[pos2] = '<';
-        space[pos3] = '^';
+        space[pos2] = 'v';
+        space[pos3] = '<';
         space[pos4] = 'v';
         space[pos5] = '@';
 
@@ -315,26 +315,23 @@ public class FungeProcessorTests
     public async Task InputFile_LoadsFileIntoSpace(CancellationToken CancellationToken)
     {
         var testContext = TestContext.Current!;
-        var originalDir = Directory.GetCurrentDirectory();
         var path = Path.GetTempFileName();
         if (File.Exists(path))
             File.Delete(path);
         var tempDir = Path.Combine(path, testContext.Isolation.GetIsolatedName("funge-input-io"));
+        var inputPath = Path.Combine(tempDir, "input.txt");
         Directory.CreateDirectory(tempDir);
 
         try
         {
-            Directory.SetCurrentDirectory(tempDir);
-            await File.WriteAllTextAsync("input.txt", "A", CancellationToken);
+            await File.WriteAllTextAsync(inputPath, "A", CancellationToken);
 
-            // Va=(0,0,0), flags=0 (text mode), STR=0"input.txt" (0gnirts)
-            var output = await Run("00000\"txt.tupni\"in000g.@", CancellationToken: CancellationToken);
+            // Va=(0,0,0), flags=0 (text mode), STR=0"<absolute-path>" (0gnirts)
+            var output = await Run($"00000{EncodeZeroGnirts(inputPath)}in000g.@", CancellationToken: CancellationToken);
             await Assert.That(output).IsEqualTo("65 ");
         }
         finally
         {
-            if (Directory.Exists(originalDir))
-                Directory.SetCurrentDirectory(originalDir);
             if (Directory.Exists(tempDir))
                 try
                 {
@@ -349,27 +346,23 @@ public class FungeProcessorTests
     public async Task OutputFile_WritesSpaceRegion(CancellationToken CancellationToken)
     {
         var testContext = TestContext.Current!;
-        var originalDir = Directory.GetCurrentDirectory();
         var path = Path.GetTempFileName();
         if (File.Exists(path))
             File.Delete(path);
         var tempDir = Path.Combine(path, testContext.Isolation.GetIsolatedName("funge-output-io"));
+        var outputPath = Path.Combine(tempDir, "output.txt");
         Directory.CreateDirectory(tempDir);
 
         try
         {
-            Directory.SetCurrentDirectory(tempDir);
+            // store 'A' at (0,0,0), then output Va=(0,0,0), Vb=(0,0,0), flags=0, STR=0"<absolute-path>"
+            await Run($"88*1+000p00000000{EncodeZeroGnirts(outputPath)}o@", CancellationToken: CancellationToken);
 
-            // store 'A' at (0,0,0), then output Va=(0,0,0), Vb=(0,0,0), flags=0, STR=0"output.txt"
-            await Run("88*1+000p00000000\"txt.tuptuo\"o@", CancellationToken: CancellationToken);
-
-            var bytes = await File.ReadAllBytesAsync(Path.Combine(tempDir, "output.txt"), CancellationToken);
+            var bytes = await File.ReadAllBytesAsync(outputPath, CancellationToken);
             await Assert.That(bytes).IsEquivalentTo((byte[])[65], CollectionOrdering.Matching);
         }
         finally
         {
-            if (Directory.Exists(originalDir))
-                Directory.SetCurrentDirectory(originalDir);
             if (Directory.Exists(tempDir))
                 try
                 {
