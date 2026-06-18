@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Base;
 
 sealed class TestContext : IFungeExecutionContext, IFungeInputContext, IFungeOutputContext
@@ -41,7 +42,7 @@ public class BaseFingerprintTests
         var ctx = new TestContext();
         ctx.Push(value);
 
-        (await Instruction(fp, 'B'))(ctx);
+        await (await Instruction(fp, 'B'))(ctx);
 
         await Assert.That(ctx.Output).IsEqualTo(expected);
         await Assert.That(ctx.Pop()).IsEqualTo(0);
@@ -57,7 +58,7 @@ public class BaseFingerprintTests
         var ctx = new TestContext();
         ctx.Push(value);
 
-        (await Instruction(fp, 'H'))(ctx);
+        await (await Instruction(fp, 'H'))(ctx);
 
         await Assert.That(ctx.Output).IsEqualTo(expected);
         await Assert.That(ctx.Pop()).IsEqualTo(0);
@@ -73,7 +74,7 @@ public class BaseFingerprintTests
         var ctx = new TestContext();
         ctx.Push(value);
 
-        (await Instruction(fp, 'O'))(ctx);
+        await (await Instruction(fp, 'O'))(ctx);
 
         await Assert.That(ctx.Output).IsEqualTo(expected);
         await Assert.That(ctx.Pop()).IsEqualTo(0);
@@ -90,7 +91,7 @@ public class BaseFingerprintTests
         ctx.EnqueueInput(input);
         ctx.Push(baseVal);
 
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Output).IsEqualTo(string.Empty);
@@ -104,7 +105,7 @@ public class BaseFingerprintTests
         var ctx = new TestContext();
         ctx.Push(2);
 
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
 
         await Assert.That(ctx.Reflected).IsTrue();
     }
@@ -119,7 +120,7 @@ public class BaseFingerprintTests
         ctx.Push(number);
         ctx.Push(baseVal);
 
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
 
         await Assert.That(ctx.Output).IsEqualTo(expected);
         await Assert.That(ctx.Pop()).IsEqualTo(0);

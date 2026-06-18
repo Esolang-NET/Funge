@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Arry;
 
 sealed class TestContext : IFungeExecutionContext, IFungeVectorContext, IFungeSpaceContext
@@ -80,7 +81,7 @@ public class ArrayFingerprintTests
         var fp = new ArrayFingerprint();
         var ctx = new TestContext();
 
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(3);
     }
@@ -94,7 +95,7 @@ public class ArrayFingerprintTests
         ctx.Push(42);
         ctx.Push(-2);
 
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
 
         await Assert.That(ctx.GetCell(8, 20, 30)).IsEqualTo(42);
         await AssertVector(ctx, 10, 20, 30);
@@ -109,7 +110,7 @@ public class ArrayFingerprintTests
         PushVector(ctx, 10, 20, 30);
         ctx.Push(2);
 
-        (await Instruction(fp, 'B'))(ctx);
+        await (await Instruction(fp, 'B'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(99);
         await AssertVector(ctx, 10, 20, 30);
@@ -125,7 +126,7 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
 
         await Assert.That(ctx.GetCell(8, 23, 30)).IsEqualTo(77);
         await AssertVector(ctx, 10, 20, 30);
@@ -141,7 +142,7 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(55);
         await AssertVector(ctx, 10, 20, 30);
@@ -158,7 +159,7 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        (await Instruction(fp, 'E'))(ctx);
+        await (await Instruction(fp, 'E'))(ctx);
 
         await Assert.That(ctx.GetCell(11, 18, 33)).IsEqualTo(88);
         await AssertVector(ctx, 10, 20, 30);
@@ -175,7 +176,7 @@ public class ArrayFingerprintTests
         ctx.Push(-2);
         ctx.Push(3);
 
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(66);
         await AssertVector(ctx, 10, 20, 30);
@@ -187,7 +188,7 @@ public class ArrayFingerprintTests
         var fp = new ArrayFingerprint();
         var ctx = new CoreOnlyContext();
 
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
 
         await Assert.That(ctx.Reflected).IsTrue();
     }

@@ -280,9 +280,9 @@ partial class MethodGenerator
                                          }
                                          foreach (var __kvp in __fp.Instructions)
                                          {
-                                             Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
+                                             Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>? __semStack;
                                              if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
-                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::Esolang.Funge.FingerprintInstruction>();
+                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>();
                                              __semStack.Push(__kvp.Value);
                                          }
                                          Log.LogFingerprintLoaded(__logger, ip.Id, $"0x{__handprint:X8}");
@@ -301,9 +301,9 @@ partial class MethodGenerator
                                          }
                                          foreach (var __kvp in __fp.Instructions)
                                          {
-                                             Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
+                                             Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>? __semStack;
                                              if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
-                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::Esolang.Funge.FingerprintInstruction>();
+                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>();
                                              __semStack.Push(__kvp.Value);
                                          }
                                          ip.StackStack.Push(__handprint);
@@ -397,10 +397,14 @@ partial class MethodGenerator
                                      if (cell >= 'A' && cell <= 'Z')
                                      {
                                          var __letter = (char)cell;
-                                         Stack<global::Esolang.Funge.FingerprintInstruction>? __semStack;
-                                         if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0)
-                                            __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell, rng));
-                                         else
+                                         Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>? __semStack;
+                                         if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0) {
+                                            var task = __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell, rng));
+                                            if (!task.IsCompleted) {
+                                                task.AsTask().Wait();
+                                            }
+
+                                         } else
                                              ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
                                      }
                """
@@ -605,13 +609,13 @@ partial class MethodGenerator
                     internal RuntimeStackStack StackStack;
                     internal bool StringMode;
                     internal bool IsStopped;
-        {{(fingerprintSupport ? "            internal Dictionary<char, Stack<global::Esolang.Funge.FingerprintInstruction>> Semantics = new Dictionary<char, Stack<global::Esolang.Funge.FingerprintInstruction>>();" : "")}}
+        {{(fingerprintSupport ? "            internal Dictionary<char, Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>> Semantics = new Dictionary<char, Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>>();" : "")}}
                     internal RuntimeIp CreateChild(int newId)
                     {
                         var child = new RuntimeIp(newId) { Position = Position, Delta = (-Delta.X, -Delta.Y, -Delta.Z), Offset = Offset, StackStack = StackStack.Clone(), StringMode = StringMode };
         {{(fingerprintSupport ? """
                         foreach (var __kvp in Semantics)
-                            child.Semantics[__kvp.Key] = new Stack<global::Esolang.Funge.FingerprintInstruction>(__kvp.Value);
+                            child.Semantics[__kvp.Key] = new Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>(__kvp.Value);
         """ : "")}}                        return child;
                     }
                 }

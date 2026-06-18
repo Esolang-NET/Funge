@@ -1,4 +1,5 @@
 using System.Globalization;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Long;
 

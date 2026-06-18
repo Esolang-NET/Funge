@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Roma;
 
 sealed class TestContext : IFungeExecutionContext
@@ -35,7 +36,7 @@ public class RomanFingerprintTests
     {
         var fp = new RomanFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, ch))(ctx);
+        await (await Instruction(fp, ch))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }

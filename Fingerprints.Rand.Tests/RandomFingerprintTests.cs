@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Rand;
 
 sealed class RandomContext : IFungeExecutionContext, IFungeRandomContext
@@ -78,7 +79,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext(-1);
 
-        (await Instruction(fingerprint, 'I'))(context);
+        await (await Instruction(fingerprint, 'I'))(context);
 
         await Assert.That(context.LastUpperBound).IsEqualTo(uint.MaxValue);
         await Assert.That(context.Pop()).IsEqualTo(-2);
@@ -91,7 +92,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext(0);
 
-        (await Instruction(fingerprint, 'I'))(context);
+        await (await Instruction(fingerprint, 'I'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -102,7 +103,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext();
 
-        (await Instruction(fingerprint, 'M'))(context);
+        await (await Instruction(fingerprint, 'M'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(int.MaxValue);
     }
@@ -113,7 +114,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext();
 
-        (await Instruction(fingerprint, 'R'))(context);
+        await (await Instruction(fingerprint, 'R'))(context);
 
         await Assert.That(BitConverter.ToSingle(BitConverter.GetBytes(context.Pop()), 0)).IsEqualTo(0.5f);
         await Assert.That(context.Reflected).IsFalse();
@@ -125,7 +126,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext(-1);
 
-        (await Instruction(fingerprint, 'S'))(context);
+        await (await Instruction(fingerprint, 'S'))(context);
 
         await Assert.That(context.LastSeed).IsEqualTo(uint.MaxValue);
         await Assert.That(context.Reflected).IsFalse();
@@ -137,7 +138,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = CreateRandomContext();
 
-        (await Instruction(fingerprint, 'T'))(context);
+        await (await Instruction(fingerprint, 'T'))(context);
 
         await Assert.That(context.TimeReseeded).IsTrue();
         await Assert.That(context.Reflected).IsFalse();
@@ -149,7 +150,7 @@ public class RandomFingerprintTests
         var fingerprint = new RandomFingerprint();
         var context = new CoreOnlyContext();
 
-        (await Instruction(fingerprint, 'R'))(context);
+        await (await Instruction(fingerprint, 'R'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }

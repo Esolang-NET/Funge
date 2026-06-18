@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Date;
 
 sealed class TestContext : IFungeExecutionContext
@@ -47,7 +48,7 @@ public class DateFingerprintTests
         PushDate(ctx, 2024, 2, 27);
         ctx.Push(3);
 
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
 
         await AssertDate(ctx, 2024, 3, 1);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -60,7 +61,7 @@ public class DateFingerprintTests
         var ctx = new TestContext();
         ctx.Push(2451545);
 
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
 
         await AssertDate(ctx, 2000, 1, 1);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -74,7 +75,7 @@ public class DateFingerprintTests
         PushDate(ctx, 2024, 2, 28);
         PushDate(ctx, 2024, 3, 1);
 
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(2);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -87,7 +88,7 @@ public class DateFingerprintTests
         var ctx = new TestContext();
         PushDate(ctx, 2000, 1, 1);
 
-        (await Instruction(fp, 'J'))(ctx);
+        await (await Instruction(fp, 'J'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(2451545);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -101,7 +102,7 @@ public class DateFingerprintTests
         ctx.Push(2024);
         ctx.Push(59);
 
-        (await Instruction(fp, 'T'))(ctx);
+        await (await Instruction(fp, 'T'))(ctx);
 
         await AssertDate(ctx, 2024, 2, 29);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -114,7 +115,7 @@ public class DateFingerprintTests
         var ctx = new TestContext();
         PushDate(ctx, 2024, 6, 3);
 
-        (await Instruction(fp, 'W'))(ctx);
+        await (await Instruction(fp, 'W'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(0);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -127,7 +128,7 @@ public class DateFingerprintTests
         var ctx = new TestContext();
         PushDate(ctx, 2024, 12, 31);
 
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(365);
         await Assert.That(ctx.Reflected).IsFalse();
@@ -140,7 +141,7 @@ public class DateFingerprintTests
         var ctx = new TestContext();
         PushDate(ctx, 2024, 2, 30);
 
-        (await Instruction(fp, 'J'))(ctx);
+        await (await Instruction(fp, 'J'))(ctx);
 
         await Assert.That(ctx.Reflected).IsTrue();
     }
@@ -153,7 +154,7 @@ public class DateFingerprintTests
         ctx.Push(2023);
         ctx.Push(365);
 
-        (await Instruction(fp, 'T'))(ctx);
+        await (await Instruction(fp, 'T'))(ctx);
 
         await Assert.That(ctx.Reflected).IsTrue();
     }

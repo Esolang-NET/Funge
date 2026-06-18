@@ -3,6 +3,7 @@ using Esolang.Processor;
 using System.Collections;
 using System.Diagnostics;
 using static Esolang.Processor.IOEvent;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Processor;
 
@@ -59,7 +60,7 @@ public sealed partial class FungeProcessor(
             fingerprint.OnInstructionPointerTerminated(instructionPointerId);
     }
 
-    IEnumerable<IOEvent> ExecuteInstruction(
+    async IAsyncEnumerable<IOEvent> ExecuteInstructionAsync(
         InstructionPointer ip,
         LinkedList<InstructionPointer> ips,
         LinkedListNode<InstructionPointer> ipNode,
@@ -443,7 +444,7 @@ public sealed partial class FungeProcessor(
                         for (var i = 0; i < n && !ip.IsStopped && !state.Quit; i++)
                         {
                             var subState = new FungeState { ExitCode = state.ExitCode, Quit = state.Quit, SuppressAdvance = false };
-                            foreach (var ev in ExecuteInstruction(ip, ips, ipNode, subState, operand))
+                            await foreach (var ev in ExecuteInstructionAsync(ip, ips, ipNode, subState, operand))
                                 yield return ev;
                             state.ExitCode = subState.ExitCode;
                             state.Quit = subState.Quit;
@@ -616,7 +617,7 @@ public sealed partial class FungeProcessor(
                 {
                     var letter = (char)cell;
                     if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
-                        semStack.Peek()(FungeExecutionContext.Create(ip, _space, _input, _output, _random));
+                        await semStack.Peek()(FungeExecutionContext.Create(ip, _space, _input, _output, _random));
                     else
                         ip.Delta = ip.Delta.Reflect();
                 }

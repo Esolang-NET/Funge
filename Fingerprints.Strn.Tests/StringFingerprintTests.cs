@@ -1,4 +1,5 @@
 using System.Text;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Strn;
 
@@ -92,7 +93,7 @@ public class StringFingerprintTests
         ctx.PushString("Hello");
         ctx.PushString("World");
 
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("WorldHello");
     }
@@ -105,17 +106,17 @@ public class StringFingerprintTests
 
         ctx.PushString("Foo");
         ctx.PushString("foo");
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
         await Assert.That(ctx.Pop()).IsGreaterThan(0);
 
         ctx.PushString("bar");
         ctx.PushString("Bar");
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
         await Assert.That(ctx.Pop()).IsLessThan(0);
 
         ctx.PushString("qUx");
         ctx.PushString("qUx");
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(0);
     }
 
@@ -126,7 +127,7 @@ public class StringFingerprintTests
         var ctx = new TestContext();
         ctx.PushString("Hello");
 
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
 
         await Assert.That(ctx.Output).IsEqualTo("Hello");
     }
@@ -139,13 +140,13 @@ public class StringFingerprintTests
         ctx.PushString("Bra");
         ctx.PushString("FooBraBaz");
 
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("BraBaz");
 
         ctx.PushString("xyz");
         ctx.PushString("FooBraBaz");
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
         await Assert.That(ctx.PopString()).IsEqualTo(string.Empty);
     }
 
@@ -159,7 +160,7 @@ public class StringFingerprintTests
         ctx.SetCell(14, 20, 30, 0);
         ctx.PushVector(2, 0, 0);
 
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("Hi");
     }
@@ -171,7 +172,7 @@ public class StringFingerprintTests
         var ctx = new TestContext();
         ctx.EnqueueInput("Testing, testing.");
 
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("Testing, testing.");
     }
@@ -184,7 +185,7 @@ public class StringFingerprintTests
         ctx.PushString("Baz");
         ctx.Push(2);
 
-        (await Instruction(fp, 'L'))(ctx);
+        await (await Instruction(fp, 'L'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("Ba");
     }
@@ -198,7 +199,7 @@ public class StringFingerprintTests
         ctx.Push(3);
         ctx.Push(4);
 
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("BarB");
     }
@@ -210,7 +211,7 @@ public class StringFingerprintTests
         var ctx = new TestContext();
         ctx.PushString("foo");
 
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(3);
         await Assert.That(ctx.PopString()).IsEqualTo("foo");
@@ -224,7 +225,7 @@ public class StringFingerprintTests
         ctx.PushString("Hi");
         ctx.PushVector(2, 0, 0);
 
-        (await Instruction(fp, 'P'))(ctx);
+        await (await Instruction(fp, 'P'))(ctx);
 
         await Assert.That(ctx.GetCell(12, 20, 30)).IsEqualTo('H');
         await Assert.That(ctx.GetCell(13, 20, 30)).IsEqualTo('i');
@@ -239,7 +240,7 @@ public class StringFingerprintTests
         ctx.PushString("Baz");
         ctx.Push(2);
 
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("az");
     }
@@ -251,7 +252,7 @@ public class StringFingerprintTests
         var ctx = new TestContext();
         ctx.Push(1234567890);
 
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
 
         await Assert.That(ctx.PopString()).IsEqualTo("1234567890");
     }
@@ -263,12 +264,12 @@ public class StringFingerprintTests
         var ctx = new TestContext();
         ctx.PushString("123abc");
 
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo(123);
 
         ctx.PushString("abc");
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(0);
     }
 
@@ -284,7 +285,7 @@ public class StringFingerprintTests
         ctx.Push('e');
         ctx.Push('H');
 
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
 
         await Assert.That(ctx.Reflected).IsTrue();
     }

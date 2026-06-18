@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Imth;
 
@@ -74,7 +75,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -89,7 +90,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, 'D'))(context);
+        await (await Instruction(fingerprint, 'D'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -104,7 +105,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, 'I'))(context);
+        await (await Instruction(fingerprint, 'I'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -119,7 +120,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, 'G'))(context);
+        await (await Instruction(fingerprint, 'G'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -133,7 +134,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, 'F'))(context);
+        await (await Instruction(fingerprint, 'F'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -145,7 +146,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-1);
 
-        (await Instruction(fingerprint, 'F'))(context);
+        await (await Instruction(fingerprint, 'F'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -156,7 +157,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(2, 4, 6, 3);
 
-        (await Instruction(fingerprint, 'A'))(context);
+        await (await Instruction(fingerprint, 'A'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(4);
         await Assert.That(context.Reflected).IsFalse();
@@ -168,7 +169,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(2, 4, 4);
 
-        (await Instruction(fingerprint, 'A'))(context);
+        await (await Instruction(fingerprint, 'A'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(1);
         await Assert.That(context.Reflected).IsFalse();
@@ -180,7 +181,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(0);
 
-        (await Instruction(fingerprint, 'A'))(context);
+        await (await Instruction(fingerprint, 'A'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(0);
         await Assert.That(context.Reflected).IsFalse();
@@ -192,7 +193,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-1);
 
-        (await Instruction(fingerprint, 'A'))(context);
+        await (await Instruction(fingerprint, 'A'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -203,7 +204,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(1, 2, 3, 3);
 
-        (await Instruction(fingerprint, 'S'))(context);
+        await (await Instruction(fingerprint, 'S'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(6);
         await Assert.That(context.Reflected).IsFalse();
@@ -215,7 +216,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(0);
 
-        (await Instruction(fingerprint, 'S'))(context);
+        await (await Instruction(fingerprint, 'S'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(0);
         await Assert.That(context.Reflected).IsFalse();
@@ -227,7 +228,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-1);
 
-        (await Instruction(fingerprint, 'S'))(context);
+        await (await Instruction(fingerprint, 'S'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -244,7 +245,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(value, count);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -256,7 +257,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(5, -2, 3);
 
-        (await Instruction(fingerprint, 'N'))(context);
+        await (await Instruction(fingerprint, 'N'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(-2);
         await Assert.That(context.Reflected).IsFalse();
@@ -268,7 +269,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(-5, 2);
 
-        (await Instruction(fingerprint, 'X'))(context);
+        await (await Instruction(fingerprint, 'X'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(0);
         await Assert.That(context.Reflected).IsFalse();
@@ -282,7 +283,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(0);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -294,7 +295,7 @@ public class IntegerMathFingerprintTests
         var context = new OutputContext();
         context.Push(-1);
 
-        (await Instruction(fingerprint, 'U'))(context);
+        await (await Instruction(fingerprint, 'U'))(context);
 
         await Assert.That(context.Output).IsEqualTo(uint.MaxValue.ToString(CultureInfo.InvariantCulture) + " ");
         await Assert.That(context.Reflected).IsFalse();
@@ -306,7 +307,7 @@ public class IntegerMathFingerprintTests
         var fingerprint = new IntegerMathFingerprint();
         var context = CreateContext(5);
 
-        (await Instruction(fingerprint, 'U'))(context);
+        await (await Instruction(fingerprint, 'U'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }

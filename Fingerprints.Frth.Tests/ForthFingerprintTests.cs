@@ -1,4 +1,5 @@
 using TUnit.Assertions.Enums;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Frth;
 
 sealed class TestContext : IFungeExecutionContext, IFungeStackContext
@@ -55,7 +56,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        (await Instruction(fingerprint, 'D'))(context);
+        await (await Instruction(fingerprint, 'D'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 3], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -67,7 +68,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2);
 
-        (await Instruction(fingerprint, 'O'))(context);
+        await (await Instruction(fingerprint, 'O'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 1], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -79,7 +80,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        (await Instruction(fingerprint, 'R'))(context);
+        await (await Instruction(fingerprint, 'R'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[2, 3, 1], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -91,7 +92,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 0);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 3], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -103,7 +104,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 5);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 0], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -115,7 +116,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, -1);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -126,7 +127,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 4, 5, 3);
 
-        (await Instruction(fingerprint, 'L'))(context);
+        await (await Instruction(fingerprint, 'L'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 3, 4, 5, 2], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -138,7 +139,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 5);
 
-        (await Instruction(fingerprint, 'L'))(context);
+        await (await Instruction(fingerprint, 'L'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 0], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -150,7 +151,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, 4, 5, -3);
 
-        (await Instruction(fingerprint, 'L'))(context);
+        await (await Instruction(fingerprint, 'L'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 5, 3, 4], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -162,7 +163,7 @@ public class ForthFingerprintTests
         var fingerprint = new ForthFingerprint();
         var context = CreateContext(1, 2, 3, -5);
 
-        (await Instruction(fingerprint, 'L'))(context);
+        await (await Instruction(fingerprint, 'L'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[3, 0, 0, 1, 2], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();

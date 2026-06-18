@@ -1,5 +1,6 @@
 using System.Text;
 using TUnit.Assertions.Enums;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Stck;
 
@@ -86,7 +87,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 99, 2);
 
-        (await Instruction(fingerprint, 'B'))(context);
+        await (await Instruction(fingerprint, 'B'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 99, 2, 3], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -98,7 +99,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(7, 42, -2);
 
-        (await Instruction(fingerprint, 'B'))(context);
+        await (await Instruction(fingerprint, 'B'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[7, 42, 0, 0], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -110,7 +111,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 99, 3);
 
-        (await Instruction(fingerprint, 'B'))(context);
+        await (await Instruction(fingerprint, 'B'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -121,7 +122,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        (await Instruction(fingerprint, 'C'))(context);
+        await (await Instruction(fingerprint, 'C'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3, 3], CollectionOrdering.Matching);
     }
@@ -132,7 +133,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 3);
 
-        (await Instruction(fingerprint, 'D'))(context);
+        await (await Instruction(fingerprint, 'D'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 1, 2, 2, 3, 3], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -148,7 +149,7 @@ public class StackManipulationFingerprintTests
         context.PushVector(1, 0, 0);
         context.PushVector(1, 0, 0);
 
-        (await Instruction(fingerprint, 'W'))(context);
+        await (await Instruction(fingerprint, 'W'))(context);
 
         await Assert.That(context.GetCell(11, 0, 0)).IsEqualTo(30);
         await Assert.That(context.GetCell(12, 0, 0)).IsEqualTo(20);
@@ -158,7 +159,7 @@ public class StackManipulationFingerprintTests
         context.PushVector(1, 0, 0);
         context.PushVector(1, 0, 0);
 
-        (await Instruction(fingerprint, 'G'))(context);
+        await (await Instruction(fingerprint, 'G'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[10, 20, 30], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -170,7 +171,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 4, 5, 3, 1);
 
-        (await Instruction(fingerprint, 'K'))(context);
+        await (await Instruction(fingerprint, 'K'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 5, 2, 3, 4], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -182,7 +183,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 1, 2);
 
-        (await Instruction(fingerprint, 'K'))(context);
+        await (await Instruction(fingerprint, 'K'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -193,7 +194,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 4, 3);
 
-        (await Instruction(fingerprint, 'N'))(context);
+        await (await Instruction(fingerprint, 'N'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 4, 3, 2], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -205,7 +206,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(context.Output).IsEqualTo("1 2 3 ");
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 3], CollectionOrdering.Matching);
@@ -218,7 +219,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 4);
 
-        (await Instruction(fingerprint, 'R'))(context);
+        await (await Instruction(fingerprint, 'R'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[4, 3, 2, 1], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -230,7 +231,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2);
 
-        (await Instruction(fingerprint, 'S'))(context);
+        await (await Instruction(fingerprint, 'S'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 1, 2], CollectionOrdering.Matching);
     }
@@ -241,7 +242,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3);
 
-        (await Instruction(fingerprint, 'T'))(context);
+        await (await Instruction(fingerprint, 'T'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[2, 1, 3], CollectionOrdering.Matching);
     }
@@ -252,7 +253,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 4, 2);
 
-        (await Instruction(fingerprint, 'U'))(context);
+        await (await Instruction(fingerprint, 'U'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[1, 2, 2], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();
@@ -264,7 +265,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext(1, 2, 3, 9);
 
-        (await Instruction(fingerprint, 'U'))(context);
+        await (await Instruction(fingerprint, 'U'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -277,7 +278,7 @@ public class StackManipulationFingerprintTests
         context.PushVector(1, 0, 0);
         context.PushVector(0, 0, 0);
 
-        (await Instruction(fingerprint, 'W'))(context);
+        await (await Instruction(fingerprint, 'W'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -288,7 +289,7 @@ public class StackManipulationFingerprintTests
         var fingerprint = new StackManipulationFingerprint();
         var context = CreateContext('a', 'b', 'c', 0);
 
-        (await Instruction(fingerprint, 'Z'))(context);
+        await (await Instruction(fingerprint, 'Z'))(context);
 
         await Assert.That(PopAll(context)).IsEquivalentTo((int[])[0, 'a', 'b', 'c'], CollectionOrdering.Matching);
         await Assert.That(context.Reflected).IsFalse();

@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Toys;
 
 sealed class TestContext : IFungeExecutionContext, IFungeVectorContext, IFungeSpaceContext, IFungePositionContext, IFungeStackContext
@@ -58,7 +59,7 @@ public class ToysFingerprintTests
         var ctx = new TestContext();
         ctx.Push(42); // value
         ctx.Push(3);  // n
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(42);
         await Assert.That(ctx.Pop()).IsEqualTo(42);
@@ -72,7 +73,7 @@ public class ToysFingerprintTests
         var ctx = new TestContext();
         ctx.Push(3); // a
         ctx.Push(5); // b
-        (await Instruction(fp, 'B'))(ctx);
+        await (await Instruction(fp, 'B'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(-2); // a-b
         await Assert.That(ctx.Pop()).IsEqualTo(8);  // a+b
@@ -84,7 +85,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(10);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(9);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -95,7 +96,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(9);
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(10);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -106,7 +107,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(5);
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(-5);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -118,7 +119,7 @@ public class ToysFingerprintTests
         var ctx = new TestContext();
         ctx.Push(4); // a
         ctx.Push(2); // b
-        (await Instruction(fp, 'H'))(ctx);
+        await (await Instruction(fp, 'H'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(16); // 4 << 2
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -129,7 +130,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(1); ctx.Push(2); ctx.Push(3);
-        (await Instruction(fp, 'E'))(ctx);
+        await (await Instruction(fp, 'E'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(6);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -140,7 +141,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext();
         ctx.Push(2); ctx.Push(3); ctx.Push(4);
-        (await Instruction(fp, 'P'))(ctx);
+        await (await Instruction(fp, 'P'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(24);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -150,7 +151,7 @@ public class ToysFingerprintTests
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (3, 4, 0) };
-        (await Instruction(fp, 'X'))(ctx);
+        await (await Instruction(fp, 'X'))(ctx);
         await Assert.That(ctx.Position).IsEqualTo((4, 4, 0));
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -160,7 +161,7 @@ public class ToysFingerprintTests
     {
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (3, 4, 0) };
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
         await Assert.That(ctx.Position).IsEqualTo((3, 5, 0));
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -171,7 +172,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.SetCell(6, 5, 0, 99);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(99);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -182,7 +183,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.SetCell(4, 5, 0, 77);
-        (await Instruction(fp, 'L'))(ctx);
+        await (await Instruction(fp, 'L'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(77);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -193,7 +194,7 @@ public class ToysFingerprintTests
         var fp = new ToysFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.Push(42);
-        (await Instruction(fp, 'Q'))(ctx);
+        await (await Instruction(fp, 'Q'))(ctx);
         await Assert.That(ctx.GetCell(4, 5, 0)).IsEqualTo(42);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -206,7 +207,7 @@ public class ToysFingerprintTests
         ctx.Push(7); // value
         ctx.Push(3); ctx.Push(2); ctx.Push(0); // size (3,2)
         ctx.Push(0); ctx.Push(0); ctx.Push(0); // dest (0,0,0)
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.GetCell(0, 0, 0)).IsEqualTo(7);
         await Assert.That(ctx.GetCell(2, 1, 0)).IsEqualTo(7);
@@ -217,7 +218,7 @@ public class ToysFingerprintTests
     {
         var fp = new ToysFingerprint();
         var ctx = new BasicContext();
-        (await Instruction(fp, 'E'))(ctx);
+        await (await Instruction(fp, 'E'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

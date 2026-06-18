@@ -1,4 +1,5 @@
 using System.Text;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Term;
 
@@ -42,7 +43,7 @@ public class TerminalFingerprintTests
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[2J");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -52,7 +53,7 @@ public class TerminalFingerprintTests
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'H'))(ctx);
+        await (await Instruction(fp, 'H'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[H");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -64,7 +65,7 @@ public class TerminalFingerprintTests
         var ctx = new TestContext();
         ctx.Push(2); // r
         ctx.Push(4); // c
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[3;5H");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -77,7 +78,7 @@ public class TerminalFingerprintTests
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(n);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -88,7 +89,7 @@ public class TerminalFingerprintTests
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(0);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -101,7 +102,7 @@ public class TerminalFingerprintTests
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
         ctx.Push(n);
-        (await Instruction(fp, 'U'))(ctx);
+        await (await Instruction(fp, 'U'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -111,7 +112,7 @@ public class TerminalFingerprintTests
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'L'))(ctx);
+        await (await Instruction(fp, 'L'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[K");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -121,7 +122,7 @@ public class TerminalFingerprintTests
     {
         var fp = new TerminalFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("\x1b[J");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -131,7 +132,7 @@ public class TerminalFingerprintTests
     {
         var fp = new TerminalFingerprint();
         var ctx = new NoOutputContext();
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

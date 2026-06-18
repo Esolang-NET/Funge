@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Indv;
 
 sealed class TestContext : IFungeExecutionContext, IFungeVectorContext, IFungeSpaceContext, IFungeStorageOffsetContext
@@ -117,7 +118,7 @@ public class IndirectVectorFingerprintTests
         context.SetCell(17, 26, 25, 123);
         PushVector(context, 1, 2, 3);
 
-        (await Instruction(fingerprint, 'G'))(context);
+        await (await Instruction(fingerprint, 'G'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(123);
         await Assert.That(context.Reflected).IsFalse();
@@ -135,7 +136,7 @@ public class IndirectVectorFingerprintTests
         context.Push(55);
         PushVector(context, 1, 0, 0);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(context.GetCell(11, 13, 15)).IsEqualTo(55);
         await Assert.That(context.Reflected).IsFalse();
@@ -150,7 +151,7 @@ public class IndirectVectorFingerprintTests
         SeedStoredVector(context, 9, 4, 0, 8, -3, 0);
         PushVector(context, 3, 4, 0);
 
-        (await Instruction(fingerprint, 'V'))(context);
+        await (await Instruction(fingerprint, 'V'))(context);
 
         await AssertVector(context, 8, -3, 0);
         await Assert.That(context.Reflected).IsFalse();
@@ -165,7 +166,7 @@ public class IndirectVectorFingerprintTests
         PushVector(context, 9, 8, 7);
         PushVector(context, 2, 2, 2);
 
-        (await Instruction(fingerprint, 'W'))(context);
+        await (await Instruction(fingerprint, 'W'))(context);
 
         await Assert.That(context.GetCell(7, 4, -1)).IsEqualTo(7);
         await Assert.That(context.GetCell(8, 4, -1)).IsEqualTo(8);
@@ -179,7 +180,7 @@ public class IndirectVectorFingerprintTests
         var fingerprint = new IndirectVectorFingerprint();
         var context = new CoreOnlyContext();
 
-        (await Instruction(fingerprint, 'G'))(context);
+        await (await Instruction(fingerprint, 'G'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }

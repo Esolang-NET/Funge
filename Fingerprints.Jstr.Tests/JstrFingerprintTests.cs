@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Jstr;
 
 sealed class TestContext : IFungeExecutionContext, IFungeVectorContext, IFungeSpaceContext
@@ -78,14 +79,14 @@ public class JstrFingerprintTests
         // pos (0,0,0)
         ctx.Push(0); ctx.Push(0); ctx.Push(0);
         ctx.Push(5); // n
-        (await Instruction(fp, 'P'))(ctx);
+        await (await Instruction(fp, 'P'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
 
         // Now G: push delta (1,0,0), pos (0,0,0), n=5
         ctx.Push(1); ctx.Push(0); ctx.Push(0);
         ctx.Push(0); ctx.Push(0); ctx.Push(0);
         ctx.Push(5);
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(Pop0gnirts(ctx)).IsEqualTo("Hello");
     }
@@ -98,7 +99,7 @@ public class JstrFingerprintTests
         ctx.Push(1); ctx.Push(0); ctx.Push(0); // delta
         ctx.Push(0); ctx.Push(0); ctx.Push(0); // pos
         ctx.Push(-1); // n
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -108,7 +109,7 @@ public class JstrFingerprintTests
         var fp = new JstrFingerprint();
         var ctx = new BasicContext();
         ctx.Push(0);
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

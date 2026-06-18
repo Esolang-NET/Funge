@@ -7,6 +7,7 @@ using Esolang.Funge.Fingerprints.Long;
 using Esolang.Funge.Fingerprints.Rand;
 using TUnit.Assertions.Enums;
 using static Esolang.Processor.IOEvent;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Processor.Tests;
 
@@ -19,7 +20,7 @@ file sealed class PushFingerprint(string name, char letter, int value) : IFinger
     public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } =
         new Dictionary<char, FingerprintInstruction>
         {
-            [letter] = ctx => ctx.Push(value),
+            [letter] = ctx => { ctx.Push(value); return default; },
         };
 }
 
@@ -339,17 +340,18 @@ public class FingerprintTests
     {
         var fp = new CustomFingerprint(
             "PEST",
-            new Dictionary<char, FingerprintInstruction>
+            new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
             {
                 ['A'] = ctx =>
                 {
                     if (ctx is not IFungeStorageOffsetContext offset)
                     {
                         ctx.Reflect();
-                        return;
+                        return default;
                     }
 
                     ctx.Push(offset.StorageOffset.X);
+                    return default;
                 },
             });
         var result = Run("\"TSEP\"4(A.@", [fp], CancellationToken: CancellationToken);
@@ -369,11 +371,12 @@ public class FingerprintTests
                     if (ctx is not IFungeRandomContext random)
                     {
                         ctx.Reflect();
-                        return;
+                        return default;
                     }
 
                     random.Reseed(123u);
                     ctx.Push(random.NextUInt32(1) == 0 ? 1 : 0);
+                    return default;
                 },
             });
         var result = Run("\"TSEP\"4(A.@", [fp], CancellationToken: CancellationToken);
@@ -393,10 +396,11 @@ public class FingerprintTests
                     if (ctx is not IFungeInstructionPointerContext instructionPointer)
                     {
                         ctx.Reflect();
-                        return;
+                        return default;
                     }
 
                     ctx.Push(instructionPointer.InstructionPointerId);
+                    return default;
                 },
             });
         var result = Run("\"TSEP\"4(A.@", [fp], CancellationToken: CancellationToken);
@@ -416,10 +420,11 @@ public class FingerprintTests
                     if (ctx is not IFungeStackContext stack)
                     {
                         ctx.Reflect();
-                        return;
+                        return default;
                     }
 
                     ctx.Push(stack.StackDepth);
+                    return default;
                 },
             });
         var result = Run("\"TSEP\"4($$12A.@", [fp], CancellationToken: CancellationToken);

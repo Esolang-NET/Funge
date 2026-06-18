@@ -6,7 +6,6 @@ namespace Esolang.Funge.Generator;
 readonly struct KnownFungeTypes(Compilation compilation)
 {
     public INamedTypeSymbol? IFingerprint { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFingerprint");
-    public INamedTypeSymbol? FingerprintInstruction { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.FingerprintInstruction");
     public INamedTypeSymbol? IFungeExecutionContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeExecutionContext");
     public INamedTypeSymbol? IFungeInstructionPointerContext { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeInstructionPointerContext");
     public INamedTypeSymbol? IFungeInstructionPointerLifecycle { get; } = compilation.GetBestTypeByMetadataName("Esolang.Funge.IFungeInstructionPointerLifecycle");

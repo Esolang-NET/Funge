@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Bool;
 
 sealed class TestContext : IFungeExecutionContext
@@ -34,7 +35,7 @@ public class BoolFingerprintTests
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -48,7 +49,7 @@ public class BoolFingerprintTests
         var fp = new BoolFingerprint();
         var ctx = new TestContext();
         ctx.Push(val);
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -64,7 +65,7 @@ public class BoolFingerprintTests
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        (await Instruction(fp, 'O'))(ctx);
+        await (await Instruction(fp, 'O'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -80,7 +81,7 @@ public class BoolFingerprintTests
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        (await Instruction(fp, 'X'))(ctx);
+        await (await Instruction(fp, 'X'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }

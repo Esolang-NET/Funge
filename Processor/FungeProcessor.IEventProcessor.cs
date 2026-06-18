@@ -37,7 +37,7 @@ public sealed partial class FungeProcessor : IEventProcessor
                     var ip = node.Value;
 
                     state.SuppressAdvance = false;
-                    foreach (var ev in ExecuteInstruction(ip, ips, node, state))
+                    await foreach (var ev in ExecuteInstructionAsync(ip, ips, node, state))
                     {
                         yield return ev;
                     }

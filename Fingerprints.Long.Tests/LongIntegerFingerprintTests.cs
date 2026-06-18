@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Long;
 
@@ -64,7 +65,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 3_000_000_000L);
         PushLong(context, 2_000_000_000L);
 
-        (await Instruction(fingerprint, 'A'))(context);
+        await (await Instruction(fingerprint, 'A'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(5_000_000_000L);
         await Assert.That(context.Reflected).IsFalse();
@@ -77,7 +78,7 @@ public class LongIntegerFingerprintTests
         var context = new TestContext();
         PushLong(context, -5_000_000_000L);
 
-        (await Instruction(fingerprint, 'B'))(context);
+        await (await Instruction(fingerprint, 'B'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(5_000_000_000L);
     }
@@ -90,7 +91,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 8_000_000_000L);
         PushLong(context, 2_000_000_000L);
 
-        (await Instruction(fingerprint, 'D'))(context);
+        await (await Instruction(fingerprint, 'D'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(4L);
     }
@@ -103,7 +104,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 8_000_000_000L);
         PushLong(context, 0);
 
-        (await Instruction(fingerprint, 'D'))(context);
+        await (await Instruction(fingerprint, 'D'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(0L);
     }
@@ -115,7 +116,7 @@ public class LongIntegerFingerprintTests
         var context = new TestContext();
         context.Push(-42);
 
-        (await Instruction(fingerprint, 'E'))(context);
+        await (await Instruction(fingerprint, 'E'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(-42L);
     }
@@ -132,7 +133,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, value);
         context.Push(count);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(expected);
     }
@@ -145,7 +146,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 3_000_000L);
         PushLong(context, 2_000_000L);
 
-        (await Instruction(fingerprint, 'M'))(context);
+        await (await Instruction(fingerprint, 'M'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(6_000_000_000_000L);
     }
@@ -157,7 +158,7 @@ public class LongIntegerFingerprintTests
         var context = new TestContext();
         PushLong(context, 5_000_000_000L);
 
-        (await Instruction(fingerprint, 'N'))(context);
+        await (await Instruction(fingerprint, 'N'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(-5_000_000_000L);
     }
@@ -170,7 +171,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 9L);
         PushLong(context, 4L);
 
-        (await Instruction(fingerprint, 'O'))(context);
+        await (await Instruction(fingerprint, 'O'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(1L);
     }
@@ -183,7 +184,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 9L);
         PushLong(context, 0L);
 
-        (await Instruction(fingerprint, 'O'))(context);
+        await (await Instruction(fingerprint, 'O'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(0L);
     }
@@ -195,7 +196,7 @@ public class LongIntegerFingerprintTests
         var context = new TestContext();
         PushLong(context, -5_000_000_000L);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(context.Output).IsEqualTo((-5_000_000_000L).ToString(CultureInfo.InvariantCulture) + " ");
     }
@@ -208,7 +209,7 @@ public class LongIntegerFingerprintTests
         PushLong(context, 9L);
         PushLong(context, 4L);
 
-        (await Instruction(fingerprint, 'S'))(context);
+        await (await Instruction(fingerprint, 'S'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(5L);
     }
@@ -220,7 +221,7 @@ public class LongIntegerFingerprintTests
         var context = new TestContext();
         Push0gnirts(context, "-5000000000");
 
-        (await Instruction(fingerprint, 'Z'))(context);
+        await (await Instruction(fingerprint, 'Z'))(context);
 
         await Assert.That(PopLong(context)).IsEqualTo(-5_000_000_000L);
         await Assert.That(context.Reflected).IsFalse();
@@ -233,7 +234,7 @@ public class LongIntegerFingerprintTests
         var context = new TestContext();
         Push0gnirts(context, "12x");
 
-        (await Instruction(fingerprint, 'Z'))(context);
+        await (await Instruction(fingerprint, 'Z'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }

@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Fprt;
 
 sealed class TestContext : IFungeExecutionContext
@@ -46,7 +47,7 @@ public class FormattedPrintFingerprintTests
         var ctx = new TestContext();
         ctx.Push(42); // value
         Push0gnirts(ctx, "%d"); // format
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(Pop0gnirts(ctx)).IsEqualTo("42");
     }
@@ -58,7 +59,7 @@ public class FormattedPrintFingerprintTests
         var ctx = new TestContext();
         ctx.Push(255); // value
         Push0gnirts(ctx, "%x"); // format
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(Pop0gnirts(ctx)).IsEqualTo("ff");
     }
@@ -70,7 +71,7 @@ public class FormattedPrintFingerprintTests
         var ctx = new TestContext();
         ctx.Push(42);
         Push0gnirts(ctx, "no specifier");
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -81,7 +82,7 @@ public class FormattedPrintFingerprintTests
         var ctx = new TestContext();
         Push0gnirts(ctx, "world"); // value (bottom)
         Push0gnirts(ctx, "Hello %s!"); // format (top)
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(Pop0gnirts(ctx)).IsEqualTo("Hello world!");
     }
@@ -104,7 +105,7 @@ public class FormattedPrintFingerprintTests
         var ctx = new TestContext();
         ctx.Push(SingleToInt32Bits(3.14f)); // value
         Push0gnirts(ctx, "%.2f"); // format
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = Pop0gnirts(ctx);
         await Assert.That(result).StartsWith("3.14", StringComparison.Ordinal);
@@ -117,7 +118,7 @@ public class FormattedPrintFingerprintTests
         var ctx = new TestContext();
         ctx.Push(1);
         Push0gnirts(ctx, "%d %d");
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

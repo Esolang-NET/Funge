@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Fpsp;
 
 sealed class TestContext : IFungeExecutionContext
@@ -55,7 +56,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 1.5f); PushFloat(ctx, 2.5f);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(4.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -66,7 +67,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 5.0f); PushFloat(ctx, 2.0f);
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(3.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -78,7 +79,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 3.0f); PushFloat(ctx, 4.0f);
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(12.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -90,7 +91,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 10.0f); PushFloat(ctx, 4.0f);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(2.5f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -101,7 +102,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         ctx.Push(42);
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(42.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -112,7 +113,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 3.9f);
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(3);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -123,7 +124,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 5.0f);
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(-5.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -134,7 +135,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, 9.0f);
-        (await Instruction(fp, 'Q'))(ctx);
+        await (await Instruction(fp, 'Q'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(3.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -145,7 +146,7 @@ public class SinglePrecisionFloatFingerprintTests
         var fp = new SinglePrecisionFloatFingerprint();
         var ctx = new TestContext();
         PushFloat(ctx, -7.5f);
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(7.5f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -157,7 +158,7 @@ public class SinglePrecisionFloatFingerprintTests
         var ctx = new TestContext();
         PushFloat(ctx, 2.0f); // y (base)
         PushFloat(ctx, 10.0f); // x (exponent, on top)
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(1024.0f).Within(0.01f);
         await Assert.That(ctx.Reflected).IsFalse();
     }

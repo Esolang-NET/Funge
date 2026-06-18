@@ -1,4 +1,5 @@
 using System.Text;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Orth;
 
@@ -53,7 +54,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(a); ctx.Push(b);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -65,7 +66,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(a); ctx.Push(b);
-        (await Instruction(fp, 'E'))(ctx);
+        await (await Instruction(fp, 'E'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -77,7 +78,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(a); ctx.Push(b);
-        (await Instruction(fp, 'O'))(ctx);
+        await (await Instruction(fp, 'O'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -90,7 +91,7 @@ public class OrthogonalFingerprintTests
         ctx.SetCell(3, 5, 0, 42);
         ctx.Push(5); // y
         ctx.Push(3); // x
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(42);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -103,7 +104,7 @@ public class OrthogonalFingerprintTests
         ctx.Push(7); // y
         ctx.Push(2); // x
         ctx.Push(99); // value
-        (await Instruction(fp, 'P'))(ctx);
+        await (await Instruction(fp, 'P'))(ctx);
         await Assert.That(ctx.GetCell(2, 7, 0)).IsEqualTo(99);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -117,7 +118,7 @@ public class OrthogonalFingerprintTests
         ctx.Push('H');
         ctx.Push('i');
         ctx.Push('!');
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Output.ToString()).IsEqualTo("Hi!");
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -128,7 +129,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(-1);
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
         await Assert.That(ctx.Delta.X).IsEqualTo(-1);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -139,7 +140,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(3);
-        (await Instruction(fp, 'W'))(ctx);
+        await (await Instruction(fp, 'W'))(ctx);
         await Assert.That(ctx.Delta.Y).IsEqualTo(3);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -150,7 +151,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(10);
-        (await Instruction(fp, 'X'))(ctx);
+        await (await Instruction(fp, 'X'))(ctx);
         await Assert.That(ctx.Position.X).IsEqualTo(10);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -161,7 +162,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext();
         ctx.Push(20);
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
         await Assert.That(ctx.Position.Y).IsEqualTo(20);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -172,7 +173,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.Push(0);
-        (await Instruction(fp, 'Z'))(ctx);
+        await (await Instruction(fp, 'Z'))(ctx);
         await Assert.That(ctx.Position).IsEqualTo((6, 5, 0));
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -183,7 +184,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new TestContext { Position = (5, 5, 0), Delta = (1, 0, 0) };
         ctx.Push(1);
-        (await Instruction(fp, 'Z'))(ctx);
+        await (await Instruction(fp, 'Z'))(ctx);
         await Assert.That(ctx.Position).IsEqualTo((5, 5, 0));
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -194,7 +195,7 @@ public class OrthogonalFingerprintTests
         var fp = new OrthogonalFingerprint();
         var ctx = new BasicContext();
         ctx.Push(0); ctx.Push(0);
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

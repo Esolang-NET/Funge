@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Modu;
 
 sealed class TestContext : IFungeExecutionContext
@@ -35,7 +36,7 @@ public class ModuloFingerprintTests
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
     }
 
@@ -51,7 +52,7 @@ public class ModuloFingerprintTests
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
     }
 
@@ -67,7 +68,7 @@ public class ModuloFingerprintTests
         var ctx = new TestContext();
         ctx.Push(a);
         ctx.Push(b);
-        (await Instruction(fp, 'U'))(ctx);
+        await (await Instruction(fp, 'U'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(expected);
     }
 }

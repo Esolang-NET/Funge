@@ -363,6 +363,7 @@ public class FungeMethodGeneratorTests
         IEnumerable<(string path, string content)>? additionalFiles = null,
         LanguageVersion languageVersion = LanguageVersion.CSharp11,
         bool includeFungeAbstractionsReference = true,
+        Dictionary<string, ReportDiagnostic>? specificDiagnosticOptions = null,
         CancellationToken cancellationToken = default)
     {
         var parseOptions = new CSharpParseOptions(languageVersion);
@@ -373,20 +374,27 @@ public class FungeMethodGeneratorTests
                 (AdditionalText)new TestAdditionalText(f.path, f.content)) ?? [],
             driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true)
         ).WithUpdatedParseOptions(parseOptions);
-
-        var compilation = (includeFungeAbstractionsReference
-                ? baseCompilation
-                : baseCompilation.RemoveReferences(baseCompilation.References.Where(static reference =>
+        var compilation = baseCompilation;
+        if (specificDiagnosticOptions is not null)
+        {
+            var options = (CSharpCompilationOptions)compilation.Options;
+            options = options.WithSpecificDiagnosticOptions(options.SpecificDiagnosticOptions.SetItems(specificDiagnosticOptions));
+            compilation = compilation.WithOptions(options);
+        }
+        compilation = (includeFungeAbstractionsReference
+                ? compilation
+                : compilation.RemoveReferences(compilation.References.Where(static reference =>
                 string.Equals(reference.Display, typeof(IFingerprint).Assembly.Location, StringComparison.OrdinalIgnoreCase))))
             .WithAssemblyName($"generatortest_{Interlocked.Increment(ref AssemblySequence)}")
             .AddSyntaxTrees(
             CSharpSyntaxTree.ParseText(source, parseOptions, path: "input.cs",
                  encoding: Encoding.UTF8, cancellationToken: cancellationToken));
 
+
         return driver.RunGeneratorsAndUpdateCompilation(compilation, out outputCompilation, out diagnostics, cancellationToken);
     }
 
-    async Task<Assembly> EmitAsync(Compilation compilation, CancellationToken cancellationToken)
+    static async Task<Assembly> EmitAsync(Compilation compilation, CancellationToken cancellationToken)
     {
 #if NET48
         await EmitGate.WaitAsync(cancellationToken);
@@ -2607,7 +2615,7 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
-            using System.Collections.Generic;
+            using System.Collections.Generic;f [GenerateFungeMethod(InlineSource = "\"TSEP\"4(A@", FingerprintsProvider = "GetFingerprints")]
             namespace TestProject;
             partial class TestClass
             {
@@ -2753,12 +2761,11 @@ public class FungeMethodGeneratorTests
 
             namespace Esolang.Funge
             {
-                public delegate void FingerprintInstruction(IFungeExecutionContext ctx);
 
                 public interface IFingerprint
                 {
                     int Handprint { get; }
-                    IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+                    IReadOnlyDictionary<char, Func<IFungeExecutionContext, System.Threading.Tasks.ValueTask>> Instructions { get; }
                 }
 
                 public interface IFungeExecutionContext
@@ -2818,7 +2825,9 @@ public class FungeMethodGeneratorTests
         // Program: "TSEP"4(A.@ (load PEST, run A which pushes 42, output, stop)
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -2831,15 +2840,16 @@ public class FungeMethodGeneratorTests
                 sealed class PestFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction> { ['A'] = ctx => ctx.Push(42) };
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>> { ['A'] = ctx => { ctx.Push(42); return default; } };
                 }
             }
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag, cancellationToken: CancellationToken);
         try
         {
-            AssertNoErrors(diag, comp);
+            AssertNoErrors(
+                [..diag.Where(v => v.Severity != DiagnosticSeverity.Hidden)], comp);
 
             var asm = await EmitAsync(comp, CancellationToken);
             await Task.Factory.StartNew(async () =>
@@ -2863,7 +2873,9 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -2876,21 +2888,22 @@ public class FungeMethodGeneratorTests
                 sealed class PestFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = static ctx =>
                             {
                                 if (ctx is not IFungeVectorContext vector || ctx is not IFungeSpaceContext space)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 var (x, y, z) = vector.PopVector();
                                 space.SetCell(x + 2, y, z, 42);
                                 vector.PushVector(x, y, z);
                                 ctx.Push(space.GetCell(x + 2, y, z));
+                                return default;
                             },
                         };
                 }
@@ -2923,7 +2936,9 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -2936,18 +2951,19 @@ public class FungeMethodGeneratorTests
                 sealed class IpFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = static ctx =>
                             {
                                 if (ctx is not IFungeInstructionPointerContext instructionPointer)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 ctx.Push(instructionPointer.InstructionPointerId);
+                                return default;
                             },
                         };
                 }
@@ -2980,7 +2996,9 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -2993,18 +3011,19 @@ public class FungeMethodGeneratorTests
                 sealed class StackFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = static ctx =>
                             {
                                 if (ctx is not IFungeStackContext stack)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 ctx.Push(stack.StackDepth);
+                                return default;
                             },
                         };
                 }
@@ -3037,7 +3056,9 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -3050,19 +3071,20 @@ public class FungeMethodGeneratorTests
                 sealed class RandomFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = static ctx =>
                             {
                                 if (ctx is not IFungeRandomContext random)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 random.Reseed(123u);
                                 ctx.Push(random.NextUInt32(1) == 0 ? 1 : 0);
+                                return default;
                             },
                         };
                 }
@@ -3095,6 +3117,7 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
             namespace TestProject;
             partial class TestClass
@@ -3108,18 +3131,19 @@ public class FungeMethodGeneratorTests
                 sealed class OutputFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, System.Threading.Tasks.ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, System.Threading.Tasks.ValueTask>>
                         {
                             ['A'] = ctx =>
                             {
                                 if (ctx is not IFungeOutputContext output)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 output.WriteString("OK");
+                                return default;
                             },
                         };
                 }
@@ -3152,7 +3176,9 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -3165,18 +3191,19 @@ public class FungeMethodGeneratorTests
                 sealed class OutputFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = ctx =>
                             {
                                 if (ctx is not IFungeOutputContext output)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 output.WriteString("OK");
+                                return default;
                             },
                         };
                 }
@@ -3209,8 +3236,10 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
             using System.Globalization;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -3223,25 +3252,26 @@ public class FungeMethodGeneratorTests
                 sealed class InputFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = ctx =>
                             {
                                 if (ctx is not IFungeInputContext input)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 var line = input.ReadLine();
                                 if (line is null)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 ctx.Push(int.Parse(line, CultureInfo.InvariantCulture));
+                                return default;
                             },
                         };
                 }
@@ -3274,8 +3304,10 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
             using System.Globalization;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -3288,25 +3320,26 @@ public class FungeMethodGeneratorTests
                 sealed class InputFingerprint : IFingerprint
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
                             ['A'] = ctx =>
                             {
                                 if (ctx is not IFungeInputContext input)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 var line = input.ReadLine();
                                 if (line is null)
                                 {
                                     ctx.Reflect();
-                                    return;
+                                    return default;
                                 }
 
                                 ctx.Push(int.Parse(line, CultureInfo.InvariantCulture));
+                                return default;
                             },
                         };
                 }
@@ -3339,7 +3372,9 @@ public class FungeMethodGeneratorTests
     {
         var source = """
             using Esolang.Funge;
+            using System;
             using System.Collections.Generic;
+            using System.Threading.Tasks;
             namespace TestProject;
             partial class TestClass
             {
@@ -3354,8 +3389,8 @@ public class FungeMethodGeneratorTests
                 {
                     public int Handprint => FingerprintHandprint.Compute("PEST");
                     public List<string> Events { get; } = new();
-                    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-                        = new Dictionary<char, FingerprintInstruction>();
+                    public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
+                        = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>();
 
                     public void OnInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
                         => Events.Add($"clone:{parentInstructionPointerId}->{childInstructionPointerId}");

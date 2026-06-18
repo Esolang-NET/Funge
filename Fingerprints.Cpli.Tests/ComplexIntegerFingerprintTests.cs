@@ -1,4 +1,5 @@
 using System.Text;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Fingerprints.Cpli;
 
@@ -52,7 +53,7 @@ public class ComplexIntegerFingerprintTests
         // (1+2i) + (3+4i) = (4+6i)
         PushComplex(ctx, 1, 2);
         PushComplex(ctx, 3, 4);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(6); // imag
         await Assert.That(ctx.Pop()).IsEqualTo(4); // real
@@ -66,7 +67,7 @@ public class ComplexIntegerFingerprintTests
         // (5+7i) - (2+3i) = (3+4i)
         PushComplex(ctx, 5, 7);
         PushComplex(ctx, 2, 3);
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(4); // imag
         await Assert.That(ctx.Pop()).IsEqualTo(3); // real
@@ -80,7 +81,7 @@ public class ComplexIntegerFingerprintTests
         // (1+2i)*(3+4i) = (3-8) + (4+6)i = -5 + 10i
         PushComplex(ctx, 1, 2);
         PushComplex(ctx, 3, 4);
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(10); // imag
         await Assert.That(ctx.Pop()).IsEqualTo(-5); // real
@@ -94,7 +95,7 @@ public class ComplexIntegerFingerprintTests
         // (4+2i)/(1+1i): denom=2, real=(4+2)/2=3, imag=(2-4)/2=-1
         PushComplex(ctx, 4, 2);
         PushComplex(ctx, 1, 1);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(-1); // imag
         await Assert.That(ctx.Pop()).IsEqualTo(3);  // real
@@ -107,7 +108,7 @@ public class ComplexIntegerFingerprintTests
         var ctx = new TestContext();
         PushComplex(ctx, 4, 2);
         PushComplex(ctx, 0, 0);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -118,7 +119,7 @@ public class ComplexIntegerFingerprintTests
         var ctx = new TestContext();
         ctx.Push(3); // real
         ctx.Push(4); // imag
-        (await Instruction(fp, 'O'))(ctx);
+        await (await Instruction(fp, 'O'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Output.ToString()).IsEqualTo("3+4i");
     }
@@ -130,7 +131,7 @@ public class ComplexIntegerFingerprintTests
         var ctx = new NoOutputContext();
         ctx.Push(1);
         ctx.Push(2);
-        (await Instruction(fp, 'O'))(ctx);
+        await (await Instruction(fp, 'O'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -141,7 +142,7 @@ public class ComplexIntegerFingerprintTests
         var ctx = new TestContext();
         ctx.Push(3); // real
         ctx.Push(4); // imag
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(5);
     }

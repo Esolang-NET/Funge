@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Ical;
 
 sealed class TestContext : IFungeExecutionContext, IFungeInstructionPointerContext, IFungePositionContext, IFungeVectorContext
@@ -56,7 +57,7 @@ public class IntercalFingerprintTests
         // Mingle(0b1010, 0b0101) = 0b10010110 = ...
         ctx.Push(0b1010); // a
         ctx.Push(0b0101); // b
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         // bit 2k+1 = a bit k, bit 2k = b bit k
         // k=0: a bit 0 = 0 (bit 1), b bit 0 = 1 (bit 0)
@@ -83,7 +84,7 @@ public class IntercalFingerprintTests
         // a bit 2 = 0, a bit 3 = 1 → result = 0b10 = 2
         ctx.Push(0b1010); // a
         ctx.Push(0b1100); // b
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(0b10);
     }
@@ -95,7 +96,7 @@ public class IntercalFingerprintTests
         var ctx = new TestContext();
         // value <= 0xFFFF, use 16-bit rotate
         ctx.Push(0b1010); // 10 in decimal
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         // ror16(0b1010) = bit 3 goes to MSB of 16-bit = bit 0 of 0b1010 goes to bit 15 etc.
         // Just verify it doesn't crash and returns an int
@@ -110,13 +111,13 @@ public class IntercalFingerprintTests
 
         // NEXT: push target (10,10,0)
         ctx.Push(10); ctx.Push(10); ctx.Push(0);
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Position).IsEqualTo((10, 10, 0));
 
         // RESUME 1
         ctx.Push(1);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Position).IsEqualTo((5, 5, 0));
     }
@@ -127,16 +128,16 @@ public class IntercalFingerprintTests
         var fp = new IntercalFingerprint();
         var ctx = new TestContext { Position = (1, 0, 0) };
         ctx.Push(5); ctx.Push(0); ctx.Push(0);
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
 
         ctx.Push(1);
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
 
         // Now resume should do nothing (stack empty)
         var pos = ctx.Position;
         ctx.Push(1);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Position).IsEqualTo(pos);
     }
 
@@ -145,7 +146,7 @@ public class IntercalFingerprintTests
     {
         var fp = new IntercalFingerprint();
         var ctx = new BasicContext();
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -155,7 +156,7 @@ public class IntercalFingerprintTests
         var fp = new IntercalFingerprint();
         var ctx = new TestContext();
         ctx.Push(-1);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

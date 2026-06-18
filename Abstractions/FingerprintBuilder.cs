@@ -1,3 +1,5 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
+
 namespace Esolang.Funge;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Esolang.Funge;
 /// </summary>
 /// <example>
 /// <code>
-/// IReadOnlyDictionary&lt;char, FingerprintInstruction&gt; instructions =
+/// IReadOnlyDictionary&lt;char, Func&lt;IFungeExecutionContext, ValueTask&gt;&gt; instructions =
 ///     new FingerprintBuilder()
 ///         .Add('A', static ctx =&gt; ctx.Push(ctx.Pop() + ctx.Pop()))
 ///         .Add('B', static ctx =&gt; ctx.Reflect())
@@ -25,6 +27,17 @@ public sealed class FingerprintBuilder
         _instructions[letter] = instruction;
         return this;
     }
+
+    /// <summary>Adds or replaces an instruction handler for the given letter.</summary>
+    /// <param name="letter">An uppercase letter (<c>'A'</c>–<c>'Z'</c>).</param>
+    /// <param name="instruction">The handler delegate.</param>
+    /// <returns>This builder, for chaining.</returns>
+    public FingerprintBuilder Add(char letter, Action<IFungeExecutionContext> instruction)
+       => Add(letter, ctx =>
+       {
+           instruction(ctx);
+           return default;
+       });
 
     /// <summary>
     /// Returns the built instructions dictionary.

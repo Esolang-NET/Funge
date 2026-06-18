@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Evar;
 
 sealed class TestContext : IFungeExecutionContext
@@ -49,11 +50,11 @@ public class EnvironmentVariablesFingerprintTests
         try
         {
             Push0gnirts(ctx, $"{key}={value}");
-            (await Instruction(fp, 'P'))(ctx);
+            await (await Instruction(fp, 'P'))(ctx);
             await Assert.That(ctx.Reflected).IsFalse();
 
             Push0gnirts(ctx, key);
-            (await Instruction(fp, 'G'))(ctx);
+            await (await Instruction(fp, 'G'))(ctx);
             await Assert.That(ctx.Reflected).IsFalse();
             await Assert.That(Pop0gnirts(ctx)).IsEqualTo(value);
         }
@@ -69,7 +70,7 @@ public class EnvironmentVariablesFingerprintTests
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, "EVAR_SURELY_NOT_SET_XYZ12345");
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(Pop0gnirts(ctx)).IsEqualTo(string.Empty);
     }
@@ -80,7 +81,7 @@ public class EnvironmentVariablesFingerprintTests
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         Push0gnirts(ctx, "NO_EQUALS_HERE");
-        (await Instruction(fp, 'P'))(ctx);
+        await (await Instruction(fp, 'P'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -89,7 +90,7 @@ public class EnvironmentVariablesFingerprintTests
     {
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsGreaterThan(0);
     }
@@ -100,7 +101,7 @@ public class EnvironmentVariablesFingerprintTests
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         ctx.Push(int.MaxValue);
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -110,7 +111,7 @@ public class EnvironmentVariablesFingerprintTests
         var fp = new EnvironmentVariablesFingerprint();
         var ctx = new TestContext();
         ctx.Push(-1);
-        (await Instruction(fp, 'V'))(ctx);
+        await (await Instruction(fp, 'V'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

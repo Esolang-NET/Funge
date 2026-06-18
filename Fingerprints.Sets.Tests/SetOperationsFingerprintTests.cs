@@ -1,4 +1,5 @@
 using TUnit.Assertions.Enums;
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Sets;
 
 sealed class TestContext : IFungeExecutionContext
@@ -47,7 +48,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         ctx.Push(4);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
         await Assert.That(result).IsEquivalentTo((int[])[1, 2, 3, 4], CollectionOrdering.Any);
@@ -60,7 +61,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2);
         ctx.Push(2);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
         await Assert.That(result).IsEquivalentTo((int[])[1, 2], CollectionOrdering.Any);
@@ -73,7 +74,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2);
         PushSet(ctx, 2, 3);
-        (await Instruction(fp, 'U'))(ctx);
+        await (await Instruction(fp, 'U'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
         await Assert.That(result).IsEquivalentTo((int[])[1, 2, 3], CollectionOrdering.Any);
@@ -86,7 +87,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         PushSet(ctx, 2, 3, 4);
-        (await Instruction(fp, 'I'))(ctx);
+        await (await Instruction(fp, 'I'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
         await Assert.That(result).IsEquivalentTo((int[])[2, 3], CollectionOrdering.Any);
@@ -99,7 +100,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         PushSet(ctx, 2, 3);
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
         await Assert.That(result).IsEquivalentTo((int[])[1], CollectionOrdering.Any);
@@ -112,7 +113,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
         ctx.Push(2);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var result = PopSet(ctx);
         await Assert.That(result).IsEquivalentTo((int[])[1, 3], CollectionOrdering.Any);
@@ -125,7 +126,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         ctx.Push(2);
         PushSet(ctx, 1, 2, 3);
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(1);
     }
@@ -137,7 +138,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         ctx.Push(99);
         PushSet(ctx, 1, 2, 3);
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(0);
     }
@@ -148,7 +149,7 @@ public class SetOperationsFingerprintTests
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 1, 2, 3);
-        (await Instruction(fp, 'Z'))(ctx);
+        await (await Instruction(fp, 'Z'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsEqualTo(0); // stack empty
     }
@@ -159,7 +160,7 @@ public class SetOperationsFingerprintTests
         var fp = new SetOperationsFingerprint();
         var ctx = new TestContext();
         PushSet(ctx, 5, 6);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var first = PopSet(ctx);
         var second = PopSet(ctx);
@@ -174,7 +175,7 @@ public class SetOperationsFingerprintTests
         var ctx = new TestContext();
         PushSet(ctx, 1, 2);
         PushSet(ctx, 3, 4);
-        (await Instruction(fp, 'X'))(ctx);
+        await (await Instruction(fp, 'X'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var top = PopSet(ctx);
         var bottom = PopSet(ctx);

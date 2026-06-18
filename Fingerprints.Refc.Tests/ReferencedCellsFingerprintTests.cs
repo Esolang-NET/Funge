@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Refc;
 
 sealed class TestContext : IFungeExecutionContext, IFungeVectorContext
@@ -56,13 +57,13 @@ public class ReferencedCellsFingerprintTests
 
         // Push vector (x=1, y=2, z=3)
         ctx.Push(1); ctx.Push(2); ctx.Push(3);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var refId = ctx.Pop();
 
         // Dereference
         ctx.Push(refId);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
 
         var z = ctx.Pop();
@@ -79,7 +80,7 @@ public class ReferencedCellsFingerprintTests
         var fp = new ReferencedCellsFingerprint();
         var ctx = new TestContext();
         ctx.Push(999);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -88,7 +89,7 @@ public class ReferencedCellsFingerprintTests
     {
         var fp = new ReferencedCellsFingerprint();
         var ctx = new NoVectorContext();
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -99,11 +100,11 @@ public class ReferencedCellsFingerprintTests
         var ctx = new TestContext();
 
         ctx.Push(1); ctx.Push(0); ctx.Push(0);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         var ref1 = ctx.Pop();
 
         ctx.Push(2); ctx.Push(0); ctx.Push(0);
-        (await Instruction(fp, 'R'))(ctx);
+        await (await Instruction(fp, 'R'))(ctx);
         var ref2 = ctx.Pop();
 
         await Assert.That(ref2).IsNotEqualTo(ref1);

@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Hrti;
 
 sealed class TestContext : IFungeExecutionContext, IFungeInstructionPointerContext
@@ -39,7 +40,7 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsGreaterThanOrEqualTo(0);
     }
@@ -49,10 +50,10 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
 
         Thread.Sleep(5);
-        (await Instruction(fp, 'T'))(ctx);
+        await (await Instruction(fp, 'T'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         await Assert.That(ctx.Pop()).IsGreaterThanOrEqualTo(0);
     }
@@ -62,7 +63,7 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'T'))(ctx);
+        await (await Instruction(fp, 'T'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -71,10 +72,10 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'M'))(ctx);
-        (await Instruction(fp, 'E'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'E'))(ctx);
         var ctx2 = new TestContext();
-        (await Instruction(fp, 'T'))(ctx2);
+        await (await Instruction(fp, 'T'))(ctx2);
         await Assert.That(ctx2.Reflected).IsTrue();
     }
 
@@ -83,7 +84,7 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         await Assert.That(ctx.Reflected).IsFalse();
         var val = ctx.Pop();
         await Assert.That(val).IsGreaterThanOrEqualTo(0);
@@ -95,7 +96,7 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new NoIpContext();
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 
@@ -104,14 +105,14 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var parentCtx = new TestContext { InstructionPointerId = 1 };
-        (await Instruction(fp, 'M'))(parentCtx);
+        await (await Instruction(fp, 'M'))(parentCtx);
 
         fp.OnInstructionPointerCloned(1, 2);
 
         var childCtx = new TestContext { InstructionPointerId = 2 };
 
         Thread.Sleep(1);
-        (await Instruction(fp, 'T'))(childCtx);
+        await (await Instruction(fp, 'T'))(childCtx);
         await Assert.That(childCtx.Reflected).IsFalse();
         await Assert.That(childCtx.Pop()).IsGreaterThanOrEqualTo(0);
     }
@@ -121,11 +122,11 @@ public class HighResTimerFingerprintTests
     {
         var fp = new HighResTimerFingerprint();
         var ctx = new TestContext { InstructionPointerId = 5 };
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         fp.OnInstructionPointerTerminated(5);
 
         var ctx2 = new TestContext { InstructionPointerId = 5 };
-        (await Instruction(fp, 'T'))(ctx2);
+        await (await Instruction(fp, 'T'))(ctx2);
         await Assert.That(ctx2.Reflected).IsTrue();
     }
 }

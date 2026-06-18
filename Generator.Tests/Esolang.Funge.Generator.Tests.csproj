@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-    <PackageReference Include="System.Threading.Tasks.Extensions" />
     <PackageReference Include="System.Linq.AsyncEnumerable" />
   </ItemGroup>
 

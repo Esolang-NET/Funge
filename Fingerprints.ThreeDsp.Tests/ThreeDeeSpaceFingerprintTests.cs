@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.ThreeDsp;
 
 sealed class TestContext : IFungeExecutionContext, IFungeVectorContext, IFungeSpaceContext
@@ -95,7 +96,7 @@ public class ThreeDeeSpaceFingerprintTests
         var ctx = new TestContext();
         PushVec3(ctx, 1f, 2f, 3f);
         PushVec3(ctx, 4f, 5f, 6f);
-        (await Instruction(fp, 'A'))(ctx);
+        await (await Instruction(fp, 'A'))(ctx);
         var (rX, rY, rZ) = PopVec3(ctx);
         await Assert.That(rX).IsEqualTo(5f).Within(0.0001f);
         await Assert.That(rY).IsEqualTo(7f).Within(0.0001f);
@@ -110,7 +111,7 @@ public class ThreeDeeSpaceFingerprintTests
         var ctx = new TestContext();
         PushVec3(ctx, 5f, 7f, 9f);
         PushVec3(ctx, 1f, 2f, 3f);
-        (await Instruction(fp, 'B'))(ctx);
+        await (await Instruction(fp, 'B'))(ctx);
         var (rX, rY, rZ) = PopVec3(ctx);
         await Assert.That(rX).IsEqualTo(4f).Within(0.0001f);
         await Assert.That(rY).IsEqualTo(5f).Within(0.0001f);
@@ -125,7 +126,7 @@ public class ThreeDeeSpaceFingerprintTests
         var ctx = new TestContext();
         PushVec3(ctx, 1f, 0f, 0f);
         PushVec3(ctx, 1f, 0f, 0f);
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(1.0f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -136,7 +137,7 @@ public class ThreeDeeSpaceFingerprintTests
         var fp = new ThreeDeeSpaceFingerprint();
         var ctx = new TestContext();
         PushVec3(ctx, 3f, 4f, 0f);
-        (await Instruction(fp, 'L'))(ctx);
+        await (await Instruction(fp, 'L'))(ctx);
         await Assert.That(PopFloat(ctx)).IsEqualTo(5f).Within(0.0001f);
         await Assert.That(ctx.Reflected).IsFalse();
     }
@@ -147,7 +148,7 @@ public class ThreeDeeSpaceFingerprintTests
         var fp = new ThreeDeeSpaceFingerprint();
         var ctx = new TestContext();
         PushVec3(ctx, 3f, 0f, 0f);
-        (await Instruction(fp, 'N'))(ctx);
+        await (await Instruction(fp, 'N'))(ctx);
         var (rX, rY, rZ) = PopVec3(ctx);
         await Assert.That(rX).IsEqualTo(1.0f).Within(0.0001f);
         await Assert.That(rY).IsEqualTo(0.0f).Within(0.0001f);
@@ -161,7 +162,7 @@ public class ThreeDeeSpaceFingerprintTests
         var fp = new ThreeDeeSpaceFingerprint();
         var ctx = new TestContext();
         PushVec3(ctx, 1f, 2f, 3f);
-        (await Instruction(fp, 'U'))(ctx);
+        await (await Instruction(fp, 'U'))(ctx);
         var (v1X, _, _) = PopVec3(ctx);
         var (v2X, _, _) = PopVec3(ctx);
         await Assert.That(v1X).IsEqualTo(1f).Within(0.0001f);
@@ -176,7 +177,7 @@ public class ThreeDeeSpaceFingerprintTests
         var ctx = new TestContext();
         PushVec3(ctx, 1f, 2f, 3f);
         PushFloat(ctx, 2f);
-        (await Instruction(fp, 'Z'))(ctx);
+        await (await Instruction(fp, 'Z'))(ctx);
         var (rX, rY, rZ) = PopVec3(ctx);
         await Assert.That(rX).IsEqualTo(2f).Within(0.0001f);
         await Assert.That(rY).IsEqualTo(4f).Within(0.0001f);
@@ -191,7 +192,7 @@ public class ThreeDeeSpaceFingerprintTests
         var ctx = new TestContext();
         PushVec3(ctx, 1f, 0f, 0f); // a
         PushVec3(ctx, 0f, 1f, 0f); // b
-        (await Instruction(fp, 'C'))(ctx);
+        await (await Instruction(fp, 'C'))(ctx);
         var (rX, rY, rZ) = PopVec3(ctx);
         // (1,0,0) x (0,1,0) = (0,0,1)
         await Assert.That(rX).IsEqualTo(0f).Within(0.0001f);
@@ -205,7 +206,7 @@ public class ThreeDeeSpaceFingerprintTests
     {
         var fp = new ThreeDeeSpaceFingerprint();
         var ctx = new BasicContext();
-        (await Instruction(fp, 'P'))(ctx);
+        await (await Instruction(fp, 'P'))(ctx);
         await Assert.That(ctx.Reflected).IsTrue();
     }
 }

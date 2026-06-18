@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Fixp;
 
 sealed class StackContext : IFungeExecutionContext
@@ -46,7 +47,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(left, right);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -65,7 +66,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -79,7 +80,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -90,7 +91,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(900000);
 
-        (await Instruction(fingerprint, 'T'))(context);
+        await (await Instruction(fingerprint, 'T'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -106,7 +107,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(input);
 
-        (await Instruction(fingerprint, instruction))(context);
+        await (await Instruction(fingerprint, instruction))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -118,7 +119,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(10000);
 
-        (await Instruction(fingerprint, 'P'))(context);
+        await (await Instruction(fingerprint, 'P'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(31415);
         await Assert.That(context.Reflected).IsFalse();
@@ -130,7 +131,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(200);
 
-        (await Instruction(fingerprint, 'Q'))(context);
+        await (await Instruction(fingerprint, 'Q'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(14);
         await Assert.That(context.Reflected).IsFalse();
@@ -142,7 +143,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(-1);
 
-        (await Instruction(fingerprint, 'Q'))(context);
+        await (await Instruction(fingerprint, 'Q'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -160,7 +161,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(basis, exponent);
 
-        (await Instruction(fingerprint, 'R'))(context);
+        await (await Instruction(fingerprint, 'R'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(expected);
         await Assert.That(context.Reflected).IsFalse();
@@ -174,7 +175,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(basis, exponent);
 
-        (await Instruction(fingerprint, 'R'))(context);
+        await (await Instruction(fingerprint, 'R'))(context);
 
         await Assert.That(context.Reflected).IsTrue();
     }
@@ -185,7 +186,7 @@ public class FixedPointFingerprintTests
         var fingerprint = new FixedPointFingerprint();
         var context = CreateContext(0);
 
-        (await Instruction(fingerprint, 'D'))(context);
+        await (await Instruction(fingerprint, 'D'))(context);
 
         await Assert.That(context.Pop()).IsEqualTo(0);
         await Assert.That(context.Reflected).IsFalse();
@@ -198,7 +199,7 @@ public class FixedPointFingerprintTests
         for (var i = 0; i < 32; i++)
         {
             var context = CreateContext(5);
-            (await Instruction(fingerprint, 'D'))(context);
+            await (await Instruction(fingerprint, 'D'))(context);
             var value = context.Pop();
             await Assert.That(value is >= 0 and < 5).IsTrue();
         }
@@ -211,7 +212,7 @@ public class FixedPointFingerprintTests
         for (var i = 0; i < 32; i++)
         {
             var context = CreateContext(-5);
-            (await Instruction(fingerprint, 'D'))(context);
+            await (await Instruction(fingerprint, 'D'))(context);
             var value = context.Pop();
             await Assert.That(value is >= -5 and < 0).IsTrue();
         }

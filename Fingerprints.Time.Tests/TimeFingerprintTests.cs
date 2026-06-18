@@ -1,3 +1,4 @@
+using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 namespace Esolang.Funge.Fingerprints.Time;
 
 sealed class TestContext : IFungeExecutionContext, IFungeInstructionPointerContext
@@ -30,7 +31,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Day;
-        (await Instruction(fp, 'D'))(ctx);
+        await (await Instruction(fp, 'D'))(ctx);
         var after = DateTime.Now.Day;
 
         await Assert.That(ctx.Pop())
@@ -44,7 +45,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.DayOfYear - 1;
-        (await Instruction(fp, 'F'))(ctx);
+        await (await Instruction(fp, 'F'))(ctx);
         var after = DateTime.Now.DayOfYear - 1;
 
         await Assert.That(ctx.Pop())
@@ -58,14 +59,14 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext { InstructionPointerId = 1 };
 
-        (await Instruction(fp, 'G'))(ctx);
+        await (await Instruction(fp, 'G'))(ctx);
         var utcYear = DateTime.UtcNow.Year;
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(utcYear);
 
-        (await Instruction(fp, 'L'))(ctx);
+        await (await Instruction(fp, 'L'))(ctx);
         var localYear = DateTime.Now.Year;
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(localYear);
     }
 
@@ -76,17 +77,17 @@ public class TimeFingerprintTests
         var parent = new TestContext { InstructionPointerId = 1 };
         var child = new TestContext { InstructionPointerId = 2 };
 
-        (await Instruction(fp, 'G'))(parent);
+        await (await Instruction(fp, 'G'))(parent);
         fp.OnInstructionPointerCloned(1, 2);
         fp.OnInstructionPointerTerminated(1);
 
         var utcYear = DateTime.UtcNow.Year;
-        (await Instruction(fp, 'Y'))(child);
+        await (await Instruction(fp, 'Y'))(child);
         await Assert.That(child.Pop()).IsEqualTo(utcYear);
 
-        (await Instruction(fp, 'L'))(child);
+        await (await Instruction(fp, 'L'))(child);
         var localYear = DateTime.Now.Year;
-        (await Instruction(fp, 'Y'))(child);
+        await (await Instruction(fp, 'Y'))(child);
         await Assert.That(child.Pop()).IsEqualTo(localYear);
     }
 
@@ -96,7 +97,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Hour;
-        (await Instruction(fp, 'H'))(ctx);
+        await (await Instruction(fp, 'H'))(ctx);
         var after = DateTime.Now.Hour;
 
         await Assert.That(ctx.Pop())
@@ -110,7 +111,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Minute;
-        (await Instruction(fp, 'M'))(ctx);
+        await (await Instruction(fp, 'M'))(ctx);
         var after = DateTime.Now.Minute;
 
         await Assert.That(ctx.Pop())
@@ -124,7 +125,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Month;
-        (await Instruction(fp, 'O'))(ctx);
+        await (await Instruction(fp, 'O'))(ctx);
         var after = DateTime.Now.Month;
 
         await Assert.That(ctx.Pop())
@@ -138,7 +139,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
         var before = DateTime.Now.Second;
-        (await Instruction(fp, 'S'))(ctx);
+        await (await Instruction(fp, 'S'))(ctx);
         var after = DateTime.Now.Second;
 
         await Assert.That(ctx.Pop())
@@ -152,7 +153,7 @@ public class TimeFingerprintTests
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
 
-        (await Instruction(fp, 'W'))(ctx);
+        await (await Instruction(fp, 'W'))(ctx);
 
         await Assert.That(ctx.Pop()).IsEqualTo((int)DateTime.Now.DayOfWeek + 1);
     }
@@ -162,7 +163,7 @@ public class TimeFingerprintTests
     {
         var fp = new TimeFingerprint();
         var ctx = new TestContext();
-        (await Instruction(fp, 'Y'))(ctx);
+        await (await Instruction(fp, 'Y'))(ctx);
         await Assert.That(ctx.Pop()).IsEqualTo(DateTime.Now.Year);
     }
 }
