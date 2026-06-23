@@ -24,7 +24,7 @@ class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
     TaskCompletionSource<IOEvent> request = default!;
     TaskCompletionSource response = default!;
     public IOEvent Current => current;
-    enum State: int
+    enum State : int
     {
         Initial = 0,
         WaitingForEvent = 1,
