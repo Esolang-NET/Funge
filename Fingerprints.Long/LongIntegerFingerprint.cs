@@ -107,7 +107,7 @@ public sealed class LongIntegerFingerprint : IFingerprint
         PushLong(ctx, divisor == 0 ? 0 : dividend % divisor);
     }
 
-    static void Print(IFungeExecutionContext ctx)
+    static async ValueTask Print(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -115,8 +115,7 @@ public sealed class LongIntegerFingerprint : IFingerprint
             return;
         }
 
-        output.WriteString(PopLong(ctx).ToString(CultureInfo.InvariantCulture));
-        output.WriteString(" ");
+        await output.WriteStringAsync($"{PopLong(ctx).ToString(CultureInfo.InvariantCulture)} ");
     }
 
     static void ShiftRight(IFungeExecutionContext ctx)

@@ -12,7 +12,14 @@ sealed class TestContext : IFungeExecutionContext, IFungeOutputContext
     public int Pop() => _stack.Count > 0 ? _stack.Pop() : 0;
     public int Peek() => _stack.Count > 0 ? _stack.Peek() : 0;
     public void Reflect() => Reflected = true;
-    public void WriteString(string s) => Output.Append(s);
+    public async Task WriteStringAsync(string value)
+    {
+        await Task.Yield();
+        Output.Append(value);
+    }
+    public Task WriteLineAsync(string value) => throw new NotImplementedException();
+    public Task WriteCharAsync(char value) => throw new NotImplementedException();
+    public Task WriteIntAsync(int value) => throw new NotImplementedException();
 }
 
 sealed class NoOutputContext : IFungeExecutionContext

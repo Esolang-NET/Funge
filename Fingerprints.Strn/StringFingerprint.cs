@@ -75,7 +75,7 @@ public sealed class StringFingerprint : IFingerprint
         return 0;
     }
 
-    static void Display(IFungeExecutionContext ctx)
+    static async ValueTask Display(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -83,7 +83,7 @@ public sealed class StringFingerprint : IFingerprint
             return;
         }
 
-        output.WriteString(Pop0gnirts(ctx));
+        await output.WriteStringAsync(Pop0gnirts(ctx));
     }
 
     static void Search(IFungeExecutionContext ctx)
@@ -138,7 +138,7 @@ public sealed class StringFingerprint : IFingerprint
         Push0gnirts(ctx, new string([.. chars]));
     }
 
-    static void Input(IFungeExecutionContext ctx)
+    static async ValueTask Input(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeInputContext input)
         {
@@ -146,7 +146,7 @@ public sealed class StringFingerprint : IFingerprint
             return;
         }
 
-        var line = input.ReadLine();
+        var line = await input.ReadLineAsync();
         if (line is null)
         {
             ctx.Reflect();

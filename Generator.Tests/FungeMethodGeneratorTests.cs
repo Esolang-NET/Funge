@@ -2849,7 +2849,7 @@ public class FungeMethodGeneratorTests
         try
         {
             AssertNoErrors(
-                [..diag.Where(v => v.Severity != DiagnosticSeverity.Hidden)], comp);
+                [.. diag.Where(v => v.Severity != DiagnosticSeverity.Hidden)], comp);
 
             var asm = await EmitAsync(comp, CancellationToken);
             await Task.Factory.StartNew(async () =>
@@ -3134,16 +3134,15 @@ public class FungeMethodGeneratorTests
                     public IReadOnlyDictionary<char, Func<IFungeExecutionContext, System.Threading.Tasks.ValueTask>> Instructions { get; }
                         = new Dictionary<char, Func<IFungeExecutionContext, System.Threading.Tasks.ValueTask>>
                         {
-                            ['A'] = ctx =>
+                            ['A'] = async ctx =>
                             {
                                 if (ctx is not IFungeOutputContext output)
                                 {
                                     ctx.Reflect();
-                                    return default;
+                                    return;
                                 }
 
-                                output.WriteString("OK");
-                                return default;
+                                await output.WriteStringAsync("OK");
                             },
                         };
                 }
@@ -3194,16 +3193,15 @@ public class FungeMethodGeneratorTests
                     public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
                         = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
-                            ['A'] = ctx =>
+                            ['A'] = async ctx =>
                             {
                                 if (ctx is not IFungeOutputContext output)
                                 {
                                     ctx.Reflect();
-                                    return default;
+                                    return;
                                 }
 
-                                output.WriteString("OK");
-                                return default;
+                                await output.WriteStringAsync("OK");
                             },
                         };
                 }
@@ -3255,23 +3253,22 @@ public class FungeMethodGeneratorTests
                     public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
                         = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
-                            ['A'] = ctx =>
+                            ['A'] = async ctx =>
                             {
                                 if (ctx is not IFungeInputContext input)
                                 {
                                     ctx.Reflect();
-                                    return default;
+                                    return;
                                 }
 
-                                var line = input.ReadLine();
+                                var line = await input.ReadLineAsync();
                                 if (line is null)
                                 {
                                     ctx.Reflect();
-                                    return default;
+                                    return;
                                 }
 
                                 ctx.Push(int.Parse(line, CultureInfo.InvariantCulture));
-                                return default;
                             },
                         };
                 }
@@ -3323,23 +3320,22 @@ public class FungeMethodGeneratorTests
                     public IReadOnlyDictionary<char, Func<IFungeExecutionContext, ValueTask>> Instructions { get; }
                         = new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
                         {
-                            ['A'] = ctx =>
+                            ['A'] = async ctx =>
                             {
                                 if (ctx is not IFungeInputContext input)
                                 {
                                     ctx.Reflect();
-                                    return default;
+                                    return;
                                 }
 
-                                var line = input.ReadLine();
+                                var line = await input.ReadLineAsync();
                                 if (line is null)
                                 {
                                     ctx.Reflect();
-                                    return default;
+                                    return;
                                 }
 
                                 ctx.Push(int.Parse(line, CultureInfo.InvariantCulture));
-                                return default;
                             },
                         };
                 }

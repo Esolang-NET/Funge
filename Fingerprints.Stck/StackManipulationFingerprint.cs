@@ -230,7 +230,7 @@ public sealed class StackManipulationFingerprint : IFingerprint
             ctx.Push(value);
     }
 
-    static void PrintStack(IFungeExecutionContext ctx)
+    static async ValueTask PrintStack(IFungeExecutionContext ctx)
     {
         if (!TryGetOutputStackContext(ctx, out var output, out var stack))
             return;
@@ -238,8 +238,7 @@ public sealed class StackManipulationFingerprint : IFingerprint
         var values = SnapshotTopStack(ctx, stack.StackDepth);
         for (var i = values.Count - 1; i >= 0; i--)
         {
-            output.WriteString(values[i].ToString(CultureInfo.InvariantCulture));
-            output.WriteString(" ");
+            await output.WriteStringAsync($"{values[i].ToString(CultureInfo.InvariantCulture)} ");
         }
     }
 

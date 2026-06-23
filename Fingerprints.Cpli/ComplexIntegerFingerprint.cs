@@ -78,7 +78,7 @@ public sealed class ComplexIntegerFingerprint : IFingerprint
         PushComplex(ctx, realPart, imagPart);
     }
 
-    static void Output(IFungeExecutionContext ctx)
+    static async ValueTask Output(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -88,7 +88,7 @@ public sealed class ComplexIntegerFingerprint : IFingerprint
 
         var b = ctx.Pop();
         var a = ctx.Pop();
-        output.WriteString(string.Format(CultureInfo.InvariantCulture, "{0}+{1}i", a, b));
+        await output.WriteStringAsync(string.Format(CultureInfo.InvariantCulture, "{0}+{1}i", a, b));
     }
 
     static void Magnitude(IFungeExecutionContext ctx)

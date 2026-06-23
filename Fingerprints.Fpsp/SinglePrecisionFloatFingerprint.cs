@@ -79,7 +79,7 @@ public sealed class SinglePrecisionFloatFingerprint : IFingerprint
 
     static void Negate(IFungeExecutionContext ctx) => PushFloat(ctx, -PopFloat(ctx));
 
-    static void Print(IFungeExecutionContext ctx)
+    static async ValueTask Print(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -87,7 +87,7 @@ public sealed class SinglePrecisionFloatFingerprint : IFingerprint
             return;
         }
 
-        output.WriteString(PopFloat(ctx).ToString(CultureInfo.InvariantCulture));
+        await output.WriteStringAsync(PopFloat(ctx).ToString(CultureInfo.InvariantCulture));
     }
 
     static void Sqrt(IFungeExecutionContext ctx) => PushFloat(ctx, FloatHelper.Sqrt(PopFloat(ctx)));

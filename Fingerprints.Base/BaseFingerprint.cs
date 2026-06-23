@@ -22,14 +22,14 @@ public sealed class BaseFingerprint : IFingerprint
             .Add('O', OutputTopOfStackInOctal)
             .BuildInstructions();
 
-    static void WriteInBase(IFungeOutputContext output, int value, int numberBase)
-        => output.WriteString((Convert.ToString(value, numberBase) ?? "0").ToUpperInvariant());
+    static async ValueTask WriteInBase(IFungeOutputContext output, int value, int numberBase)
+        => await output.WriteStringAsync((Convert.ToString(value, numberBase) ?? "0").ToUpperInvariant());
 
     /// <summary>
     /// B	(n -- )	Output top of stack in binary
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputTopOfStackInBinary(IFungeExecutionContext ctx)
+    static async ValueTask OutputTopOfStackInBinary(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -37,14 +37,14 @@ public sealed class BaseFingerprint : IFingerprint
             return;
         }
 
-        WriteInBase(output, ctx.Pop(), 2);
+        await WriteInBase(output, ctx.Pop(), 2);
     }
 
     /// <summary>
     /// H	(n -- )	Output top of stack in hex
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputTopOfStackInHex(IFungeExecutionContext ctx)
+    static async ValueTask OutputTopOfStackInHex(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -52,14 +52,14 @@ public sealed class BaseFingerprint : IFingerprint
             return;
         }
 
-        WriteInBase(output, ctx.Pop(), 16);
+        await WriteInBase(output, ctx.Pop(), 16);
     }
 
     /// <summary>
     /// I	(b -- n)	Read input in specified base
     /// </summary>
     /// <param name="ctx"></param>
-    static void ReadInputInSpecifiedBase(IFungeExecutionContext ctx)
+    static async ValueTask ReadInputInSpecifiedBase(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeInputContext input)
         {
@@ -68,7 +68,7 @@ public sealed class BaseFingerprint : IFingerprint
         }
 
         var baseVal = ctx.Pop();
-        var line = input.ReadLine();
+        var line = await input.ReadLineAsync();
         if (line is null)
         {
             ctx.Reflect();
@@ -89,7 +89,7 @@ public sealed class BaseFingerprint : IFingerprint
     /// N	(n b -- )	Output n in base b
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputNInBaseB(IFungeExecutionContext ctx)
+    static async ValueTask OutputNInBaseB(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -99,14 +99,14 @@ public sealed class BaseFingerprint : IFingerprint
 
         var numberBase = ctx.Pop();
         var number = ctx.Pop();
-        WriteInBase(output, number, numberBase);
+        await WriteInBase(output, number, numberBase);
     }
 
     /// <summary>
     /// O	(n -- )	Output top of stack in octal
     /// </summary>
     /// <param name="ctx"></param>
-    static void OutputTopOfStackInOctal(IFungeExecutionContext ctx)
+    static async ValueTask OutputTopOfStackInOctal(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -114,7 +114,7 @@ public sealed class BaseFingerprint : IFingerprint
             return;
         }
 
-        WriteInBase(output, ctx.Pop(), 8);
+        await WriteInBase(output, ctx.Pop(), 8);
     }
 
 

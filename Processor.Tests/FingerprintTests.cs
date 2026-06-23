@@ -65,17 +65,21 @@ public class FingerprintTests
 
     static async Task<string> Run(Parser.FungeSpace space, IEnumerable<IFingerprint>? fingerprints = null, string? input = null, CancellationToken CancellationToken = default)
     {
+        var testContext = TestContext.Current!;
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
-        var proc = new FungeProcessor(space, fingerprints: fingerprints, input: reader, output: output);
+        var proc = new FungeProcessor(space, fingerprints: fingerprints);
         await Task.Run(async () =>
         {
             await foreach (var ev in proc.RunAsyncEnumerable(CancellationToken))
             {
+                testContext.OutputWriter.WriteLine($"Event: {ev.GetType().Name}");
                 switch (ev)
                 {
                     case OutputCharEvent oce: output.Write(oce.Output); break;
                     case OutputIntEvent oie: output.Write(oie.Output); break;
+                    case OutputStringEvent ose: output.Write(ose.Output); break;
+                    case OutputLineEvent ole: output.WriteLine(ole.Output); break;
                     case InputCharEvent ice:
                         var c = reader.Read();
                         if (c != -1) ice.Write((char)c);
@@ -84,6 +88,17 @@ public class FingerprintTests
                         var line = reader.ReadLine();
                         if (int.TryParse(line, out var val)) iie.Write(val);
                         break;
+                    case InputStringEvent ise:
+                        var str = reader.ReadLine();
+                        if (str is not null) ise.Write(str);
+                        break;
+                    case InputLineEvent ile:
+                        var line2 = reader.ReadLine();
+                        if (line2 is not null) ile.Write(line2);
+                        break;
+                    case EndEvent:
+                        break;
+                    default: throw new InvalidOperationException($"Unexpected event: {ev.GetType().Name}");
                 }
             }
         }, CancellationToken);
@@ -98,8 +113,9 @@ public class FingerprintTests
         var proc = new FungeProcessor(
             space,
             fingerprints: fingerprints,
-            input: provideInput ? reader : null,
-            output: provideOutput ? output : null);
+            enableInput: provideInput,
+            enableOutput: provideOutput
+        );
         return await Task.Run(async () =>
         {
             var exitCode = 0;
@@ -109,6 +125,8 @@ public class FingerprintTests
                 {
                     case OutputCharEvent oce: output.Write(oce.Output); break;
                     case OutputIntEvent oie: output.Write(oie.Output); break;
+                    case OutputStringEvent ose: output.Write(ose.Output); break;
+                    case OutputLineEvent ole: output.WriteLine(ole.Output); break;
                     case InputCharEvent ice:
                         var c = reader.Read();
                         if (c != -1) ice.Write((char)c);
@@ -117,9 +135,18 @@ public class FingerprintTests
                         var line = reader.ReadLine();
                         if (int.TryParse(line, out var val)) iie.Write(val);
                         break;
+                    case InputStringEvent ise:
+                        var str = reader.ReadLine();
+                        if (str is not null) ise.Write(str);
+                        break;
+                    case InputLineEvent ile:
+                        var line2 = reader.ReadLine();
+                        if (line2 is not null) ile.Write(line2);
+                        break;
                     case EndEvent ee:
                         exitCode = ee.ExitCode;
                         break;
+                    default: throw new InvalidOperationException($"Unexpected event: {ev.GetType().Name}");
                 }
             }
 
@@ -283,7 +310,7 @@ public class FingerprintTests
     [Timeout(Constant.Timeout)]
     public async Task LongFingerprint_OutputReflectsWithoutOutputCapability(CancellationToken CancellationToken)
     {
-        var result = RunExitCode("\"GNOL\"4(0n5E#@P1q", [new LongIntegerFingerprint()], provideOutput: false, CancellationToken: CancellationToken);
+        var result = await RunExitCode("\"GNOL\"4(0n5E#@P1q", [new LongIntegerFingerprint()], provideOutput: false, CancellationToken: CancellationToken);
         await Assert.That(result).IsEqualTo(0);
     }
 

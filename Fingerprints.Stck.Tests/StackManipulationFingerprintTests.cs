@@ -45,7 +45,14 @@ sealed class TestContext : IFungeExecutionContext, IFungeStackContext, IFungeVec
 
     public void SetCell(int x, int y, int z, int value) => _space[(x, y, z)] = value;
 
-    public void WriteString(string value) => _output.Append(value);
+    public async Task WriteStringAsync(string value)
+    {
+        await Task.Yield();
+        _output.Append(value);
+    }
+    public Task WriteLineAsync(string value) => throw new NotImplementedException();
+    public Task WriteCharAsync(char value) => throw new NotImplementedException();
+    public Task WriteIntAsync(int value) => throw new NotImplementedException();
 
     public string Output => _output.ToString();
 }

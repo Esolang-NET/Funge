@@ -10,7 +10,7 @@ public class FungeProcessorTests
         var space = Parser.FungeParser.Parse(source);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
-        var proc = new FungeProcessor(space, input: reader, output: output);
+        var proc = new FungeProcessor(space, enableInput: input is not null, enableOutput: true);
         await RunToEnd(proc, reader, output, CancellationToken);
         return output.ToString();
     }
@@ -36,6 +36,7 @@ public class FungeProcessorTests
                     case EndEvent ee:
                         exitCode = ee.ExitCode;
                         break;
+                    default: throw new InvalidOperationException($"Unexpected event: {ev.GetType().Name}");
                 }
             }
             return exitCode;
@@ -44,7 +45,7 @@ public class FungeProcessorTests
     static async Task<int> RunGetExitCode(string source, CancellationToken CancellationToken = default)
     {
         var space = Parser.FungeParser.Parse(source);
-        var proc = new FungeProcessor(space);
+        var proc = new FungeProcessor(space, enableInput: false, enableOutput: false);
         return await RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);
     }
 
@@ -65,7 +66,7 @@ public class FungeProcessorTests
         space[pos4] = 'v';
         space[pos5] = '@';
 
-        var proc = new FungeProcessor(space);
+        var proc = new FungeProcessor(space, enableInput: false, enableOutput: false);
 
         await RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);
     }

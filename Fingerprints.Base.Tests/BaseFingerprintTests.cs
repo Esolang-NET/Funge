@@ -12,11 +12,25 @@ sealed class TestContext : IFungeExecutionContext, IFungeInputContext, IFungeOut
     public void Push(int value) => _stack.Push(value);
     public int Pop() => _stack.Count > 0 ? _stack.Pop() : 0;
     public int Peek() => _stack.Count > 0 ? _stack.Peek() : 0;
-    public void WriteString(string value) => _output.Append(value);
-    public string? ReadLine() => _input.Count > 0 ? _input.Dequeue() : null;
     public void Reflect() => Reflected = true;
 
     public void EnqueueInput(string? value) => _input.Enqueue(value);
+    public Task<char> ReadCharAsync() => throw new NotImplementedException();
+    public Task<int> ReadIntAsync() => throw new NotImplementedException();
+    public async Task<string?> ReadLineAsync()
+    {
+        await Task.Yield();
+        return _input.Count > 0 ? _input.Dequeue() : null;
+    }
+    public async Task WriteStringAsync(string value)
+    {
+        await Task.Yield();
+        _output.Append(value);
+    }
+    public Task WriteLineAsync(string value) => throw new NotImplementedException();
+    public Task WriteCharAsync(char value) => throw new NotImplementedException();
+    public Task WriteIntAsync(int value) => throw new NotImplementedException();
+
     public string Output => _output.ToString();
 }
 

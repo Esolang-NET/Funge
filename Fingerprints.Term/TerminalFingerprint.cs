@@ -37,62 +37,62 @@ public sealed class TerminalFingerprint : IFingerprint
         return true;
     }
 
-    static void ClearScreen(IFungeExecutionContext ctx)
+    static async ValueTask ClearScreen(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
-        output.WriteString("\x1b[2J");
+        await output.WriteStringAsync("\x1b[2J");
     }
 
-    static void Home(IFungeExecutionContext ctx)
+    static async ValueTask Home(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
-        output.WriteString("\x1b[H");
+        await output.WriteStringAsync("\x1b[H");
     }
 
-    static void GotoPosition(IFungeExecutionContext ctx)
+    static async ValueTask GotoPosition(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
         var c = ctx.Pop();
         var r = ctx.Pop();
-        output.WriteString($"\x1b[{r + 1};{c + 1}H");
+        await output.WriteStringAsync($"\x1b[{r + 1};{c + 1}H");
     }
 
-    static void CursorDown(IFungeExecutionContext ctx)
+    static async ValueTask CursorDown(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
         var n = ctx.Pop();
         if (n > 0)
-            output.WriteString($"\x1b[{n}B");
+            await output.WriteStringAsync($"\x1b[{n}B");
         else if (n < 0)
-            output.WriteString($"\x1b[{-n}A");
+            await output.WriteStringAsync($"\x1b[{-n}A");
     }
 
-    static void CursorUp(IFungeExecutionContext ctx)
+    static async ValueTask CursorUp(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
         var n = ctx.Pop();
         if (n > 0)
-            output.WriteString($"\x1b[{n}A");
+            await output.WriteStringAsync($"\x1b[{n}A");
         else if (n < 0)
-            output.WriteString($"\x1b[{-n}B");
+            await output.WriteStringAsync($"\x1b[{-n}B");
     }
 
-    static void ClearToEndOfLine(IFungeExecutionContext ctx)
+    static async ValueTask ClearToEndOfLine(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
-        output.WriteString("\x1b[K");
+        await output.WriteStringAsync("\x1b[K");
     }
 
-    static void ClearToEndOfScreen(IFungeExecutionContext ctx)
+    static async ValueTask ClearToEndOfScreen(IFungeExecutionContext ctx)
     {
         if (!TryGetOutput(ctx, out var output))
             return;
-        output.WriteString("\x1b[J");
+        await output.WriteStringAsync("\x1b[J");
     }
 }

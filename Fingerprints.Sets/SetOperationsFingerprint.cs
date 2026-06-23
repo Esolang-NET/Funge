@@ -160,7 +160,7 @@ public sealed class SetOperationsFingerprint : IFingerprint
         ctx.Push(set.Contains(value) ? 1 : 0);
     }
 
-    static void Print(IFungeExecutionContext ctx)
+    static async ValueTask Print(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -181,7 +181,7 @@ public sealed class SetOperationsFingerprint : IFingerprint
         }
 
         sb.Append('}');
-        output.WriteString(sb.ToString());
+        await output.WriteStringAsync(sb.ToString());
     }
 
     static void RemoveElement(IFungeExecutionContext ctx)

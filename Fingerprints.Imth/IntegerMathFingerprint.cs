@@ -152,7 +152,7 @@ public sealed class IntegerMathFingerprint : IFingerprint
 
     static void MultiplyByTen(IFungeExecutionContext ctx) => Multiply(ctx, 10);
 
-    static void UnsignedPrint(IFungeExecutionContext ctx)
+    static async ValueTask UnsignedPrint(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -160,8 +160,7 @@ public sealed class IntegerMathFingerprint : IFingerprint
             return;
         }
 
-        output.WriteString(unchecked((uint)ctx.Pop()).ToString(CultureInfo.InvariantCulture));
-        output.WriteString(" ");
+        await output.WriteStringAsync($"{unchecked((uint)ctx.Pop()).ToString(CultureInfo.InvariantCulture)} ");
     }
 
     static void Maximum(IFungeExecutionContext ctx) => MinMax(ctx, isMaximum: true);

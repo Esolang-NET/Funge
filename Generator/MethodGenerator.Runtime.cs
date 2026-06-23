@@ -516,18 +516,36 @@ partial class MethodGenerator
                 {
                     readonly TextReader _input;
                     internal RuntimeFungeInputExecutionContext(RuntimeIp ip, TextReader input, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _input = input;
-                    public string? ReadLine() => _input.ReadLine();
+                    public System.Threading.Tasks.Task<string?> ReadLineAsync() => System.Threading.Tasks.Task.FromResult(_input.ReadLine());
+                    public System.Threading.Tasks.Task<char> ReadCharAsync() => System.Threading.Tasks.Task.FromResult((char)_input.Read());
+                    public System.Threading.Tasks.Task<int> ReadIntAsync()
+                    {
+                        var line = _input.ReadLine();
+                        if (line is null)
+                            return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                        if (int.TryParse(line, out var value))
+                            return System.Threading.Tasks.Task.FromResult(value);
+                        return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                    }
                 }
 
                 private sealed class RuntimeFungeOutputExecutionContext : RuntimeFungeExecutionContext{{runtimeOutputContextSuffix}}
                 {
                     readonly Action<int> _writeOutputChar;
                     internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _writeOutputChar = writeOutputChar;
-                    public void WriteString(string value)
+                    public System.Threading.Tasks.Task WriteStringAsync(string value)
                     {
                         for (int i = 0; i < value.Length; i++)
                             _writeOutputChar(value[i]);
+                        return System.Threading.Tasks.Task.CompletedTask;
                     }
+                    public System.Threading.Tasks.Task WriteLineAsync(string value) => WriteStringAsync(value + Environment.NewLine);
+                    public System.Threading.Tasks.Task WriteCharAsync(char value)
+                    {
+                        _writeOutputChar(value);
+                        return System.Threading.Tasks.Task.CompletedTask;
+                    }
+                    public System.Threading.Tasks.Task WriteIntAsync(int value) => WriteStringAsync(value.ToString());
                 }
 
                 private sealed class RuntimeFungeIoExecutionContext : RuntimeFungeExecutionContext{{runtimeIoContextSuffix}}
@@ -540,13 +558,31 @@ partial class MethodGenerator
                         _writeOutputChar = writeOutputChar;
                     }
 
-                    public string? ReadLine() => _input.ReadLine();
+                    public System.Threading.Tasks.Task<string?> ReadLineAsync() => System.Threading.Tasks.Task.FromResult(_input.ReadLine());
+                    public System.Threading.Tasks.Task<char> ReadCharAsync() => System.Threading.Tasks.Task.FromResult((char)_input.Read());
+                    public System.Threading.Tasks.Task<int> ReadIntAsync()
+                    {
+                        var line = _input.ReadLine();
+                        if (line is null)
+                            return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                        if (int.TryParse(line, out var value))
+                            return System.Threading.Tasks.Task.FromResult(value);
+                        return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                    }
 
-                    public void WriteString(string value)
+                    public System.Threading.Tasks.Task WriteStringAsync(string value)
                     {
                         for (int i = 0; i < value.Length; i++)
                             _writeOutputChar(value[i]);
+                        return System.Threading.Tasks.Task.CompletedTask;
                     }
+                    public System.Threading.Tasks.Task WriteLineAsync(string value) => WriteStringAsync(value + Environment.NewLine);
+                    public System.Threading.Tasks.Task WriteCharAsync(char value)
+                    {
+                        _writeOutputChar(value);
+                        return System.Threading.Tasks.Task.CompletedTask;
+                    }
+                    public System.Threading.Tasks.Task WriteIntAsync(int value) => WriteStringAsync(value.ToString());
                 }
         """ : "";
 

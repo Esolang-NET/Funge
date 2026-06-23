@@ -38,10 +38,6 @@ sealed class TestContext : IFungeExecutionContext, IFungeInputContext, IFungeOut
 
     public void EnqueueInput(string? value) => _inputLines.Enqueue(value);
 
-    public string? ReadLine() => _inputLines.Count > 0 ? _inputLines.Dequeue() : null;
-
-    public void WriteString(string value) => _output.Append(value);
-
     public (int X, int Y, int Z) PopVector()
     {
         var z = Pop();
@@ -60,6 +56,21 @@ sealed class TestContext : IFungeExecutionContext, IFungeInputContext, IFungeOut
     public int GetCell(int x, int y, int z) => _cells.TryGetValue((x, y, z), out var value) ? value : ' ';
 
     public void SetCell(int x, int y, int z, int value) => _cells[(x, y, z)] = value;
+    public Task<char> ReadCharAsync() => throw new NotImplementedException();
+    public Task<int> ReadIntAsync() => throw new NotImplementedException();
+    public async Task<string?> ReadLineAsync()
+    {
+        await Task.Yield();
+        return _inputLines.Count > 0 ? _inputLines.Dequeue() : null;
+    }
+    public async Task WriteStringAsync(string value)
+    {
+        await Task.Yield();
+        _output.Append(value);
+    }
+    public Task WriteLineAsync(string value) => throw new NotImplementedException();
+    public Task WriteCharAsync(char value) => throw new NotImplementedException();
+    public Task WriteIntAsync(int value) => throw new NotImplementedException();
 }
 
 sealed class CoreOnlyContext : IFungeExecutionContext

@@ -76,7 +76,7 @@ public sealed class OrthogonalFingerprint : IFingerprint
         space.SetCell(x, y, 0, value);
     }
 
-    static void WriteString(IFungeExecutionContext ctx)
+    static async ValueTask WriteString(IFungeExecutionContext ctx)
     {
         if (ctx is not IFungeOutputContext output)
         {
@@ -84,11 +84,11 @@ public sealed class OrthogonalFingerprint : IFingerprint
             return;
         }
 
-        var chars = new System.Collections.Generic.List<char>();
+        var chars = new List<char>();
         int c;
         while ((c = ctx.Pop()) != 0)
             chars.Insert(0, (char)c);
-        output.WriteString(new string([.. chars]));
+        await output.WriteStringAsync(new string([.. chars]));
     }
 
     static void SetDeltaX(IFungeExecutionContext ctx)

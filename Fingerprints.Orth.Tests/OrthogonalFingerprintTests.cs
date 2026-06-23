@@ -14,11 +14,18 @@ sealed class TestContext : IFungeExecutionContext, IFungeOutputContext, IFungeSp
     public int Pop() => _stack.Count > 0 ? _stack.Pop() : 0;
     public int Peek() => _stack.Count > 0 ? _stack.Peek() : 0;
     public void Reflect() => Reflected = true;
-    public void WriteString(string s) => Output.Append(s);
 
     public int Dimensions => 2;
     public int GetCell(int x, int y, int z) => _space.TryGetValue((x, y, z), out var v) ? v : 0;
     public void SetCell(int x, int y, int z, int value) => _space[(x, y, z)] = value;
+    public async Task WriteStringAsync(string value)
+    {
+        await Task.Yield();
+        Output.Append(value);
+    }
+    public Task WriteLineAsync(string value) => throw new NotImplementedException();
+    public Task WriteCharAsync(char value) => throw new NotImplementedException();
+    public Task WriteIntAsync(int value) => throw new NotImplementedException();
 
     public (int X, int Y, int Z) Position { get; set; } = (0, 0, 0);
     public (int X, int Y, int Z) Delta { get; set; } = (1, 0, 0);
