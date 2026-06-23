@@ -13,7 +13,9 @@ namespace Esolang.Funge.Processor;
 /// <param name="cancellationToken"></param>
 class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
     List<TaskCompletionSource<IOEvent>> ioEventRequestWaiters,
-    List<TaskCompletionSource> ioEventResponseWaiters, FungeExecutionContext context, CancellationToken cancellationToken)
+    List<TaskCompletionSource> ioEventResponseWaiters, 
+    FungeExecutionContext context, 
+    CancellationToken cancellationToken): IDisposable
 {
     State state = State.Initial;
     int i = 0;
@@ -43,20 +45,29 @@ class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
             case State.Initial:
                 // initial
                 var task = function(context);
+
                 if (task.IsCompleted && ioEventRequestWaiters.Count <= 1)
                 {
                     state = State.Finished;
                     return false;
                 }
+
                 (cancelTask, cancellationTokenRegistration) = AsTaskWithRegistration(cancellationToken);
                 functionTask = task.AsTask();
-                request = ioEventRequestWaiters[i++];
-                await Task.WhenAny(functionTask, request.Task, cancelTask).ContinueWith(_ => { });
+
+                lock (ioEventRequestWaiters)
+                {
+                    request = ioEventRequestWaiters[i++];
+                }
+
+                await Task.WhenAny(functionTask, request.Task, cancelTask);
+
                 if (cancellationToken.IsCancellationRequested)
                 {
                     state = State.Finished;
                     return false;
                 }
+
                 if (request.Task.IsCompletedSuccessfully)
                 {
                     response = ioEventResponseWaiters[i - 1];
@@ -64,23 +75,43 @@ class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
                     state = State.WaitingForEvent;
                     return true;
                 }
+
                 state = State.Finished;
                 return false;
             case State.WaitingForEvent:
                 // waiting for next event
                 response.TrySetResult();
-                if (cancelTask.IsCompletedSuccessfully || ioEventRequestWaiters.Count <= i)
+
+                if (cancelTask.IsCompletedSuccessfully)
                 {
                     state = State.Finished;
                     return false;
                 }
-                request = ioEventRequestWaiters[i++];
-                await Task.WhenAny(functionTask, request.Task, cancelTask).ContinueWith(_ => { });
+
+                if (ioEventRequestWaiters.Count <= i)
+                {
+                    if (functionTask.IsCompleted)
+                    {
+                        state = State.Finished;
+                        return false;
+                    }
+                    await Task.Yield();
+                    return await MoveNextAsync();
+                }
+
+                lock (ioEventRequestWaiters)
+                {
+                    request = ioEventRequestWaiters[i++];
+                }
+
+                await Task.WhenAny(functionTask, request.Task, cancelTask);
+
                 if (cancellationToken.IsCancellationRequested)
                 {
                     state = State.Finished;
                     return false;
                 }
+
                 if (request.Task.IsCompletedSuccessfully)
                 {
                     response = ioEventResponseWaiters[i - 1];
@@ -88,12 +119,13 @@ class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
                     state = State.WaitingForEvent;
                     return true;
                 }
+
                 state = State.Finished;
                 return false;
         }
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         cancellationTokenRegistration?.Dispose();
         cancellationTokenRegistration = null;
@@ -104,12 +136,17 @@ class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
             foreach (var waiter in ioEventResponseWaiters)
                 waiter.TrySetCanceled(cancellationToken);
         }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
         return ValueTask.CompletedTask;
     }
 
     static (Task, CancellationTokenRegistration) AsTaskWithRegistration(CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource();
+        TaskCompletionSource tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken), useSynchronizationContext: false);
         return (tcs.Task, registration);
     }

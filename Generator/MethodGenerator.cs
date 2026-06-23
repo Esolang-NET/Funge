@@ -31,7 +31,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         #nullable enable
         #pragma warning disable CS0219
         #pragma warning disable CS1998
-
+        using System.Linq;
         """;
 
     readonly record struct FungeExecutionBinding(
@@ -310,10 +310,10 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     runtimeFeatures |= RuntimeFacadeFeatures.FingerprintSupport;
             }
 
+            EmitRuntimeIfNeeded(methodSb, runtimeFeatures, fungeTypes);
+            
             if (emittedCount > 0)
                 ctx.AddSource(GeneratedMethodsFileName, methodSb.ToString());
-
-            EmitRuntimeIfNeeded(ctx, runtimeFeatures, fungeTypes);
         });
     }
 

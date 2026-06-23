@@ -4,7 +4,6 @@ namespace Esolang.Funge.Generator;
 
 partial class MethodGenerator
 {
-    const string FungeRuntimeFileName = "FungeRuntime.g.cs";
 
     [Flags]
     enum RuntimeFacadeFeatures
@@ -24,10 +23,10 @@ partial class MethodGenerator
         FingerprintSupport = 1 << 11,
     }
 
-    static void EmitRuntimeIfNeeded(Microsoft.CodeAnalysis.SourceProductionContext ctx, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
+    static void EmitRuntimeIfNeeded(StringBuilder builder, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
     {
         if (features == RuntimeFacadeFeatures.None) return;
-        ctx.AddSource(FungeRuntimeFileName, BuildRuntimeSource(features, fungeTypes));
+        BuildRuntimeSource(builder, features, fungeTypes);
     }
 
     static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
@@ -36,29 +35,31 @@ partial class MethodGenerator
         var fingerprintSupport = (features & RuntimeFacadeFeatures.FingerprintSupport) != 0;
         var loggingArgument = runWithLogging ? ", object? logger = null" : "";
         var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
-        var fingerprintArgument = fingerprintSupport ? ", global::System.Collections.Generic.IEnumerable<global::Esolang.Funge.IFingerprint>? fingerprints = null" : "";
+        var fingerprintArgument = fingerprintSupport ? $$"""
+        , {{Names.IEnumerable}}<global::Esolang.Funge.IFingerprint>? fingerprints = null
+        """ : "";
         var withFingerprintArgument = fingerprintSupport ? ", fingerprints: fingerprints" : "";
         var sb = new StringBuilder();
         if ((features & RuntimeFacadeFeatures.RunSync) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static int RunSync(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static int RunSync({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, {{Names.TextWriter}} output, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                     => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
         """);
         if ((features & RuntimeFacadeFeatures.RunString) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static string RunString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static string RunString({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    using var output = new StringWriter();
+                    using var output = new {{Names.StringWriter}}();
                     RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                     return output.ToString();
                 }
         """);
         if ((features & RuntimeFacadeFeatures.RunEnumerable) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static IEnumerable<byte> RunEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.IEnumerable}}<byte> RunEnumerable({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
                     foreach (var b in RunCoreEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}))
                         yield return b;
@@ -66,8 +67,8 @@ partial class MethodGenerator
         """);
         if ((features & RuntimeFacadeFeatures.RunAsyncEnumerable) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static async {{Names.IAsyncEnumerable}}<byte> RunAsyncEnumerable({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, [{{Names.EnumeratorCancellation}}] {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
                     await foreach (var b in RunCoreAsyncEnumerable(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}))
                         yield return b;
@@ -75,24 +76,24 @@ partial class MethodGenerator
         """);
         if ((features & RuntimeFacadeFeatures.RunTask) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task RunTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct);
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.Task}} RunTask({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, {{Names.TextWriter}} output, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => {{Names.Task}}.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskInt) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<int> RunTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
-                    => Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct);
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.Task}}<int> RunTaskInt({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, {{Names.TextWriter}} output, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => {{Names.Task}}.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct);
         """);
         if ((features & RuntimeFacadeFeatures.RunTaskString) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static Task<string> RunTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.Task}}<string> RunTaskString({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    return Task.Run(() =>
+                    return {{Names.Task}}.Run(() =>
                     {
-                        using var output = new StringWriter();
+                        using var output = new {{Names.StringWriter}}();
                         RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                         return output.ToString();
                     }, ct);
@@ -100,24 +101,24 @@ partial class MethodGenerator
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTask) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask RunValueTask(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct));
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.ValueTask}} RunValueTask({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, {{Names.TextWriter}} output, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => new({{Names.Task}}.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskInt) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<int> RunValueTaskInt(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
-                    => new(Task.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct));
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.ValueTask}}<int> RunValueTaskInt({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, {{Names.TextWriter}} output, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                    => new({{Names.Task}}.Run(() => RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}}), ct));
         """);
         if ((features & RuntimeFacadeFeatures.RunValueTaskString) != 0)
             sb.Append($$"""
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal static ValueTask<string> RunValueTaskString(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct = default, IEnumerable<string>? args = null, IEnumerable<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
+                [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
+                internal static {{Names.ValueTask}}<string> RunValueTaskString({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct = default, {{Names.IEnumerable}}<string>? args = null, {{Names.IEnumerable}}<string>? envs = null{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    return new ValueTask<string>(Task.Run(() =>
+                    return new {{Names.ValueTask}}<string>({{Names.Task}}.Run(() =>
                     {
-                        using var output = new StringWriter();
+                        using var output = new {{Names.StringWriter}}();
                         RunCore(cells, minX, minY, minZ, maxX, maxY, maxZ, input, output, hasInput, hasOutput, ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                         return output.ToString();
                     }, ct));
@@ -151,35 +152,37 @@ partial class MethodGenerator
         return sb.ToString();
     }
 
-    static string BuildRuntimeSource(RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
+    static void BuildRuntimeSource(StringBuilder sb, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
     {
         var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
         var fingerprintSupport = (features & RuntimeFacadeFeatures.FingerprintSupport) != 0;
         var loggingArgument = runWithLogging ? ", object? logger = null" : "";
         var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
         var fingerprintArgument = fingerprintSupport
-            ? ", global::System.Collections.Generic.IEnumerable<global::Esolang.Funge.IFingerprint>? fingerprints = null"
+            ? $$"""
+            , {{Names.IEnumerable}}<global::Esolang.Funge.IFingerprint>? fingerprints = null
+            """
             : "";
         var withFingerprintArgument = fingerprintSupport ? ", fingerprints: fingerprints" : "";
-        var loggingCasts = runWithLogging ? """
-                    var __logger = logger as global::Microsoft.Extensions.Logging.ILogger;
+        var loggingCasts = runWithLogging ? $$"""
+                    var __logger = logger as {{Names.ILogger}};
         """ : "";
 
         var logInstructionCall = runWithLogging ? """
                         Log.LogInstruction(__logger, ip.Id, (char)cell, ip.Position.X, ip.Position.Y, ip.Position.Z);
         """ : "";
 
-        var logMessages = runWithLogging ? """
+        var logMessages = runWithLogging ? $$"""
                 private static class Log
                 {
-                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, char, int, int, int, global::System.Exception?> _instructionExecuted =
+                    private static readonly {{Names.Action}}<{{Names.ILogger}}, int, char, int, int, int, {{Names.Exception}}?> _instructionExecuted =
                         global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, char, int, int, int>(
                             global::Microsoft.Extensions.Logging.LogLevel.Trace,
                             new global::Microsoft.Extensions.Logging.EventId(1, "InstructionExecuted"),
                             "IP {Id}: '{Instruction}' at ({X}, {Y}, {Z})");
 
-                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                    public static void LogInstruction(global::Microsoft.Extensions.Logging.ILogger? logger, int id, char instruction, int x, int y, int z)
+                    [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
+                    public static void LogInstruction({{Names.ILogger}}? logger, int id, char instruction, int x, int y, int z)
                     {
                         if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Trace))
                         {
@@ -187,14 +190,14 @@ partial class MethodGenerator
                         }
                     }
 
-                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, string, global::System.Exception?> _fingerprintLoaded =
+                    private static readonly {{Names.Action}}<{{Names.ILogger}}, int, string, {{Names.Exception}}?> _fingerprintLoaded =
                         global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, string>(
                             global::Microsoft.Extensions.Logging.LogLevel.Debug,
                             new global::Microsoft.Extensions.Logging.EventId(2, "FingerprintLoaded"),
                             "IP {Id}: Fingerprint '{Fingerprint}' loaded");
 
-                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                    public static void LogFingerprintLoaded(global::Microsoft.Extensions.Logging.ILogger? logger, int id, string fingerprint)
+                    [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
+                    public static void LogFingerprintLoaded({{Names.ILogger}}? logger, int id, string fingerprint)
                     {
                         if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
                         {
@@ -202,14 +205,14 @@ partial class MethodGenerator
                         }
                     }
 
-                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, string, global::System.Exception?> _fingerprintUnloaded =
+                    private static readonly {{Names.Action}}<{{Names.ILogger}}, int, string, {{Names.Exception}}?> _fingerprintUnloaded =
                         global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, string>(
                             global::Microsoft.Extensions.Logging.LogLevel.Debug,
                             new global::Microsoft.Extensions.Logging.EventId(3, "FingerprintUnloaded"),
                             "IP {Id}: Fingerprint '{Fingerprint}' unloaded");
 
-                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                    public static void LogFingerprintUnloaded(global::Microsoft.Extensions.Logging.ILogger? logger, int id, string fingerprint)
+                    [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
+                    public static void LogFingerprintUnloaded({{Names.ILogger}}? logger, int id, string fingerprint)
                     {
                         if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
                         {
@@ -217,14 +220,14 @@ partial class MethodGenerator
                         }
                     }
 
-                    private static readonly global::System.Action<global::Microsoft.Extensions.Logging.ILogger, int, int, global::System.Exception?> _sysInfoRequested =
+                    private static readonly {{Names.Action}}<{{Names.ILogger}}, int, int, {{Names.Exception}}?> _sysInfoRequested =
                         global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, int>(
                             global::Microsoft.Extensions.Logging.LogLevel.Debug,
                             new global::Microsoft.Extensions.Logging.EventId(4, "SysInfoRequested"),
                             "IP {Id}: System information requested (Argument: {Value})");
 
-                    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-                    public static void LogSysInfoRequested(global::Microsoft.Extensions.Logging.ILogger? logger, int id, int value)
+                    [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
+                    public static void LogSysInfoRequested({{Names.ILogger}}? logger, int id, int value)
                     {
                         if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
                         {
@@ -268,7 +271,7 @@ partial class MethodGenerator
         // Pre-compute fingerprint case bodies to avoid nesting $$"""...""" templates
         var fingerprintLoadCaseBody = (fingerprintSupport, runWithLogging) switch
         {
-            (true, true) => """
+            (true, true) => $$"""
                                          int __n = ip.StackStack.Pop();
                                          int __handprint = 0;
                                          for (int i = 0; i < __n; i++)
@@ -280,16 +283,16 @@ partial class MethodGenerator
                                          }
                                          foreach (var __kvp in __fp.Instructions)
                                          {
-                                             Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>? __semStack;
+                                             {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>? __semStack;
                                              if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
-                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>();
+                                                 ip.Semantics[__kvp.Key] = __semStack = new {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>();
                                              __semStack.Push(__kvp.Value);
                                          }
                                          Log.LogFingerprintLoaded(__logger, ip.Id, $"0x{__handprint:X8}");
                                          ip.StackStack.Push(__handprint);
                                          ip.StackStack.Push(1);
                                      """,
-            (true, false) => """
+            (true, false) => $$"""
                                          int __n = ip.StackStack.Pop();
                                          int __handprint = 0;
                                          for (int i = 0; i < __n; i++)
@@ -301,9 +304,9 @@ partial class MethodGenerator
                                          }
                                          foreach (var __kvp in __fp.Instructions)
                                          {
-                                             Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>? __semStack;
+                                             {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>? __semStack;
                                              if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
-                                                 ip.Semantics[__kvp.Key] = __semStack = new Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>();
+                                                 ip.Semantics[__kvp.Key] = __semStack = new {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>();
                                              __semStack.Push(__kvp.Value);
                                          }
                                          ip.StackStack.Push(__handprint);
@@ -393,11 +396,11 @@ partial class MethodGenerator
         };
 
         var fingerprintAZDispatch = fingerprintSupport
-            ? """
+            ? $$"""
                                      if (cell >= 'A' && cell <= 'Z')
                                      {
                                          var __letter = (char)cell;
-                                         Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>? __semStack;
+                                         {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>? __semStack;
                                          if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0) {
                                             var task = __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell, rng));
                                             if (!task.IsCompleted) {
@@ -410,16 +413,16 @@ partial class MethodGenerator
                """
             : "                                 if (cell >= 'A' && cell <= 'Z') ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);";
 
-        var runtimeRandomSource = """
+        var runtimeRandomSource = $$"""
                 private sealed class RuntimeRandomSource
                 {
                     private readonly object _sync = new object();
-                    private Random _random = new Random();
+                    private {{Names.Random}} _random = new {{Names.Random}}();
 
                     internal uint NextUInt32(uint exclusiveUpperBound)
                     {
                         if (exclusiveUpperBound == 0)
-                            throw new global::System.ArgumentOutOfRangeException(nameof(exclusiveUpperBound));
+                            throw new {{Names.ArgumentOutOfRangeException}}(nameof(exclusiveUpperBound));
 
                         lock (_sync)
                         {
@@ -442,26 +445,26 @@ partial class MethodGenerator
                     internal void Reseed(uint seed)
                     {
                         lock (_sync)
-                            _random = new Random(unchecked((int)seed));
+                            _random = new {{Names.Random}}(unchecked((int)seed));
                     }
 
                     internal void Reseed()
                     {
                         lock (_sync)
-                            _random = new Random();
+                            _random = new {{Names.Random}}();
                     }
 
                     uint NextRawUInt32()
                     {
                         var bytes = new byte[4];
                         _random.NextBytes(bytes);
-                        return global::System.BitConverter.ToUInt32(bytes, 0);
+                        return {{Names.BitConverter}}.ToUInt32(bytes, 0);
                     }
                 }
         """;
 
         var runtimeExecutionContext = fingerprintSupport ? $$"""
-                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng)
+                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.Action}}<int> writeOutputChar, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng)
                 {
                     if (hasInput && hasOutput)
                         return new RuntimeFungeIoExecutionContext(ip, input, writeOutputChar, getCell, setCell, rng);
@@ -475,10 +478,10 @@ partial class MethodGenerator
                 private class RuntimeFungeExecutionContext{{runtimeExecutionContextInterfaces}}
                 {
                     readonly RuntimeIp _ip;
-                    readonly Func<int, int, int, int> _getCell;
-                    readonly Action<int, int, int, int> _setCell;
+                    readonly {{Names.Func}}<int, int, int, int> _getCell;
+                    readonly {{Names.Action}}<int, int, int, int> _setCell;
                     readonly RuntimeRandomSource _random;
-                    internal RuntimeFungeExecutionContext(RuntimeIp ip, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng)
+                    internal RuntimeFungeExecutionContext(RuntimeIp ip, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng)
                     {
                         _ip = ip;
                         _getCell = getCell;
@@ -514,96 +517,82 @@ partial class MethodGenerator
 
                 private sealed class RuntimeFungeInputExecutionContext : RuntimeFungeExecutionContext{{runtimeInputContextSuffix}}
                 {
-                    readonly TextReader _input;
-                    internal RuntimeFungeInputExecutionContext(RuntimeIp ip, TextReader input, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _input = input;
-                    public System.Threading.Tasks.Task<string?> ReadLineAsync() => System.Threading.Tasks.Task.FromResult(_input.ReadLine());
-                    public System.Threading.Tasks.Task<char> ReadCharAsync() => System.Threading.Tasks.Task.FromResult((char)_input.Read());
-                    public System.Threading.Tasks.Task<int> ReadIntAsync()
+                    readonly {{Names.TextReader}} _input;
+                    internal RuntimeFungeInputExecutionContext(RuntimeIp ip, {{Names.TextReader}} input, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _input = input;
+                    public {{Names.Task}}<string?> ReadLineAsync() => {{Names.Task}}.FromResult(_input.ReadLine());
+                    public {{Names.Task}}<char> ReadCharAsync() => {{Names.Task}}.FromResult((char)_input.Read());
+                    public {{Names.Task}}<int> ReadIntAsync()
                     {
                         var line = _input.ReadLine();
                         if (line is null)
-                            return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                            return {{Names.Task}}.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
                         if (int.TryParse(line, out var value))
-                            return System.Threading.Tasks.Task.FromResult(value);
-                        return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                            return {{Names.Task}}.FromResult(value);
+                        return {{Names.Task}}.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
                     }
                 }
 
                 private sealed class RuntimeFungeOutputExecutionContext : RuntimeFungeExecutionContext{{runtimeOutputContextSuffix}}
                 {
-                    readonly Action<int> _writeOutputChar;
-                    internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _writeOutputChar = writeOutputChar;
-                    public System.Threading.Tasks.Task WriteStringAsync(string value)
+                    readonly {{Names.Action}}<int> _writeOutputChar;
+                    internal RuntimeFungeOutputExecutionContext(RuntimeIp ip, {{Names.Action}}<int> writeOutputChar, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng) => _writeOutputChar = writeOutputChar;
+                    public {{Names.Task}} WriteStringAsync(string value)
                     {
                         for (int i = 0; i < value.Length; i++)
                             _writeOutputChar(value[i]);
-                        return System.Threading.Tasks.Task.CompletedTask;
+                        return {{Names.Task}}.CompletedTask;
                     }
-                    public System.Threading.Tasks.Task WriteLineAsync(string value) => WriteStringAsync(value + Environment.NewLine);
-                    public System.Threading.Tasks.Task WriteCharAsync(char value)
+                    public {{Names.Task}} WriteLineAsync(string value) => WriteStringAsync(value + {{Names.Environment}}.NewLine);
+                    public {{Names.Task}} WriteCharAsync(char value)
                     {
                         _writeOutputChar(value);
-                        return System.Threading.Tasks.Task.CompletedTask;
+                        return {{Names.Task}}.CompletedTask;
                     }
-                    public System.Threading.Tasks.Task WriteIntAsync(int value) => WriteStringAsync(value.ToString());
+                    public {{Names.Task}} WriteIntAsync(int value) => WriteStringAsync(value.ToString());
                 }
 
                 private sealed class RuntimeFungeIoExecutionContext : RuntimeFungeExecutionContext{{runtimeIoContextSuffix}}
                 {
-                    readonly TextReader _input;
-                    readonly Action<int> _writeOutputChar;
-                    internal RuntimeFungeIoExecutionContext(RuntimeIp ip, TextReader input, Action<int> writeOutputChar, Func<int, int, int, int> getCell, Action<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng)
+                    readonly {{Names.TextReader}} _input;
+                    readonly {{Names.Action}}<int> _writeOutputChar;
+                    internal RuntimeFungeIoExecutionContext(RuntimeIp ip, {{Names.TextReader}} input, {{Names.Action}}<int> writeOutputChar, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng) : base(ip, getCell, setCell, rng)
                     {
                         _input = input;
                         _writeOutputChar = writeOutputChar;
                     }
 
-                    public System.Threading.Tasks.Task<string?> ReadLineAsync() => System.Threading.Tasks.Task.FromResult(_input.ReadLine());
-                    public System.Threading.Tasks.Task<char> ReadCharAsync() => System.Threading.Tasks.Task.FromResult((char)_input.Read());
-                    public System.Threading.Tasks.Task<int> ReadIntAsync()
+                    public {{Names.Task}}<string?> ReadLineAsync() => {{Names.Task}}.FromResult(_input.ReadLine());
+                    public {{Names.Task}}<char> ReadCharAsync() => {{Names.Task}}.FromResult((char)_input.Read());
+                    public {{Names.Task}}<int> ReadIntAsync()
                     {
                         var line = _input.ReadLine();
                         if (line is null)
-                            return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                            return {{Names.Task}}.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
                         if (int.TryParse(line, out var value))
-                            return System.Threading.Tasks.Task.FromResult(value);
-                        return System.Threading.Tasks.Task.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
+                            return {{Names.Task}}.FromResult(value);
+                        return {{Names.Task}}.FromResult<int?>(null).ContinueWith(t => t.Result ?? 0);
                     }
 
-                    public System.Threading.Tasks.Task WriteStringAsync(string value)
+                    public {{Names.Task}} WriteStringAsync(string value)
                     {
                         for (int i = 0; i < value.Length; i++)
                             _writeOutputChar(value[i]);
-                        return System.Threading.Tasks.Task.CompletedTask;
+                        return {{Names.Task}}.CompletedTask;
                     }
-                    public System.Threading.Tasks.Task WriteLineAsync(string value) => WriteStringAsync(value + Environment.NewLine);
-                    public System.Threading.Tasks.Task WriteCharAsync(char value)
+                    public {{Names.Task}} WriteLineAsync(string value) => WriteStringAsync(value + {{Names.Environment}}.NewLine);
+                    public {{Names.Task}} WriteCharAsync(char value)
                     {
                         _writeOutputChar(value);
-                        return System.Threading.Tasks.Task.CompletedTask;
+                        return {{Names.Task}}.CompletedTask;
                     }
-                    public System.Threading.Tasks.Task WriteIntAsync(int value) => WriteStringAsync(value.ToString());
+                    public {{Names.Task}} WriteIntAsync(int value) => WriteStringAsync(value.ToString());
                 }
         """ : "";
 
-        return $$"""
-        // <auto-generated/>
-        #nullable enable
-        #pragma warning disable CS1591
-        using System;
-        using System.Collections;
-        using System.Collections.Generic;
-        using System.Diagnostics;
-        using System.IO;
-        using System.Linq;
-        using System.Runtime.CompilerServices;
-        using System.Runtime.InteropServices;
-        using System.Threading;
-        using System.Threading.Tasks;
-
+        sb.AppendLine($$"""
         namespace Esolang.Funge.__Generated
         {
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
             internal static class FungeRuntime
             {
         {{BuildRuntimeFacadeMethods(features)}}
@@ -611,22 +600,22 @@ partial class MethodGenerator
         {{runtimeRandomSource}}
                 private sealed class RuntimeStackStack
                 {
-                    private readonly LinkedList<Stack<int>> _stacks = new LinkedList<Stack<int>>();
-                    internal RuntimeStackStack() => _stacks.AddFirst(new Stack<int>());
-                    internal RuntimeStackStack(LinkedList<Stack<int>> stacks)
+                    private readonly {{Names.LinkedList}}<{{Names.Stack}}<int>> _stacks = new {{Names.LinkedList}}<{{Names.Stack}}<int>>();
+                    internal RuntimeStackStack() => _stacks.AddFirst(new {{Names.Stack}}<int>());
+                    internal RuntimeStackStack({{Names.LinkedList}}<{{Names.Stack}}<int>> stacks)
                     {
                         foreach (var stack in stacks)
-                            _stacks.AddLast(new Stack<int>(stack.Reverse()));
+                            _stacks.AddLast(new {{Names.Stack}}<int>(stack.Reverse()));
                     }
-                    internal Stack<int> TOSS => _stacks.First!.Value;
-                    internal Stack<int> SOSS => _stacks.First!.Next!.Value;
+                    internal {{Names.Stack}}<int> TOSS => _stacks.First!.Value;
+                    internal {{Names.Stack}}<int> SOSS => _stacks.First!.Next!.Value;
                     internal bool HasSOSS => _stacks.Count >= 2;
                     internal int StackCount => _stacks.Count;
-                    internal IEnumerable<Stack<int>> AllStacks => _stacks;
+                    internal {{Names.IEnumerable}}<{{Names.Stack}}<int>> AllStacks => _stacks;
                     internal void Push(int value) => TOSS.Push(value);
                     internal int Pop() => TOSS.Count > 0 ? TOSS.Pop() : 0;
                     internal void ClearToss() => TOSS.Clear();
-                    internal void PushNewStack() => _stacks.AddFirst(new Stack<int>());
+                    internal void PushNewStack() => _stacks.AddFirst(new {{Names.Stack}}<int>());
                     internal void PopCurrentStack()
                     {
                         if (_stacks.Count > 1)
@@ -645,53 +634,56 @@ partial class MethodGenerator
                     internal RuntimeStackStack StackStack;
                     internal bool StringMode;
                     internal bool IsStopped;
-        {{(fingerprintSupport ? "            internal Dictionary<char, Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>> Semantics = new Dictionary<char, Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>>();" : "")}}
+        {{(fingerprintSupport ? $$"""
+                    internal {{Names.Dictionary}}<char, {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>> Semantics = new {{Names.Dictionary}}<char, {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>>();
+        """ 
+        : "")}}
                     internal RuntimeIp CreateChild(int newId)
                     {
                         var child = new RuntimeIp(newId) { Position = Position, Delta = (-Delta.X, -Delta.Y, -Delta.Z), Offset = Offset, StackStack = StackStack.Clone(), StringMode = StringMode };
-        {{(fingerprintSupport ? """
+        {{(fingerprintSupport ? $$"""
                         foreach (var __kvp in Semantics)
-                            child.Semantics[__kvp.Key] = new Stack<global::System.Func<global::Esolang.Funge.IFungeExecutionContext, global::System.Threading.Tasks.ValueTask>>(__kvp.Value);
+                            child.Semantics[__kvp.Key] = new {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>(__kvp.Value);
         """ : "")}}                        return child;
                     }
                 }
 
-                private static int RunCore(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, TextWriter output, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
+                private static int RunCore({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, {{Names.TextWriter}} output, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct, {{Names.IEnumerable}}<string>? args, {{Names.IEnumerable}}<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
                     return Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => output.Write(v.ToString()), (c) => output.Write((char)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                 }
 
-                private static IEnumerable<byte> RunCoreEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
+                private static {{Names.IEnumerable}}<byte> RunCoreEnumerable({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.CancellationToken}} ct, {{Names.IEnumerable}}<string>? args, {{Names.IEnumerable}}<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    var output = new System.Collections.Generic.List<byte>();
-                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
+                    var output = new {{Names.List}}<byte>();
+                    Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in {{Names.Encoding}}.ASCII.GetBytes(v.ToString())) output.Add(b); }, (c) => output.Add((byte)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                     return output;
                 }
 
-                private static async IAsyncEnumerable<byte> RunCoreAsyncEnumerable(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, [EnumeratorCancellation] CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
+                private static async {{Names.IAsyncEnumerable}}<byte> RunCoreAsyncEnumerable({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, [{{Names.EnumeratorCancellation}}] {{Names.CancellationToken}} ct, {{Names.IEnumerable}}<string>? args, {{Names.IEnumerable}}<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
-                    var buffer = new System.Collections.Concurrent.ConcurrentQueue<byte>();
-                    var tcs = new TaskCompletionSource<int>();
-                    await Task.Run(() => {
+                    var buffer = new {{Names.ConcurrentQueue}}<byte>();
+                    var tcs = new {{Names.TaskCompletionSource}}<int>();
+                    await {{Names.Task}}.Run(() => {
                         try {
-                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in System.Text.Encoding.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
+                            Execute(cells, minX, minY, minZ, maxX, maxY, maxZ, input, hasInput, hasOutput, (v) => { foreach(var b in {{Names.Encoding}}.ASCII.GetBytes(v.ToString())) buffer.Enqueue(b); }, (c) => buffer.Enqueue((byte)c), ct, args, envs{{withLoggingArgument}}{{withFingerprintArgument}});
                             tcs.SetResult(0);
-                        } catch (Exception ex) { tcs.SetException(ex); }
+                        } catch ({{Names.Exception}} ex) { tcs.SetException(ex); }
                     }, ct);
                     while (!tcs.Task.IsCompleted || !buffer.IsEmpty)
                     {
                         while (buffer.TryDequeue(out var b)) yield return b;
                         if (tcs.Task.IsCompleted) break;
-                        await Task.Delay(10, ct);
+                        await {{Names.Task}}.Delay(10, ct);
                     }
                     await tcs.Task;
                 }
 
-                private static int Execute(Dictionary<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, TextReader input, bool hasInput, bool hasOutput, Action<int> writeOutputInt, Action<int> writeOutputChar, CancellationToken ct, IEnumerable<string>? args, IEnumerable<string>? envs{{loggingArgument}}{{fingerprintArgument}})
+                private static int Execute({{Names.Dictionary}}<(int, int, int), int> cells, int minX, int minY, int minZ, int maxX, int maxY, int maxZ, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.Action}}<int> writeOutputInt, {{Names.Action}}<int> writeOutputChar, {{Names.CancellationToken}} ct, {{Names.IEnumerable}}<string>? args, {{Names.IEnumerable}}<string>? envs{{loggingArgument}}{{fingerprintArgument}})
                 {
         {{loggingCasts}}
-        {{(fingerprintSupport ? """
-                    var __fingerprintMap = new Dictionary<int, global::Esolang.Funge.IFingerprint>();
+        {{(fingerprintSupport ? $$"""
+                    var __fingerprintMap = new {{Names.Dictionary}}<int, global::Esolang.Funge.IFingerprint>();
                     if (fingerprints != null)
                         foreach (var __fp0 in fingerprints)
                             __fingerprintMap[__fp0.Handprint] = __fp0;
@@ -736,7 +728,7 @@ partial class MethodGenerator
 
                     bool TryPopZeroTerminatedString(RuntimeStackStack stack, out string result)
                     {
-                        var chars = new List<char>();
+                        var chars = new {{Names.List}}<char>();
                         while (true)
                         {
                             var value = stack.Pop();
@@ -748,13 +740,13 @@ partial class MethodGenerator
 
                     void PushSysInfo(RuntimeIp ip, int ipCount, int c)
                     {
-                        var items = new List<int>();
+                        var items = new {{Names.List}}<int>();
                         items.Add(0x01 | 0x02 | 0x04 | 0x08); // Flags: t, i, o, = supported
                         items.Add(4); // Cell size
                         items.Add(unchecked((int)0x46756E67u)); // handprint "Fung"
                         items.Add(9800); // version
                         items.Add(1); // paradigm
-                        items.Add(Path.DirectorySeparatorChar);
+                        items.Add({{Names.Path}}.DirectorySeparatorChar);
                         items.Add(3); // dims
                         items.Add(ip.Id);
                         items.Add(0); // team
@@ -763,13 +755,13 @@ partial class MethodGenerator
                         items.Add(ip.Offset.X); items.Add(ip.Offset.Y); items.Add(ip.Offset.Z);
                         items.Add(minX); items.Add(minY); items.Add(minZ);
                         items.Add(maxX - minX); items.Add(maxY - minY); items.Add(maxZ - minZ);
-                        var now = DateTime.Now;
+                        var now = {{Names.DateTime}}.Now;
                         items.Add(((now.Year - 1900) * 256 * 256) + (now.Month * 256) + now.Day);
                         items.Add((now.Hour * 256 * 256) + (now.Minute * 256) + now.Second);
                         items.Add(ip.StackStack.StackCount);
                         foreach (var stack in ip.StackStack.AllStacks) items.Add(stack.Count);
 
-                        var resolvedArgs = args ?? Environment.GetCommandLineArgs();
+                        var resolvedArgs = args ?? {{Names.Environment}}.GetCommandLineArgs();
                         foreach (var arg in resolvedArgs)
                         {
                             foreach (var ch in arg) items.Add(ch);
@@ -777,8 +769,8 @@ partial class MethodGenerator
                         }
                         items.Add(0);
 
-                        var resolvedEnvs = envs ?? Environment.GetEnvironmentVariables()
-                            .Cast<DictionaryEntry>()
+                        var resolvedEnvs = envs ?? {{Names.Environment}}.GetEnvironmentVariables()
+                            .Cast<{{Names.DictionaryEntry}}>()
                             .Select(entry => $"{entry.Key}={entry.Value}");
                         foreach (var env in resolvedEnvs)
                         {
@@ -801,7 +793,7 @@ partial class MethodGenerator
                     {
                         size = (0, 0, 0);
                         byte[] bytes;
-                        try { bytes = File.ReadAllBytes(fileName); } catch { return false; }
+                        try { bytes = {{Names.File}}.ReadAllBytes(fileName); } catch { return false; }
                         int x = 0, y = 0, z = 0, maxX = 0, maxY = 0, maxZ = 0;
                         bool wroteAny = false;
                         foreach (var raw in bytes)
@@ -825,8 +817,8 @@ partial class MethodGenerator
 
                     bool TryOutputFile((int X, int Y, int Z) leastPoint, (int X, int Y, int Z) size, string fileName, bool linearText)
                     {
-                        int sx = Math.Max(0, size.X), sy = Math.Max(0, size.Y), sz = Math.Max(0, size.Z);
-                        var rows = new List<string>();
+                        int sx = {{Names.Math}}.Max(0, size.X), sy = {{Names.Math}}.Max(0, size.Y), sz = {{Names.Math}}.Max(0, size.Z);
+                        var rows = new {{Names.List}}<string>();
                         for (int z = 0; z <= sz; z++)
                         {
                             for (int y = 0; y <= sy; y++)
@@ -846,7 +838,7 @@ partial class MethodGenerator
                         var text = string.Join("\n", rows);
                         var bytes = text.Select(ch => (byte)(ch & 0xFF)).ToArray();
                         try {
-                            File.WriteAllBytes(fileName, bytes);
+                            {{Names.File}}.WriteAllBytes(fileName, bytes);
                             return true;
                         } catch {
                             return false;
@@ -857,11 +849,11 @@ partial class MethodGenerator
                     {
                         try
                         {
-                            var psi = new ProcessStartInfo {
+                            var psi = new {{Names.ProcessStartInfo}} {
                                 UseShellExecute = false,
                                 CreateNoWindow = true
                             };
-                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            if ({{Names.RuntimeInformation}}.IsOSPlatform({{Names.OSPlatform}}.Windows))
                             {
                                 psi.FileName = "cmd.exe";
         #if NETCOREAPP2_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
@@ -881,7 +873,7 @@ partial class MethodGenerator
                                 psi.Arguments = "-c \"" + command.Replace("\"", "\\\"") + "\"";
         #endif
                             }
-                            using var process = Process.Start(psi);
+                            using var process = {{Names.Process}}.Start(psi);
                             if (process == null) return -1;
                             process.WaitForExit();
                             return process.ExitCode;
@@ -890,8 +882,8 @@ partial class MethodGenerator
                         }
                     }
 
-                    var ips = new LinkedList<RuntimeIp>();
-                    void ExecuteInstruction(RuntimeIp ip, LinkedListNode<RuntimeIp> ipNode, ref bool suppressAdvance, int? overrideCell)
+                    var ips = new {{Names.LinkedList}}<RuntimeIp>();
+                    void ExecuteInstruction(RuntimeIp ip, {{Names.LinkedListNode}}<RuntimeIp> ipNode, ref bool suppressAdvance, int? overrideCell)
                     {
                         int cell = overrideCell ?? GetCell(ip.Position.X, ip.Position.Y, ip.Position.Z);
         {{logInstructionCall}}
@@ -1103,7 +1095,7 @@ partial class MethodGenerator
                                 {
                                     int s = ip.StackStack.Pop();
                                     var step = s >= 0 ? ip.Delta : (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
-                                    int count = Math.Abs(s);
+                                    int count = {{Names.Math}}.Abs(s);
                                     for (int i = 0; i < count; i++)
                                         ip.Position = Advance(ip.Position, step);
                                     suppressAdvance = true;
@@ -1148,18 +1140,18 @@ partial class MethodGenerator
                                 }
                             case '.':
                                 if (!hasOutput)
-                                    throw new InvalidOperationException("Output '.' without an output interface");
+                                    throw new {{Names.InvalidOperationException}}("Output '.' without an output interface");
                                 writeOutputInt(ip.StackStack.Pop());
                                 writeOutputChar(' ');
                                 break;
                             case ',':
                                 if (!hasOutput)
-                                    throw new InvalidOperationException("Output ',' without an output interface");
+                                    throw new {{Names.InvalidOperationException}}("Output ',' without an output interface");
                                 writeOutputChar(ip.StackStack.Pop());
                                 break;
                             case '&':
                                 if (!hasInput)
-                                    throw new InvalidOperationException("Input '&' without an input interface");
+                                    throw new {{Names.InvalidOperationException}}("Input '&' without an input interface");
                                 var line = input.ReadLine();
                                 if (line == null)
                                     ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
@@ -1171,7 +1163,7 @@ partial class MethodGenerator
                                 break;
                             case '~':
                                 if (!hasInput) 
-                                    throw new InvalidOperationException("Input '~' without an input interface");
+                                    throw new {{Names.InvalidOperationException}}("Input '~' without an input interface");
                                 int ch = input.Read();
                                 if (ch < 0)
                                     ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z);
@@ -1260,7 +1252,7 @@ partial class MethodGenerator
                             case '{':
                                 {
                                     int n = ip.StackStack.Pop();
-                                    var items = new List<int>();
+                                    var items = new {{Names.List}}<int>();
                                     if (n > 0)
                                         for (int i = 0; i < n; i++)
                                             items.Add(ip.StackStack.Pop());
@@ -1285,8 +1277,8 @@ partial class MethodGenerator
                                 {
                                     int n = ip.StackStack.Pop();
                                     if (!ip.StackStack.HasSOSS) { ip.Delta = (-ip.Delta.X, -ip.Delta.Y, -ip.Delta.Z); break; }
-                                    var items = new List<int>();
-                                    for (int i = 0; i < Math.Max(0, n); i++) items.Add(ip.StackStack.Pop());
+                                    var items = new {{Names.List}}<int>();
+                                    for (int i = 0; i < {{Names.Math}}.Max(0, n); i++) items.Add(ip.StackStack.Pop());
                                     ip.StackStack.PopCurrentStack();
                                     int oz = ip.StackStack.Pop(), oy = ip.StackStack.Pop(), ox = ip.StackStack.Pop();
                                     ip.Offset = (ox, oy, oz);
@@ -1377,6 +1369,50 @@ partial class MethodGenerator
         {{runtimeExecutionContext}}
             }
         }
-        """;
+        """);
     }
+}
+
+static class Names
+{
+    
+    public const string IEnumerable = "global::System.Collections.Generic.IEnumerable";
+    public const string IAsyncEnumerable = "global::System.Collections.Generic.IAsyncEnumerable";
+    public const string Dictionary = "global::System.Collections.Generic.Dictionary";
+    public const string TextReader = "global::System.IO.TextReader";
+    public const string TextWriter = "global::System.IO.TextWriter";
+    public const string CancellationToken = "global::System.Threading.CancellationToken";
+    public const string EnumeratorCancellation = "global::System.Runtime.CompilerServices.EnumeratorCancellation";
+    public const string Task = "global::System.Threading.Tasks.Task";
+    public const string TaskCompletionSource = "global::System.Threading.Tasks.TaskCompletionSource";
+    public const string ValueTask = "global::System.Threading.Tasks.ValueTask";
+    public const string Func = "global::System.Func";
+    public const string ILogger = "global::Microsoft.Extensions.Logging.ILogger";
+    public const string Exception = "global::System.Exception";
+    public const string MethodImpl = "global::System.Runtime.CompilerServices.MethodImpl";
+    public const string MethodImplOptions = "global::System.Runtime.CompilerServices.MethodImplOptions";
+    public const string DictionaryEntry = "global::System.Collections.DictionaryEntry";
+    public const string Action = "global::System.Action";
+    public const string LinkedList = "global::System.Collections.Generic.LinkedList";
+    public const string LinkedListNode = "global::System.Collections.Generic.LinkedListNode";
+    public const string Stack = "global::System.Collections.Generic.Stack";
+    public const string Random = "global::System.Random";
+    public const string List = "global::System.Collections.Generic.List";
+    public const string Path = "global::System.IO.Path";
+    public const string DateTime = "global::System.DateTime";
+    public const string Environment = "global::System.Environment";
+    public const string File = "global::System.IO.File";
+    public const string ProcessStartInfo = "global::System.Diagnostics.ProcessStartInfo";
+    public const string Math = "global::System.Math";
+    public const string StringWriter = "global::System.IO.StringWriter";
+    public const string RuntimeInformation = "global::System.Runtime.InteropServices.RuntimeInformation";
+    public const string OSPlatform = "global::System.Runtime.InteropServices.OSPlatform";
+    public const string Process = "global::System.Diagnostics.Process";
+    public const string EditorBrowsable = "global::System.ComponentModel.EditorBrowsable";
+    public const string EditorBrowsableState = "global::System.ComponentModel.EditorBrowsableState";
+    public const string Encoding = "global::System.Text.Encoding";
+    public const string ConcurrentQueue = "global::System.Collections.Concurrent.ConcurrentQueue";
+    public const string BitConverter = "global::System.BitConverter";
+    public const string ArgumentOutOfRangeException = "global::System.ArgumentOutOfRangeException";
+    public const string InvalidOperationException = "global::System.InvalidOperationException";
 }

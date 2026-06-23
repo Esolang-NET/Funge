@@ -1962,9 +1962,9 @@ public class FungeMethodGeneratorTests
 
             await Assert.That(runtime)
                 .Contains("internal static int RunSync(", StringComparison.Ordinal)
-                .And.DoesNotContain("internal static Task RunTask(", StringComparison.Ordinal)
-                .And.DoesNotContain("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)
-                .And.DoesNotContain("internal static async IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal);
+                .And.DoesNotContain("internal static global::System.Threading.Tasks.Task RunTask(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static global::System.Threading.Tasks.ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static async global::System.Collections.Generic.IAsyncEnumerable<byte> RunAsyncEnumerable(", StringComparison.Ordinal);
         }
         catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
@@ -1998,10 +1998,10 @@ public class FungeMethodGeneratorTests
                 .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
 
             await Assert.That(runtime)
-                .Contains("internal static ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)
+                .Contains("internal static global::System.Threading.Tasks.ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)
                 .And.DoesNotContain("internal static int RunSync(", StringComparison.Ordinal)
-                .And.DoesNotContain("internal static Task<int> RunTaskInt(", StringComparison.Ordinal)
-                .And.DoesNotContain("internal static IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal);
+                .And.DoesNotContain("internal static global::System.Threading.Tasks.Task<int> RunTaskInt(", StringComparison.Ordinal)
+                .And.DoesNotContain("internal static global::System.Collections.Generic.IEnumerable<byte> RunEnumerable(", StringComparison.Ordinal);
         }
         catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {

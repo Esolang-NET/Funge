@@ -22,14 +22,18 @@ class FungeExecutionContext(InstructionPointer ip, FungeSpace space, Fingerprint
         return new FungeCoreExecutionContext(ip, space, function, random);
     }
 
-    readonly List<TaskCompletionSource<IOEvent>> ioEventRequestWaiters = [new TaskCompletionSource<IOEvent>()];
+    readonly List<TaskCompletionSource<IOEvent>> ioEventRequestWaiters = [new TaskCompletionSource<IOEvent>(TaskCreationOptions.RunContinuationsAsynchronously)];
     readonly List<TaskCompletionSource> ioEventResponseWaiters = [];
     protected Task Emit(IOEvent ioEvent)
     {
-        var last = ioEventRequestWaiters[^1];
-        ioEventRequestWaiters.Add(new());
+        TaskCompletionSource<IOEvent> last;
+        lock (ioEventRequestWaiters)
+        {
+            last = ioEventRequestWaiters[^1];
+            ioEventRequestWaiters.Add(new());
+        }
         last.TrySetResult(ioEvent);
-        TaskCompletionSource source = new();
+        TaskCompletionSource source = new(TaskCreationOptions.RunContinuationsAsynchronously);
         ioEventResponseWaiters.Add(source);
         return source.Task;
     }
