@@ -4,17 +4,17 @@ using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext,
 namespace Esolang.Funge.Processor;
 
 /// <summary>
-/// Implements the async enumerator returned by <see cref="FungeExecutionContext.GetAsyncEnumerator"/>.
+/// Implements the async enumerator returned by <see cref="FungeFingerprintExecutionContext.GetAsyncEnumerator"/>.
 /// </summary>
 /// <param name="function"></param>
 /// <param name="ioEventRequestWaiters"></param>
 /// <param name="ioEventResponseWaiters"></param>
 /// <param name="context"></param>
 /// <param name="cancellationToken"></param>
-class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
+class FungeFingerprintExecutionContextAsyncEnumerator(FingerprintInstruction function,
     List<TaskCompletionSource<IOEvent>> ioEventRequestWaiters,
     List<TaskCompletionSource> ioEventResponseWaiters, 
-    FungeExecutionContext context, 
+    FungeFingerprintExecutionContext context, 
     CancellationToken cancellationToken): IDisposable
 {
     State state = State.Initial;
@@ -151,5 +151,5 @@ class FungeExecutionContextAsyncEnumerator(FingerprintInstruction function,
         return (tcs.Task, registration);
     }
 
-    public override string ToString() => nameof(FungeExecutionContextAsyncEnumerator) + $"{{State={state}, i={i}}}";
+    public override string ToString() => nameof(FungeFingerprintExecutionContextAsyncEnumerator) + $"{{State={state}, i={i}}}";
 }

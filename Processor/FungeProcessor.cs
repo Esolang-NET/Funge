@@ -33,6 +33,7 @@ public sealed partial class FungeProcessor(
     bool enableOutput = true)
 {
     readonly FungeSpace _space = space;
+    FungeExecutionContextFactory? fungeExecutionContextFactory;
     readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
 #pragma warning disable IDE0305 // コレクションの初期化を簡略化します
             .ToArray();
@@ -616,10 +617,11 @@ public sealed partial class FungeProcessor(
                 if (cell is >= 'A' and <= 'Z')
                 {
                     var letter = (char)cell;
-                    if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
-                        await foreach (var ioEvent in FungeExecutionContext.Create(ip, _space, enableInput, enableOutput, semStack.Peek(), _random))
+                    if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0) {
+                        var context = (fungeExecutionContextFactory ??= new(ip, _space, _random, !enableOutput, !enableInput)).CreateContext(semStack.Peek());
+                        await foreach (var ioEvent in context)
                             yield return ioEvent;
-                    else
+                    } else
                         ip.Delta = ip.Delta.Reflect();
                 }
                 // All other characters: no-op
