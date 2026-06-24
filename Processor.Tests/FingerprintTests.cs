@@ -483,8 +483,3 @@ public class FingerprintTests
         await Assert.That(result).IsEqualTo("20 10 ");
     }
 }
-
-file static class Constant
-{
-    public const int Timeout = 1000 * 30;
-}

@@ -435,8 +435,3 @@ public class FungeProcessorTests
         await Assert.That(exitCode).IsEqualTo(7);
     }
 }
-
-file static class Constant
-{
-    public const int Timeout = 1000 * 30;
-}
