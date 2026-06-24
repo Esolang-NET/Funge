@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Esolang.Funge.Processor;
 
-class FungeOutputContext(IFungeEventEmitter emitEvent) : IFungeOutputContext
+sealed class FungeOutputContext(IFungeEventEmitter emitEvent) : IFungeOutputContext
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Task WriteCharAsync(char value) => emitEvent.Emit(IOEvent.OutputChar(value));

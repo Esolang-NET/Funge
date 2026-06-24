@@ -15,33 +15,35 @@ namespace Esolang.Funge.Processor;
 /// <param name="StorageOffsetContext"></param>
 /// <param name="RandomContext"></param>
 abstract partial class FungeFingerprintExecutionContext(
-    FingerprintInstruction Function, 
-    IFungeExecutionContext ExecutionContext, 
-    IFungeInstructionPointerContext InstructionPointerContext, 
-    IFungeStackContext StackContext, 
-    IFungeVectorContext VectorContext, 
-    IFungeSpaceContext SpaceContext, 
-    IFungeStorageOffsetContext StorageOffsetContext, 
+    FingerprintInstruction Function,
+    IFungeExecutionContext ExecutionContext,
+    IFungeInstructionPointerContext InstructionPointerContext,
+    IFungeStackContext StackContext,
+    IFungeVectorContext VectorContext,
+    IFungeSpaceContext SpaceContext,
+    IFungeStorageOffsetContext StorageOffsetContext,
     IFungeRandomContext RandomContext
-) {
-    
+)
+{
+
     public static FungeFingerprintExecutionContext Create(
-        FingerprintInstruction function, 
-        IFungeExecutionContext executionContext, 
-        IFungeInstructionPointerContext instructionPointerContext, 
-        IFungeStackContext stackContext, 
-        IFungeVectorContext vectorContext, 
-        IFungeSpaceContext spaceContext, 
-        IFungeStorageOffsetContext storageOffsetContext, 
-        IFungeRandomContext randomContext, 
+        FingerprintInstruction function,
+        IFungeExecutionContext executionContext,
+        IFungeInstructionPointerContext instructionPointerContext,
+        IFungeStackContext stackContext,
+        IFungeVectorContext vectorContext,
+        IFungeSpaceContext spaceContext,
+        IFungeStorageOffsetContext storageOffsetContext,
+        IFungeRandomContext randomContext,
         bool disabledOutput = false, bool disabledInput = false
     )
-        => (disabledOutput, disabledInput) switch {
-        (false, false) => new FungeIoExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext),
-        (_, false) => new FungeInputExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext),
-        (false, _) => new FungeOutputExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext),
-        _ => new FungeCoreExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext)
-    };
+        => (disabledOutput, disabledInput) switch
+        {
+            (false, false) => new FungeIoExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext),
+            (_, false) => new FungeInputExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext),
+            (false, _) => new FungeOutputExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext),
+            _ => new FungeCoreExecutionContext(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext)
+        };
 
     readonly List<TaskCompletionSource<IOEvent>> ioEventRequestWaiters = [new TaskCompletionSource<IOEvent>(TaskCreationOptions.RunContinuationsAsynchronously)];
     readonly List<TaskCompletionSource> ioEventResponseWaiters = [];

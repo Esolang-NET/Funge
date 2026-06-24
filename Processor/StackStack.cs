@@ -5,7 +5,7 @@ namespace Esolang.Funge.Processor;
 /// The topmost stack is the TOSS (Top Of Stack Stack).
 /// The second stack (if present) is the SOSS (Second On Stack Stack).
 /// </summary>
-public sealed class StackStack
+sealed class StackStack
 {
     readonly LinkedList<Stack<int>> _stacks = new();
 

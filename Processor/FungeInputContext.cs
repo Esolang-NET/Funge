@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Esolang.Funge.Processor;
 
-class FungeInputContext(IFungeEventEmitter emitEvent) : IFungeInputContext
+sealed class FungeInputContext(IFungeEventEmitter emitEvent) : IFungeInputContext
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task<char> ReadCharAsync()

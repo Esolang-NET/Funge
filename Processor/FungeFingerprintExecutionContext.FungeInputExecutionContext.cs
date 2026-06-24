@@ -11,7 +11,7 @@ abstract partial class FungeFingerprintExecutionContext
             : base(function, executionContext, instructionPointerContext, stackContext, vectorContext, spaceContext, storageOffsetContext, randomContext)
            => inputContext = new FungeInputContext(this);
         public Task<char> ReadCharAsync() => inputContext.ReadCharAsync();
-        
+
         public Task<int> ReadIntAsync() => inputContext.ReadIntAsync();
 
         public Task<string?> ReadLineAsync() => inputContext.ReadLineAsync();

@@ -1951,6 +1951,7 @@ public class FungeMethodGeneratorTests
             """;
         RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
             additionalFiles: [("minimal-int.b98", "@")],
+            languageVersion: LanguageVersion.CSharp9,
             cancellationToken: CancellationToken);
         try
         {
@@ -1995,7 +1996,7 @@ public class FungeMethodGeneratorTests
 
             var runtime = comp.SyntaxTrees
                 .Select(static t => t.ToString())
-                .Single(static text => text.Contains("internal static class FungeRuntime", StringComparison.Ordinal));
+                .Single(static text => text.Contains("file static class FungeRuntime", StringComparison.Ordinal));
 
             await Assert.That(runtime)
                 .Contains("internal static global::System.Threading.Tasks.ValueTask<string> RunValueTaskString(", StringComparison.Ordinal)

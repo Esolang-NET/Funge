@@ -13,26 +13,81 @@ namespace Esolang.Funge.Processor;
 /// <param name="cancellationToken"></param>
 class FungeFingerprintExecutionContextAsyncEnumerator(FingerprintInstruction function,
     List<TaskCompletionSource<IOEvent>> ioEventRequestWaiters,
-    List<TaskCompletionSource> ioEventResponseWaiters, 
-    FungeFingerprintExecutionContext context, 
-    CancellationToken cancellationToken): IDisposable
+    List<TaskCompletionSource> ioEventResponseWaiters,
+    FungeFingerprintExecutionContext context,
+    CancellationToken cancellationToken) : IDisposable
 {
-    State state = State.Initial;
+    /// <summary>
+    /// The state of the async enumerator.
+    /// </summary>
+    State state = default;
+
+    /// <summary>
+    /// The current index in the list of IO event request waiters.
+    /// </summary>
     int i = 0;
+
+    /// <summary>
+    /// The cancellation token used to cancel the enumeration.
+    /// </summary>
     CancellationTokenRegistration? cancellationTokenRegistration;
+
+    /// <summary>
+    /// The cancellation token used to cancel the enumeration.
+    /// </summary>
     IOEvent current = default!;
+
+    /// <summary>
+    /// The task representing the execution of the fingerprint function.
+    /// </summary>
     Task functionTask = default!;
+
+    /// <summary>
+    /// The task representing the cancellation of the enumeration.
+    /// </summary>
     Task cancelTask = default!;
+
+    /// <summary>
+    /// The task completion source for the current IO event request.
+    /// </summary>
     TaskCompletionSource<IOEvent> request = default!;
+
+    /// <summary>
+    /// The task completion source for the current IO event response.
+    /// </summary>
     TaskCompletionSource response = default!;
+
+    /// <summary>
+    /// Gets the element in the collection at the current position of the enumerator.
+    /// </summary>
+    /// <returns>The element in the collection at the current position of the enumerator.</returns>
     public IOEvent Current => current;
+
+    /// <summary>
+    /// The state of the async enumerator.
+    /// </summary>
     enum State : int
     {
-        Initial = 0,
+        /// <summary>
+        /// The initial state of the async enumerator.
+        /// </summary>
+        Initial = default,
+
+        /// <summary>
+        /// The async enumerator is waiting for an IO event.
+        /// </summary>
         WaitingForEvent = 1,
+
+        /// <summary>
+        /// The async enumerator has finished enumeration.
+        /// </summary>
         Finished = -1,
     }
 
+    /// <summary>
+    /// Advances the enumerator asynchronously to the next element of the collection.
+    /// </summary>
+    /// <returns>A <see cref="ValueTask{TResult}"/> that will complete with a result of true if the enumerator was successfully advanced to the next element, or false if the enumerator has passed the end of the collection.</returns>
     public async ValueTask<bool> MoveNextAsync()
     {
         if (cancellationToken.IsCancellationRequested)

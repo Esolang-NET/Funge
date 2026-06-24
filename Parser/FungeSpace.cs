@@ -110,6 +110,6 @@ public sealed class FungeSpace
         else if (nextZ > _maxZ)
             nextZ = _minZ + (nextZ - _maxZ - 1) % depth;
 
-        return new FungeVector(nextX, nextY, nextZ);
+        return new(nextX, nextY, nextZ);
     }
 }

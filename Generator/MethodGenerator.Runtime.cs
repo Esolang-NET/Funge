@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.CSharp;
 using System.Text;
 
 namespace Esolang.Funge.Generator;
@@ -23,10 +24,10 @@ partial class MethodGenerator
         FingerprintSupport = 1 << 11,
     }
 
-    static void EmitRuntimeIfNeeded(StringBuilder builder, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
+    static void EmitRuntimeIfNeeded(StringBuilder builder, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes, LanguageVersion languageVersion)
     {
         if (features == RuntimeFacadeFeatures.None) return;
-        BuildRuntimeSource(builder, features, fungeTypes);
+        BuildRuntimeSource(builder, features, fungeTypes, languageVersion);
     }
 
     static string BuildRuntimeFacadeMethods(RuntimeFacadeFeatures features)
@@ -36,7 +37,7 @@ partial class MethodGenerator
         var loggingArgument = runWithLogging ? ", object? logger = null" : "";
         var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
         var fingerprintArgument = fingerprintSupport ? $$"""
-        , {{Names.IEnumerable}}<global::Esolang.Funge.IFingerprint>? fingerprints = null
+        , {{Names.IEnumerable}}<{{Names.IFingerprint}}>? fingerprints = null
         """ : "";
         var withFingerprintArgument = fingerprintSupport ? ", fingerprints: fingerprints" : "";
         var sb = new StringBuilder();
@@ -152,15 +153,17 @@ partial class MethodGenerator
         return sb.ToString();
     }
 
-    static void BuildRuntimeSource(StringBuilder sb, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes)
+    static void BuildRuntimeSource(StringBuilder sb, RuntimeFacadeFeatures features, KnownFungeTypes fungeTypes, LanguageVersion languageVersion)
     {
         var runWithLogging = (features & RuntimeFacadeFeatures.RunWithLogging) != 0;
         var fingerprintSupport = (features & RuntimeFacadeFeatures.FingerprintSupport) != 0;
+        // "internal" or "file"
+        var toplevelModifiers = languageVersion is <= LanguageVersion.Default or >= LanguageVersion.CSharp10 ? "file" : "internal";
         var loggingArgument = runWithLogging ? ", object? logger = null" : "";
         var withLoggingArgument = runWithLogging ? ", logger: logger" : "";
         var fingerprintArgument = fingerprintSupport
             ? $$"""
-            , {{Names.IEnumerable}}<global::Esolang.Funge.IFingerprint>? fingerprints = null
+            , {{Names.IEnumerable}}<{{Names.IFingerprint}}>? fingerprints = null
             """
             : "";
         var withFingerprintArgument = fingerprintSupport ? ", fingerprints: fingerprints" : "";
@@ -176,60 +179,60 @@ partial class MethodGenerator
                 private static class Log
                 {
                     private static readonly {{Names.Action}}<{{Names.ILogger}}, int, char, int, int, int, {{Names.Exception}}?> _instructionExecuted =
-                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, char, int, int, int>(
-                            global::Microsoft.Extensions.Logging.LogLevel.Trace,
-                            new global::Microsoft.Extensions.Logging.EventId(1, "InstructionExecuted"),
+                        {{Names.LoggerMessage}}.Define<int, char, int, int, int>(
+                            {{Names.LogLevel}}.Trace,
+                            new {{Names.EventId}}(1, "InstructionExecuted"),
                             "IP {Id}: '{Instruction}' at ({X}, {Y}, {Z})");
 
                     [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
                     public static void LogInstruction({{Names.ILogger}}? logger, int id, char instruction, int x, int y, int z)
                     {
-                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Trace))
+                        if (logger != null && logger.IsEnabled({{Names.LogLevel}}.Trace))
                         {
                             _instructionExecuted(logger, id, instruction, x, y, z, null);
                         }
                     }
 
                     private static readonly {{Names.Action}}<{{Names.ILogger}}, int, string, {{Names.Exception}}?> _fingerprintLoaded =
-                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, string>(
-                            global::Microsoft.Extensions.Logging.LogLevel.Debug,
-                            new global::Microsoft.Extensions.Logging.EventId(2, "FingerprintLoaded"),
+                        {{Names.LoggerMessage}}.Define<int, string>(
+                            {{Names.LogLevel}}.Debug,
+                            new {{Names.EventId}}(2, "FingerprintLoaded"),
                             "IP {Id}: Fingerprint '{Fingerprint}' loaded");
 
                     [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
                     public static void LogFingerprintLoaded({{Names.ILogger}}? logger, int id, string fingerprint)
                     {
-                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+                        if (logger != null && logger.IsEnabled({{Names.LogLevel}}.Debug))
                         {
                             _fingerprintLoaded(logger, id, fingerprint, null);
                         }
                     }
 
                     private static readonly {{Names.Action}}<{{Names.ILogger}}, int, string, {{Names.Exception}}?> _fingerprintUnloaded =
-                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, string>(
-                            global::Microsoft.Extensions.Logging.LogLevel.Debug,
-                            new global::Microsoft.Extensions.Logging.EventId(3, "FingerprintUnloaded"),
+                        {{Names.LoggerMessage}}.Define<int, string>(
+                            {{Names.LogLevel}}.Debug,
+                            new {{Names.EventId}}(3, "FingerprintUnloaded"),
                             "IP {Id}: Fingerprint '{Fingerprint}' unloaded");
 
                     [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
                     public static void LogFingerprintUnloaded({{Names.ILogger}}? logger, int id, string fingerprint)
                     {
-                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+                        if (logger != null && logger.IsEnabled({{Names.LogLevel}}.Debug))
                         {
                             _fingerprintUnloaded(logger, id, fingerprint, null);
                         }
                     }
 
                     private static readonly {{Names.Action}}<{{Names.ILogger}}, int, int, {{Names.Exception}}?> _sysInfoRequested =
-                        global::Microsoft.Extensions.Logging.LoggerMessage.Define<int, int>(
-                            global::Microsoft.Extensions.Logging.LogLevel.Debug,
-                            new global::Microsoft.Extensions.Logging.EventId(4, "SysInfoRequested"),
+                        {{Names.LoggerMessage}}.Define<int, int>(
+                            {{Names.LogLevel}}.Debug,
+                            new {{Names.EventId}}(4, "SysInfoRequested"),
                             "IP {Id}: System information requested (Argument: {Value})");
 
                     [{{Names.MethodImpl}}({{Names.MethodImplOptions}}.AggressiveInlining)]
                     public static void LogSysInfoRequested({{Names.ILogger}}? logger, int id, int value)
                     {
-                        if (logger != null && logger.IsEnabled(global::Microsoft.Extensions.Logging.LogLevel.Debug))
+                        if (logger != null && logger.IsEnabled({{Names.LogLevel}}.Debug))
                         {
                             _sysInfoRequested(logger, id, value, null);
                         }
@@ -238,7 +241,7 @@ partial class MethodGenerator
         """ : "";
 
         var runtimeExecutionContextInterfaces = BuildInterfaceList(
-            "global::Esolang.Funge.IFungeExecutionContext",
+            Names.IFungeExecutionContext,
             fungeTypes.IFungeInstructionPointerContext is not null ? "global::Esolang.Funge.IFungeInstructionPointerContext" : null,
             fungeTypes.IFungeStackContext is not null ? "global::Esolang.Funge.IFungeStackContext" : null,
             fungeTypes.IFungeVectorContext is not null ? "global::Esolang.Funge.IFungeVectorContext" : null,
@@ -252,18 +255,18 @@ partial class MethodGenerator
         var runtimeIoContextSuffix = BuildImplementedInterfaceSuffix(
             fungeTypes.IFungeInputContext is not null ? "global::Esolang.Funge.IFungeInputContext" : null,
             fungeTypes.IFungeOutputContext is not null ? "global::Esolang.Funge.IFungeOutputContext" : null);
-        var lifecycleHelpers = fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? """
+        var lifecycleHelpers = fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? $$"""
                     void NotifyInstructionPointerCloned(int parentInstructionPointerId, int childInstructionPointerId)
                     {
                         foreach (var __fingerprint in __fingerprintMap.Values)
-                            if (__fingerprint is global::Esolang.Funge.IFungeInstructionPointerLifecycle __lifecycle)
+                            if (__fingerprint is {{Names.IFungeInstructionPointerLifecycle}} __lifecycle)
                                 __lifecycle.OnInstructionPointerCloned(parentInstructionPointerId, childInstructionPointerId);
                     }
 
                     void NotifyInstructionPointerTerminated(int instructionPointerId)
                     {
                         foreach (var __fingerprint in __fingerprintMap.Values)
-                            if (__fingerprint is global::Esolang.Funge.IFungeInstructionPointerLifecycle __lifecycle)
+                            if (__fingerprint is {{Names.IFungeInstructionPointerLifecycle}} __lifecycle)
                                 __lifecycle.OnInstructionPointerTerminated(instructionPointerId);
                     }
         """ : "";
@@ -283,9 +286,9 @@ partial class MethodGenerator
                                          }
                                          foreach (var __kvp in __fp.Instructions)
                                          {
-                                             {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>? __semStack;
+                                             {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>? __semStack;
                                              if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
-                                                 ip.Semantics[__kvp.Key] = __semStack = new {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>();
+                                                 ip.Semantics[__kvp.Key] = __semStack = new {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>();
                                              __semStack.Push(__kvp.Value);
                                          }
                                          Log.LogFingerprintLoaded(__logger, ip.Id, $"0x{__handprint:X8}");
@@ -304,9 +307,9 @@ partial class MethodGenerator
                                          }
                                          foreach (var __kvp in __fp.Instructions)
                                          {
-                                             {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>? __semStack;
+                                             {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>? __semStack;
                                              if (!ip.Semantics.TryGetValue(__kvp.Key, out __semStack))
-                                                 ip.Semantics[__kvp.Key] = __semStack = new {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>();
+                                                 ip.Semantics[__kvp.Key] = __semStack = new {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>();
                                              __semStack.Push(__kvp.Value);
                                          }
                                          ip.StackStack.Push(__handprint);
@@ -400,7 +403,7 @@ partial class MethodGenerator
                                      if (cell >= 'A' && cell <= 'Z')
                                      {
                                          var __letter = (char)cell;
-                                         {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>? __semStack;
+                                         {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>? __semStack;
                                          if (ip.Semantics.TryGetValue(__letter, out __semStack) && __semStack.Count > 0) {
                                             var task = __semStack.Peek()(CreateRuntimeFungeExecutionContext(ip, input, hasInput, hasOutput, writeOutputChar, GetCell, SetCell, rng));
                                             if (!task.IsCompleted) {
@@ -464,7 +467,7 @@ partial class MethodGenerator
         """;
 
         var runtimeExecutionContext = fingerprintSupport ? $$"""
-                private static global::Esolang.Funge.IFungeExecutionContext CreateRuntimeFungeExecutionContext(RuntimeIp ip, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.Action}}<int> writeOutputChar, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng)
+                private static {{Names.IFungeExecutionContext}} CreateRuntimeFungeExecutionContext(RuntimeIp ip, {{Names.TextReader}} input, bool hasInput, bool hasOutput, {{Names.Action}}<int> writeOutputChar, {{Names.Func}}<int, int, int, int> getCell, {{Names.Action}}<int, int, int, int> setCell, RuntimeRandomSource rng)
                 {
                     if (hasInput && hasOutput)
                         return new RuntimeFungeIoExecutionContext(ip, input, writeOutputChar, getCell, setCell, rng);
@@ -593,7 +596,7 @@ partial class MethodGenerator
         namespace Esolang.Funge.__Generated
         {
             [{{Names.EditorBrowsable}}({{Names.EditorBrowsableState}}.Never)]
-            internal static class FungeRuntime
+            {{toplevelModifiers}} static class FungeRuntime
             {
         {{BuildRuntimeFacadeMethods(features)}}
         {{logMessages}}
@@ -635,15 +638,15 @@ partial class MethodGenerator
                     internal bool StringMode;
                     internal bool IsStopped;
         {{(fingerprintSupport ? $$"""
-                    internal {{Names.Dictionary}}<char, {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>> Semantics = new {{Names.Dictionary}}<char, {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>>();
-        """ 
+                    internal {{Names.Dictionary}}<char, {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>> Semantics = new {{Names.Dictionary}}<char, {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>>();
+        """
         : "")}}
                     internal RuntimeIp CreateChild(int newId)
                     {
                         var child = new RuntimeIp(newId) { Position = Position, Delta = (-Delta.X, -Delta.Y, -Delta.Z), Offset = Offset, StackStack = StackStack.Clone(), StringMode = StringMode };
         {{(fingerprintSupport ? $$"""
                         foreach (var __kvp in Semantics)
-                            child.Semantics[__kvp.Key] = new {{Names.Stack}}<{{Names.Func}}<global::Esolang.Funge.IFungeExecutionContext, {{Names.ValueTask}}>>(__kvp.Value);
+                            child.Semantics[__kvp.Key] = new {{Names.Stack}}<{{Names.Func}}<{{Names.IFungeExecutionContext}}, {{Names.ValueTask}}>>(__kvp.Value);
         """ : "")}}                        return child;
                     }
                 }
@@ -683,7 +686,7 @@ partial class MethodGenerator
                 {
         {{loggingCasts}}
         {{(fingerprintSupport ? $$"""
-                    var __fingerprintMap = new {{Names.Dictionary}}<int, global::Esolang.Funge.IFingerprint>();
+                    var __fingerprintMap = new {{Names.Dictionary}}<int, {{Names.IFingerprint}}>();
                     if (fingerprints != null)
                         foreach (var __fp0 in fingerprints)
                             __fingerprintMap[__fp0.Handprint] = __fp0;
@@ -1245,7 +1248,9 @@ partial class MethodGenerator
                             case 't':
                                 {
                                     var child = ip.CreateChild(ips.Count);
-        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? "                            NotifyInstructionPointerCloned(ip.Id, child.Id);" : "")}}
+        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? """
+                                    NotifyInstructionPointerCloned(ip.Id, child.Id);
+        """ : "")}}
                                     ips.AddAfter(ipNode, child);
                                     break;
                                 }
@@ -1347,7 +1352,9 @@ partial class MethodGenerator
                                 ExecuteInstruction(ip, node, ref suppressAdvance, null);
                                 if (ip.IsStopped || quit)
                                 {
-        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? "                            NotifyInstructionPointerTerminated(ip.Id);" : "")}}
+        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? """
+                                    NotifyInstructionPointerTerminated(ip.Id);
+        """ : "")}}
                                     ips.Remove(node);
                                 }
                                 else if (!suppressAdvance)
@@ -1360,7 +1367,9 @@ partial class MethodGenerator
                     {
                         while (ips.Count > 0)
                         {
-        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? "                    NotifyInstructionPointerTerminated(ips.First!.Value.Id);" : "")}}
+        {{(fingerprintSupport && fungeTypes.IFungeInstructionPointerLifecycle is not null ? """
+                            NotifyInstructionPointerTerminated(ips.First!.Value.Id);
+        """ : "")}}
                             ips.RemoveFirst();
                         }
                     }
@@ -1371,48 +1380,4 @@ partial class MethodGenerator
         }
         """);
     }
-}
-
-static class Names
-{
-    
-    public const string IEnumerable = "global::System.Collections.Generic.IEnumerable";
-    public const string IAsyncEnumerable = "global::System.Collections.Generic.IAsyncEnumerable";
-    public const string Dictionary = "global::System.Collections.Generic.Dictionary";
-    public const string TextReader = "global::System.IO.TextReader";
-    public const string TextWriter = "global::System.IO.TextWriter";
-    public const string CancellationToken = "global::System.Threading.CancellationToken";
-    public const string EnumeratorCancellation = "global::System.Runtime.CompilerServices.EnumeratorCancellation";
-    public const string Task = "global::System.Threading.Tasks.Task";
-    public const string TaskCompletionSource = "global::System.Threading.Tasks.TaskCompletionSource";
-    public const string ValueTask = "global::System.Threading.Tasks.ValueTask";
-    public const string Func = "global::System.Func";
-    public const string ILogger = "global::Microsoft.Extensions.Logging.ILogger";
-    public const string Exception = "global::System.Exception";
-    public const string MethodImpl = "global::System.Runtime.CompilerServices.MethodImpl";
-    public const string MethodImplOptions = "global::System.Runtime.CompilerServices.MethodImplOptions";
-    public const string DictionaryEntry = "global::System.Collections.DictionaryEntry";
-    public const string Action = "global::System.Action";
-    public const string LinkedList = "global::System.Collections.Generic.LinkedList";
-    public const string LinkedListNode = "global::System.Collections.Generic.LinkedListNode";
-    public const string Stack = "global::System.Collections.Generic.Stack";
-    public const string Random = "global::System.Random";
-    public const string List = "global::System.Collections.Generic.List";
-    public const string Path = "global::System.IO.Path";
-    public const string DateTime = "global::System.DateTime";
-    public const string Environment = "global::System.Environment";
-    public const string File = "global::System.IO.File";
-    public const string ProcessStartInfo = "global::System.Diagnostics.ProcessStartInfo";
-    public const string Math = "global::System.Math";
-    public const string StringWriter = "global::System.IO.StringWriter";
-    public const string RuntimeInformation = "global::System.Runtime.InteropServices.RuntimeInformation";
-    public const string OSPlatform = "global::System.Runtime.InteropServices.OSPlatform";
-    public const string Process = "global::System.Diagnostics.Process";
-    public const string EditorBrowsable = "global::System.ComponentModel.EditorBrowsable";
-    public const string EditorBrowsableState = "global::System.ComponentModel.EditorBrowsableState";
-    public const string Encoding = "global::System.Text.Encoding";
-    public const string ConcurrentQueue = "global::System.Collections.Concurrent.ConcurrentQueue";
-    public const string BitConverter = "global::System.BitConverter";
-    public const string ArgumentOutOfRangeException = "global::System.ArgumentOutOfRangeException";
-    public const string InvalidOperationException = "global::System.InvalidOperationException";
 }

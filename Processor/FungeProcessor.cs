@@ -617,11 +617,13 @@ public sealed partial class FungeProcessor(
                 if (cell is >= 'A' and <= 'Z')
                 {
                     var letter = (char)cell;
-                    if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0) {
+                    if (ip.Semantics.TryGetValue(letter, out var semStack) && semStack.Count > 0)
+                    {
                         var context = (fungeExecutionContextFactory ??= new(ip, _space, _random, !enableOutput, !enableInput)).CreateContext(semStack.Peek());
                         await foreach (var ioEvent in context)
                             yield return ioEvent;
-                    } else
+                    }
+                    else
                         ip.Delta = ip.Delta.Reflect();
                 }
                 // All other characters: no-op

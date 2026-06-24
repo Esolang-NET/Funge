@@ -25,7 +25,7 @@ record FungeExecutionContextFactory(IFungeExecutionContext ExecutionContext, IFu
     /// <param name="random"></param>
     /// <param name="disabledOutput"></param>
     /// <param name="disabledInput"></param>
-    public FungeExecutionContextFactory(InstructionPointer ip, FungeSpace space, FungeRandomSource random, bool disabledOutput = false, bool disabledInput = false): this(ip, ip, ip, ip, new FungeStackContext(space), ip, random, disabledOutput, disabledInput) { }
+    public FungeExecutionContextFactory(InstructionPointer ip, FungeSpace space, FungeRandomSource random, bool disabledOutput = false, bool disabledInput = false) : this(ip, ip, ip, ip, new FungeStackContext(space), ip, random, disabledOutput, disabledInput) { }
 
     /// <summary>
     /// Creates a new instance of <see cref="FungeFingerprintExecutionContext"/> with the specified function and the contexts/settings provided to this factory.

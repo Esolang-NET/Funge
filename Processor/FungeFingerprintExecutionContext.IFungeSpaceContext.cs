@@ -2,7 +2,7 @@ namespace Esolang.Funge.Processor;
 
 abstract partial class FungeFingerprintExecutionContext : IFungeSpaceContext
 {
-    
+
     /// <inheritdoc/>
     public int Dimensions => SpaceContext.Dimensions;
 

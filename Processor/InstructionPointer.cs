@@ -1,5 +1,4 @@
 using Esolang.Funge.Parser;
-using System.Runtime.CompilerServices;
 using FingerprintInstruction = System.Func<Esolang.Funge.IFungeExecutionContext, System.Threading.Tasks.ValueTask>;
 
 namespace Esolang.Funge.Processor;
@@ -7,7 +6,7 @@ namespace Esolang.Funge.Processor;
 /// <summary>
 /// Represents the execution state of a single Instruction Pointer (IP) in Funge-98.
 /// </summary>
-public sealed class InstructionPointer : IFungeInstructionPointerContext, IFungeExecutionContext, IFungeStackContext, IFungeVectorContext, IFungeStorageOffsetContext
+sealed partial class InstructionPointer
 {
     /// <summary>Gets the unique identifier for this IP.</summary>
     public int Id { get; }
@@ -66,43 +65,4 @@ public sealed class InstructionPointer : IFungeInstructionPointerContext, IFunge
             child.Semantics[letter] = new Stack<FingerprintInstruction>(stack.Reverse());
         return child;
     }
-
-    int IFungeInstructionPointerContext.InstructionPointerId
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Id;
-    }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IFungeExecutionContext.Push(int value) => StackStack.Push(value);
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    int IFungeExecutionContext.Pop() => StackStack.Pop();
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    int IFungeExecutionContext.Peek() => StackStack.Peek();
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IFungeExecutionContext.Reflect() => Delta = Delta.Reflect();
-    
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    (int X, int Y, int Z) IFungeVectorContext.PopVector()
-    {
-        var z = StackStack.Pop();
-        var y = StackStack.Pop();
-        var x = StackStack.Pop();
-        return (x, y, z);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IFungeVectorContext.PushVector(int x, int y, int z)
-    {
-        StackStack.Push(x);
-        StackStack.Push(y);
-        StackStack.Push(z);
-    }
-    int IFungeStackContext.StackDepth {    
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => StackStack.TOSS.Count;
-    }
-
-    (int X, int Y, int Z) IFungeStorageOffsetContext.StorageOffset => (Offset.X, Offset.Y, Offset.Z);
 }

@@ -2,7 +2,7 @@ namespace Esolang.Funge.Processor;
 
 abstract partial class FungeFingerprintExecutionContext : IFungeVectorContext
 {
-    
+
     /// <inheritdoc/>
     public (int X, int Y, int Z) PopVector() => VectorContext.PopVector();
 

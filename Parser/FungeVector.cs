@@ -10,25 +10,25 @@ namespace Esolang.Funge.Parser;
 public readonly struct FungeVector(int x, int y, int z) : IEquatable<FungeVector>
 {
     /// <summary>The X component.</summary>
-    public int X { get; } = x;
+    public readonly int X { get; } = x;
 
     /// <summary>The Y component.</summary>
-    public int Y { get; } = y;
+    public readonly int Y { get; } = y;
 
     /// <summary>The Z component.</summary>
-    public int Z { get; } = z;
+    public readonly int Z { get; } = z;
 
     /// <summary>Initializes a new <see cref="FungeVector"/> in 2D (Z=0).</summary>
     public FungeVector(int x, int y) : this(x, y, 0) { }
 
     /// <inheritdoc/>
-    public bool Equals(FungeVector other) => X == other.X && Y == other.Y && Z == other.Z;
+    public readonly bool Equals(FungeVector other) => X == other.X && Y == other.Y && Z == other.Z;
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is FungeVector v && Equals(v);
+    public override readonly bool Equals(object? obj) => obj is FungeVector v && Equals(v);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(HashCode.Combine(X, Y), Z);
+    public override readonly int GetHashCode() => HashCode.Combine(HashCode.Combine(X, Y), Z);
 
     /// <summary>Equality operator.</summary>
     public static bool operator ==(FungeVector left, FungeVector right) => left.Equals(right);
@@ -37,7 +37,7 @@ public readonly struct FungeVector(int x, int y, int z) : IEquatable<FungeVector
     public static bool operator !=(FungeVector left, FungeVector right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public override string ToString() => $"({X}, {Y}, {Z})";
+    public override readonly string ToString() => $"({X}, {Y}, {Z})";
 
     /// <summary>Delta for East direction (right): (1, 0).</summary>
     public static readonly FungeVector East = new(1, 0);

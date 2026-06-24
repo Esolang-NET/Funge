@@ -1,6 +1,6 @@
 namespace Esolang.Funge.Processor;
 
-abstract partial class FungeFingerprintExecutionContext: IFungeRandomContext
+abstract partial class FungeFingerprintExecutionContext : IFungeRandomContext
 {
     /// <inheritdoc/>
     public uint NextUInt32(uint exclusiveUpperBound) => RandomContext.NextUInt32(exclusiveUpperBound);

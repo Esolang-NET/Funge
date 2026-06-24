@@ -10,7 +10,7 @@ abstract partial class FungeFingerprintExecutionContext : IFungeExecutionContext
 
     /// <inheritdoc/>
     public int Peek() => ExecutionContext.Peek();
-    
+
     /// <inheritdoc/>
     public void Reflect() => ExecutionContext.Reflect();
 }
