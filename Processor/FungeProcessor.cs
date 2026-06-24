@@ -33,7 +33,7 @@ public sealed partial class FungeProcessor(
     bool enableOutput = true)
 {
     readonly FungeSpace _space = space;
-    FungeExecutionContextFactory? fungeExecutionContextFactory;
+    FungeFingerprintExecutionContextFactory? fungeExecutionContextFactory;
     readonly string[] _commandLineArguments = (commandLineArguments ?? Environment.GetCommandLineArgs())
 #pragma warning disable IDE0305 // コレクションの初期化を簡略化します
             .ToArray();
