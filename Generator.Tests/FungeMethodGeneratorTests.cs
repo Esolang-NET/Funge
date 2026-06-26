@@ -15,10 +15,6 @@ public class FungeMethodGeneratorTests
 {
 
     static int AssemblySequence;
-#if NET48
-    static readonly SemaphoreSlim RuntimeOutputTestsGate = new(1, 1);
-    static readonly SemaphoreSlim EmitGate = new(1, 1);
-#endif
 
     void LogWriteLine(string message) => TestContext.OutputWriter.WriteLine(message);
 
@@ -396,30 +392,18 @@ public class FungeMethodGeneratorTests
 
     static async Task<Assembly> EmitAsync(Compilation compilation, CancellationToken cancellationToken)
     {
-#if NET48
-        await EmitGate.WaitAsync(cancellationToken);
-        try
-        {
-#endif
-            using var ms = new MemoryStream();
-            var result = compilation.Emit(ms, cancellationToken: cancellationToken);
-            await Assert.That(result.Success).IsTrue();
-            ms.Seek(0, SeekOrigin.Begin);
+        using var ms = new MemoryStream();
+        var result = compilation.Emit(ms, cancellationToken: cancellationToken);
+        await Assert.That(result.Success).IsTrue();
+        ms.Seek(0, SeekOrigin.Begin);
 
 #if NET48
-            return System.Reflection.Assembly.Load(ms.ToArray());
+        return System.Reflection.Assembly.Load(ms.ToArray());
 #else
         var ctx = new System.Runtime.Loader.AssemblyLoadContext(
             $"{nameof(FungeMethodGeneratorTests)}_{compilation.AssemblyName}",
             isCollectible: true);
         return ctx.LoadFromStream(ms);
-#endif
-#if NET48
-        }
-        finally
-        {
-            EmitGate.Release();
-        }
 #endif
     }
 
@@ -454,21 +438,6 @@ public class FungeMethodGeneratorTests
     {
         foreach (var t in compilation.SyntaxTrees)
             LogWriteLine($"// {t.FilePath}\n{t}");
-    }
-
-    static Task WaitRuntimeOutputTestsGateAsync(CancellationToken cancellationToken)
-       =>
-#if NET48
-        RuntimeOutputTestsGate.WaitAsync(cancellationToken);
-#else
-        Task.CompletedTask;
-#endif
-
-    static void ReleaseRuntimeOutputTestsGate()
-    {
-#if NET48
-        RuntimeOutputTestsGate.Release();
-#endif
     }
 
     static async Task<string> ReadPipeOutputAsync(Pipe pipe)
@@ -2131,186 +2100,169 @@ public class FungeMethodGeneratorTests
 
     [Test]
     [Timeout(Constant.RuntimeOutputTimeout)]
+#if NET48
+    [NotInParallel(Constant.Net48NotInParallel)]
+#endif
     public async Task Runtime_Int_TextWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
-        await WaitRuntimeOutputTestsGateAsync(CancellationToken);
+        var source = """
+            using Esolang.Funge;
+            using System.IO;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run(TextWriter output, System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
         try
         {
-            var source = """
-                using Esolang.Funge;
-                using System.IO;
-                namespace TestProject;
-                partial class TestClass
-                {
-                    [GenerateFungeMethod("test.b98")]
-                    public static partial int Run(TextWriter output, System.Threading.CancellationToken cancellationToken);
-                }
-                """;
-            RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-                additionalFiles: [("test.b98", "65*.5q")],
-                cancellationToken: CancellationToken);
-            try
-            {
-                AssertNoErrors(diag, comp);
+            AssertNoErrors(diag, comp);
 
-                var asm = await EmitAsync(comp, CancellationToken);
-                await Task.Factory.StartNew(async () =>
-                {
-                    var t = asm.GetType("TestProject.TestClass")!;
-                    var m = t.GetMethod("Run");
-                    Assert.NotNull(m);
-                    using var output = new StringWriter();
-                    var result = (int)m.Invoke(null, [output, CancellationToken])!;
-                    await Assert.That(result).IsEqualTo(5);
-                    await Assert.That(output.ToString()).IsEqualTo("30 ");
-                }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-            }
-            catch (Exception e) when (e is AssertionException or TargetInvocationException)
+            var asm = await EmitAsync(comp, CancellationToken);
+            await Task.Factory.StartNew(async () =>
             {
-                LogDiagnostics(diag, comp, CancellationToken);
-                throw;
-            }
+                var t = asm.GetType("TestProject.TestClass")!;
+                var m = t.GetMethod("Run");
+                Assert.NotNull(m);
+                using var output = new StringWriter();
+                var result = (int)m.Invoke(null, [output, CancellationToken])!;
+                await Assert.That(result).IsEqualTo(5);
+                await Assert.That(output.ToString()).IsEqualTo("30 ");
+            }, CancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
-        finally
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            ReleaseRuntimeOutputTestsGate();
+            LogDiagnostics(diag, comp, CancellationToken);
+            throw;
         }
     }
 
     [Test]
     [Timeout(Constant.RuntimeOutputTimeout)]
+#if NET48
+    [NotInParallel(Constant.Net48NotInParallel)]
+#endif
+
     public async Task Runtime_Int_PipeWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
-        await WaitRuntimeOutputTestsGateAsync(CancellationToken);
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial int Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
         try
         {
-            var source = """
-                using Esolang.Funge;
-                using System.IO.Pipelines;
-                namespace TestProject;
-                partial class TestClass
-                {
-                    [GenerateFungeMethod("test.b98")]
-                    public static partial int Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
-                }
-                """;
-            RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-                additionalFiles: [("test.b98", "65*.5q")],
-                cancellationToken: CancellationToken);
-            try
-            {
-                AssertNoErrors(diag, comp);
+            AssertNoErrors(diag, comp);
 
-                var asm = await EmitAsync(comp, CancellationToken);
-                var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run");
-                Assert.NotNull(m);
-                var pipe = new Pipe();
-                var result = (int)m.Invoke(null, [pipe.Writer, CancellationToken])!;
-                await Assert.That(result).IsEqualTo(5);
-                await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
-            }
-            catch (Exception e) when (e is AssertionException or TargetInvocationException)
-            {
-                LogDiagnostics(diag, comp, CancellationToken);
-                throw;
-            }
+            var asm = await EmitAsync(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.NotNull(m);
+            var pipe = new Pipe();
+            var result = (int)m.Invoke(null, [pipe.Writer, CancellationToken])!;
+            await Assert.That(result).IsEqualTo(5);
+            await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
         }
-        finally
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            ReleaseRuntimeOutputTestsGate();
+            LogDiagnostics(diag, comp, CancellationToken);
+            throw;
         }
     }
 
     [Test]
     [Timeout(Constant.RuntimeOutputTimeout)]
+#if NET48
+    [NotInParallel(Constant.Net48NotInParallel)]
+#endif
+
     public async Task Runtime_TaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
-        await WaitRuntimeOutputTestsGateAsync(CancellationToken);
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial Task<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
         try
         {
-            var source = """
-                using Esolang.Funge;
-                using System.IO.Pipelines;
-                using System.Threading.Tasks;
-                namespace TestProject;
-                partial class TestClass
-                {
-                    [GenerateFungeMethod("test.b98")]
-                    public static partial Task<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
-                }
-                """;
-            RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-                additionalFiles: [("test.b98", "65*.5q")],
-                cancellationToken: CancellationToken);
-            try
-            {
-                AssertNoErrors(diag, comp);
+            AssertNoErrors(diag, comp);
 
-                var asm = await EmitAsync(comp, CancellationToken);
-                var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run");
-                Assert.NotNull(m);
-                var pipe = new Pipe();
-                var result = await (Task<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
-                await Assert.That(result).IsEqualTo(5);
-                await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
-            }
-            catch (Exception e) when (e is AssertionException or TargetInvocationException)
-            {
-                LogDiagnostics(diag, comp, CancellationToken);
-                throw;
-            }
+            var asm = await EmitAsync(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.NotNull(m);
+            var pipe = new Pipe();
+            var result = await (Task<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
+            await Assert.That(result).IsEqualTo(5);
+            await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
         }
-        finally
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            ReleaseRuntimeOutputTestsGate();
+            LogDiagnostics(diag, comp, CancellationToken);
+            throw;
         }
     }
 
     [Test]
     [Timeout(Constant.RuntimeOutputTimeout)]
+#if NET48
+    [NotInParallel(Constant.Net48NotInParallel)]
+#endif
+
     public async Task Runtime_ValueTaskInt_PipeWriter_ReturnsExitCodeAndWritesOutput(CancellationToken CancellationToken)
     {
-        await WaitRuntimeOutputTestsGateAsync(CancellationToken);
+        var source = """
+            using Esolang.Funge;
+            using System.IO.Pipelines;
+            using System.Threading.Tasks;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("test.b98")]
+                public static partial ValueTask<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
+            }
+            """;
+        RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
+            additionalFiles: [("test.b98", "65*.5q")],
+            cancellationToken: CancellationToken);
         try
         {
-            var source = """
-                using Esolang.Funge;
-                using System.IO.Pipelines;
-                using System.Threading.Tasks;
-                namespace TestProject;
-                partial class TestClass
-                {
-                    [GenerateFungeMethod("test.b98")]
-                    public static partial ValueTask<int> Run(PipeWriter output, System.Threading.CancellationToken cancellationToken);
-                }
-                """;
-            RunGeneratorsAndUpdateCompilation(source, out var comp, out var diag,
-                additionalFiles: [("test.b98", "65*.5q")],
-                cancellationToken: CancellationToken);
-            try
-            {
-                AssertNoErrors(diag, comp);
+            AssertNoErrors(diag, comp);
 
-                var asm = await EmitAsync(comp, CancellationToken);
-                var t = asm.GetType("TestProject.TestClass")!;
-                var m = t.GetMethod("Run");
-                Assert.NotNull(m);
-                var pipe = new Pipe();
-                var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
-                await Assert.That(result).IsEqualTo(5);
-                await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
-            }
-            catch (Exception e) when (e is AssertionException or TargetInvocationException)
-            {
-                LogDiagnostics(diag, comp, CancellationToken);
-                throw;
-            }
+            var asm = await EmitAsync(comp, CancellationToken);
+            var t = asm.GetType("TestProject.TestClass")!;
+            var m = t.GetMethod("Run");
+            Assert.NotNull(m);
+            var pipe = new Pipe();
+            var result = await (ValueTask<int>)m.Invoke(null, [pipe.Writer, CancellationToken])!;
+            await Assert.That(result).IsEqualTo(5);
+            await Assert.That(await ReadPipeOutputAsync(pipe)).IsEqualTo("30 ");
         }
-        finally
+        catch (Exception e) when (e is AssertionException or TargetInvocationException)
         {
-            ReleaseRuntimeOutputTestsGate();
+            LogDiagnostics(diag, comp, CancellationToken);
+            throw;
         }
     }
 
@@ -3440,4 +3392,7 @@ file static class Constant
     public const int Timeout = 1000 * 30;
 #endif
     public const int RuntimeOutputTimeout = Timeout;
+#if NET48
+    public const string Net48NotInParallel = "Esolang.Funge.Generator.Tests." + nameof(Net48NotInParallel);
+#endif
 }
