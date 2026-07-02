@@ -61,7 +61,7 @@ file sealed class LifecycleFingerprint(string name, IReadOnlyDictionary<char, Fi
 public class FingerprintTests
 {
     static async Task<string> Run(string source, IEnumerable<IFingerprint>? fingerprints = null, string? input = null, CancellationToken CancellationToken = default)
-        => await Run(Parser.FungeParser.Parse(source), fingerprints, input, CancellationToken);
+        => await Run(Parser.FungeParser.Parse(source, CancellationToken), fingerprints, input, CancellationToken);
 
     static async Task<string> Run(Parser.FungeSpace space, IEnumerable<IFingerprint>? fingerprints = null, string? input = null, CancellationToken CancellationToken = default)
     {
@@ -107,7 +107,7 @@ public class FingerprintTests
 
     static async Task<int> RunExitCode(string source, IEnumerable<IFingerprint>? fingerprints = null, string? input = null, bool provideInput = true, bool provideOutput = true, CancellationToken CancellationToken = default)
     {
-        var space = Parser.FungeParser.Parse(source);
+        var space = Parser.FungeParser.Parse(source, CancellationToken);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
         var proc = new FungeProcessor(
@@ -334,7 +334,7 @@ public class FingerprintTests
     [Timeout(Constant.Timeout)]
     public async Task IndvFingerprint_ReadsCellThroughIndirectAddress(CancellationToken CancellationToken)
     {
-        var space = Parser.FungeParser.Parse("\"VDNI\"4($$45*00G.@");
+        var space = Parser.FungeParser.Parse("\"VDNI\"4($$45*00G.@", CancellationToken);
         space[new Parser.FungeVector(20, 0, 0)] = 0;
         space[new Parser.FungeVector(21, 0, 0)] = 0;
         space[new Parser.FungeVector(22, 0, 0)] = 30;
@@ -367,7 +367,7 @@ public class FingerprintTests
     {
         var fp = new CustomFingerprint(
             "PEST",
-            new Dictionary<char, Func<IFungeExecutionContext, ValueTask>>
+            new Dictionary<char, FingerprintInstruction>
             {
                 ['A'] = ctx =>
                 {

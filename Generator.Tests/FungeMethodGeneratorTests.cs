@@ -44,7 +44,7 @@ public class FungeMethodGeneratorTests
                 string.Equals(Path.GetFileNameWithoutExtension(r.FilePath), "System.IO.Pipelines", StringComparison.OrdinalIgnoreCase));
             if (!hasPipelinesReference)
             {
-                var pipelinesAssemblyLocation = typeof(System.IO.Pipelines.PipeReader).Assembly.Location;
+                var pipelinesAssemblyLocation = typeof(PipeReader).Assembly.Location;
                 if (!string.IsNullOrWhiteSpace(pipelinesAssemblyLocation))
                 {
                     referenceList.Add(MetadataReference.CreateFromFile(pipelinesAssemblyLocation));
@@ -2021,6 +2021,74 @@ public class FungeMethodGeneratorTests
     }
 
     [Test]
+    [Timeout(Constant.Timeout)]
+    public void Generator_PreCanceledToken_ThrowsOperationCanceledException(CancellationToken CancellationToken)
+    {
+        const string source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod(InlineSource = "@")]
+                public static partial int Run();
+            }
+            """;
+
+        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp11);
+        var driver = CSharpGeneratorDriver.Create(
+            generators: [new MethodGenerator().AsSourceGenerator()],
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true))
+            .WithUpdatedParseOptions(parseOptions);
+
+        var compilation = baseCompilation
+            .WithAssemblyName($"generatortest_{Interlocked.Increment(ref AssemblySequence)}")
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions, path: "input.cs", encoding: Encoding.UTF8, cancellationToken: CancellationToken));
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var ex = Assert.Throws<OperationCanceledException>(() =>
+            driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, cts.Token));
+        Assert.NotNull(ex);
+    }
+
+    [Test]
+    [Timeout(Constant.Timeout)]
+    public void Generator_CancellationRequestedDuringAdditionalTextRead_ThrowsOperationCanceledException(CancellationToken CancellationToken)
+    {
+        const string source = """
+            using Esolang.Funge;
+            namespace TestProject;
+            partial class TestClass
+            {
+                [GenerateFungeMethod("cancel-me.b98")]
+                public static partial int Run();
+            }
+            """;
+
+        var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp11);
+        using var cts = new CancellationTokenSource();
+        var additionalText = new CancellingAdditionalText(
+            "cancel-me.b98",
+            "@",
+            onGetText: cts.Cancel);
+
+        var driver = CSharpGeneratorDriver.Create(
+            generators: [new MethodGenerator().AsSourceGenerator()],
+            additionalTexts: [additionalText],
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true))
+            .WithUpdatedParseOptions(parseOptions);
+
+        var compilation = baseCompilation
+            .WithAssemblyName($"generatortest_{Interlocked.Increment(ref AssemblySequence)}")
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, parseOptions, path: "input.cs", encoding: Encoding.UTF8, cancellationToken: CancellationToken));
+
+        var ex = Assert.Throws<OperationCanceledException>(() =>
+            driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out _, cts.Token));
+        Assert.NotNull(ex);
+    }
+
+    [Test]
     public async Task Diagnostic_SourceFileNotFound_FG0004(CancellationToken CancellationToken)
     {
         var source = """
@@ -3381,6 +3449,18 @@ file sealed class TestAdditionalText(string path, string content) : AdditionalTe
     public override string Path { get; } = path;
     public override SourceText? GetText(CancellationToken cancellationToken = default)
         => SourceText.From(content, Encoding.UTF8);
+}
+
+file sealed class CancellingAdditionalText(string path, string content, Action onGetText) : AdditionalText
+{
+    public override string Path { get; } = path;
+
+    public override SourceText? GetText(CancellationToken cancellationToken = default)
+    {
+        onGetText();
+        cancellationToken.ThrowIfCancellationRequested();
+        return SourceText.From(content, Encoding.UTF8);
+    }
 }
 
 

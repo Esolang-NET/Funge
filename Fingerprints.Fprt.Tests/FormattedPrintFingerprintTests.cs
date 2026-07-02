@@ -29,7 +29,7 @@ public class FormattedPrintFingerprintTests
 
     static string Pop0gnirts(TestContext ctx)
     {
-        var chars = new System.Collections.Generic.List<char>();
+        var chars = new List<char>();
         int c;
         while ((c = ctx.Pop()) != 0)
             chars.Insert(0, (char)c);

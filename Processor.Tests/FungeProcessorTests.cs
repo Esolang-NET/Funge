@@ -7,7 +7,7 @@ public class FungeProcessorTests
 {
     static async Task<string> Run(string source, string? input = null, CancellationToken CancellationToken = default)
     {
-        var space = Parser.FungeParser.Parse(source);
+        var space = Parser.FungeParser.Parse(source, CancellationToken);
         var output = new StringWriter();
         var reader = input is null ? TextReader.Null : new StringReader(input);
         var proc = new FungeProcessor(space, enableInput: input is not null, enableOutput: true);
@@ -44,7 +44,7 @@ public class FungeProcessorTests
 
     static async Task<int> RunGetExitCode(string source, CancellationToken CancellationToken = default)
     {
-        var space = Parser.FungeParser.Parse(source);
+        var space = Parser.FungeParser.Parse(source, CancellationToken);
         var proc = new FungeProcessor(space, enableInput: false, enableOutput: false);
         return await RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);
     }
@@ -412,7 +412,7 @@ public class FungeProcessorTests
     [Timeout(Constant.Timeout)]
     public async Task RunToEnd_UsesProvidedTextIo(CancellationToken CancellationToken)
     {
-        var space = Parser.FungeParser.Parse("&.@");
+        var space = Parser.FungeParser.Parse("&.@", CancellationToken);
         var output = new StringWriter();
         var input = new StringReader("42\n");
         var proc = new FungeProcessor(space);
@@ -427,7 +427,7 @@ public class FungeProcessorTests
     [Timeout(Constant.Timeout)]
     public async Task RunToEndAsync_ReturnsExitCode(CancellationToken CancellationToken)
     {
-        var space = Parser.FungeParser.Parse("7q");
+        var space = Parser.FungeParser.Parse("7q", CancellationToken);
         var proc = new FungeProcessor(space);
 
         var exitCode = RunToEnd(proc, TextReader.Null, TextWriter.Null, CancellationToken);

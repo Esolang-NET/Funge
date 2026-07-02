@@ -39,7 +39,7 @@ public sealed class JstrFingerprint : IFingerprint
 
     static string Pop0gnirts(IFungeExecutionContext ctx)
     {
-        var chars = new System.Collections.Generic.List<char>();
+        var chars = new List<char>();
         int c;
         while ((c = ctx.Pop()) != 0)
             chars.Insert(0, (char)c);
