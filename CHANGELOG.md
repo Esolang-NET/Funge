@@ -34,12 +34,12 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Fingerprints.Stck`: new package implementing the `STCK` fingerprint (`0x5354434B`) with instructions `B`, `C`, `D`, `G`, `K`, `N`, `P`, `R`, `S`, `T`, `U`, `W`, and `Z`, targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Generator`: new `[FingerprintsProvider]` attribute to register custom fingerprints; the generated runtime now dispatches fingerprint instructions through registered `IFingerprint` implementations.
 - `Esolang.Funge.Processor`: fingerprint load/unload (`(` `)`) now dispatches instructions through registered `IFingerprint` implementations; unrecognised fingerprints reflect as per spec.
+- `Esolang.Funge.Interpreter`: expanded built-in fingerprint CLI switches (`--fingerprint-*`) to cover the newly added fingerprint set (for example: `--fingerprint-3dsp`, `--fingerprint-base`, `--fingerprint-cpli`, `--fingerprint-dirf`, `--fingerprint-evar`, `--fingerprint-file`, `--fingerprint-fixp`, `--fingerprint-fpdp`, `--fingerprint-fprt`, `--fingerprint-fpsp`, `--fingerprint-hrti`, `--fingerprint-ical`, `--fingerprint-indv`, `--fingerprint-jstr`, `--fingerprint-modu`, `--fingerprint-orth`, `--fingerprint-rand`, `--fingerprint-refc`, `--fingerprint-roma`, `--fingerprint-sets`, `--fingerprint-strn`, `--fingerprint-term`, `--fingerprint-time`, and `--fingerprint-toys`).
 
 ### Changed
 
 - `Esolang.Funge.Parser`: `FungeParser.Parse(...)` and `FungeParser.ParseFile(...)` now accept an optional `CancellationToken` (default-enabled) and perform cooperative cancellation during parsing; `Esolang.Funge.Generator` and `Esolang.Funge.Interpreter` now propagate cancellation tokens into parser calls.
 - `Esolang.Funge.Abstractions` / `Esolang.Funge.Processor` / `Esolang.Funge.Generator`: fingerprint execution now uses async instruction delegates (`Func<IFungeExecutionContext, ValueTask>`) and capability-aware execution contexts (including input/output and instruction-pointer lifecycle/context interfaces) for richer extension interoperability.
-- `Esolang.Funge.Interpreter`: fingerprint CLI options now include explicit support for `--fingerprint-null` and `--fingerprint-file` alongside the existing built-in fingerprint option set.
 
 ## [2.0.0]- 2026-06-03
 
