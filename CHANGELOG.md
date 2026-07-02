@@ -38,6 +38,8 @@ The format is based on Keep a Changelog.
 ### Changed
 
 - `Esolang.Funge.Parser`: `FungeParser.Parse(...)` and `FungeParser.ParseFile(...)` now accept an optional `CancellationToken` (default-enabled) and perform cooperative cancellation during parsing; `Esolang.Funge.Generator` and `Esolang.Funge.Interpreter` now propagate cancellation tokens into parser calls.
+- `Esolang.Funge.Abstractions` / `Esolang.Funge.Processor` / `Esolang.Funge.Generator`: fingerprint execution now uses async instruction delegates (`Func<IFungeExecutionContext, ValueTask>`) and capability-aware execution contexts (including input/output and instruction-pointer lifecycle/context interfaces) for richer extension interoperability.
+- `Esolang.Funge.Interpreter`: fingerprint CLI options now include explicit support for `--fingerprint-null` and `--fingerprint-file` alongside the existing built-in fingerprint option set.
 
 ## [2.0.0]- 2026-06-03
 
