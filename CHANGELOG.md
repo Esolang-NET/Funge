@@ -35,6 +35,10 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Generator`: new `[FingerprintsProvider]` attribute to register custom fingerprints; the generated runtime now dispatches fingerprint instructions through registered `IFingerprint` implementations.
 - `Esolang.Funge.Processor`: fingerprint load/unload (`(` `)`) now dispatches instructions through registered `IFingerprint` implementations; unrecognised fingerprints reflect as per spec.
 
+### Changed
+
+- `Esolang.Funge.Parser`: `FungeParser.Parse(...)` and `FungeParser.ParseFile(...)` now accept an optional `CancellationToken` (default-enabled) and perform cooperative cancellation during parsing; `Esolang.Funge.Generator` and `Esolang.Funge.Interpreter` now propagate cancellation tokens into parser calls.
+
 ## [2.0.0]- 2026-06-03
 
 ### Added
