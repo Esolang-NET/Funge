@@ -11,13 +11,15 @@ public static class FungeParser
     /// Space characters (ASCII 32) are not stored; they use the default cell value.
     /// </summary>
     /// <param name="source">The Funge-98 source text.</param>
+    /// <param name="cancellationToken">A token used to cancel parsing.</param>
     /// <returns>A <see cref="FungeSpace"/> containing the program.</returns>
-    public static FungeSpace Parse(string source)
+    public static FungeSpace Parse(string source, CancellationToken cancellationToken = default)
     {
         var space = new FungeSpace();
         int x = 0, y = 0, z = 0;
         foreach (var ch in source)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ch == '\r') continue;
             if (ch == '\n') { x = 0; y++; continue; }
             if (ch == '\f') { x = 0; y = 0; z++; continue; }
@@ -41,6 +43,8 @@ public static class FungeParser
     /// Reads a file and parses its contents as a Funge-98 program.
     /// </summary>
     /// <param name="path">Path to the source file.</param>
+    /// <param name="cancellationToken">A token used to cancel parsing.</param>
     /// <returns>A <see cref="FungeSpace"/> containing the program.</returns>
-    public static FungeSpace ParseFile(string path) => Parse(File.ReadAllText(path));
+    public static FungeSpace ParseFile(string path, CancellationToken cancellationToken = default)
+        => Parse(File.ReadAllText(path), cancellationToken);
 }

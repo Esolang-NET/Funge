@@ -51,8 +51,8 @@ public static class FungeInterpreterExtensions
                 }
 
                 var space = hasPath
-                    ? FungeParser.ParseFile(path!)
-                    : FungeParser.Parse(source!);
+                    ? FungeParser.ParseFile(path!, cancellationToken)
+                    : FungeParser.Parse(source!, cancellationToken);
                 var env = Environment.GetEnvironmentVariables()
                     .Cast<DictionaryEntry>()
                     .Select(static entry => $"{entry.Key}={entry.Value}");

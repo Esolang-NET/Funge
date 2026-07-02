@@ -128,6 +128,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
 
             foreach (var syntaxCtx in sources)
             {
+                ctx.CancellationToken.ThrowIfCancellationRequested();
                 var method = (MethodDeclarationSyntax)syntaxCtx.TargetNode;
                 var symbol = (IMethodSymbol)syntaxCtx.TargetSymbol;
 
@@ -212,6 +213,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     continue;
                 }
 
+                ctx.CancellationToken.ThrowIfCancellationRequested();
                 // Bind the method signature
                 var binding = BindExecutionSignature(symbol, compilation, types, fungeTypes, fingerprintsProviderName, symbol, ctx);
                 if (!binding.IsValid)
@@ -253,6 +255,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 {
                     foreach (var (filePath, fileText) in files)
                     {
+                        ctx.CancellationToken.ThrowIfCancellationRequested();
                         if (filePath is null || fileText is null) continue;
                         var normalizedSource = NormalizePath(sourcePath!);
                         var normalizedFile = NormalizePath(filePath);
@@ -282,10 +285,12 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 }
 
                 // Parse the Funge space
-                var space = FungeParser.Parse(sourceText!);
+                ctx.CancellationToken.ThrowIfCancellationRequested();
+                var space = FungeParser.Parse(sourceText!, ctx.CancellationToken);
+                ctx.CancellationToken.ThrowIfCancellationRequested();
 
                 // Scan for I/O usage
-                var (usesOutput, usesInput) = ScanFungeIo(space);
+                var (usesOutput, usesInput) = ScanFungeIo(space, ctx.CancellationToken);
 
                 if (usesOutput && !binding.Binding.HasExplicitOutput)
                     ctx.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.RequiredOutputInterface,
@@ -300,7 +305,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                         method.Identifier.GetLocation(), symbol.Name));
 
                 var displayPath = !string.IsNullOrWhiteSpace(inlineSource) ? "<inline>" : sourcePath!;
-                var emitted = EmitMethod(symbol, space, binding, projDir, displayPath);
+                ctx.CancellationToken.ThrowIfCancellationRequested();
+                var emitted = EmitMethod(symbol, space, binding, projDir, displayPath, ctx.CancellationToken);
                 methodSb.AppendLine(emitted);
                 emittedCount++;
                 runtimeFeatures |= GetRuntimeFacadeFeatures(binding.Binding.ReturnKind);
@@ -309,7 +315,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 if (binding.FingerprintsExpression is not null)
                     runtimeFeatures |= RuntimeFacadeFeatures.FingerprintSupport;
             }
-
+            ctx.CancellationToken.ThrowIfCancellationRequested();
             EmitRuntimeIfNeeded(methodSb, runtimeFeatures, fungeTypes, langVersion);
 
             if (emittedCount > 0)
@@ -343,7 +349,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         KnownFungeTypes fungeTypes,
         string? fingerprintsProviderName = null,
         IMethodSymbol? contextSymbol = null,
-        Microsoft.CodeAnalysis.SourceProductionContext? ctx = null)
+        SourceProductionContext? ctx = null)
     {
         var binding = MethodSignatureBinder.Bind(method, types);
         if (!binding.IsValid)
@@ -471,7 +477,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         FungeSpace space,
         FungeExecutionBinding binding,
         string? projDir,
-        string sourcePath)
+        string sourcePath,
+        CancellationToken cancellationToken)
     {
         var ns = symbol.ContainingType.ContainingNamespace?.IsGlobalNamespace == false
             ? symbol.ContainingType.ContainingNamespace.ToDisplayString() : null;
@@ -513,7 +520,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
             .Append(symbol.Name).Append('(').Append(paramList).AppendLine(")");
         sb.AppendLine("    {");
 
-        EmitBody(sb, space, binding, symbol.IsStatic);
+        EmitBody(sb, space, binding, symbol.IsStatic, cancellationToken);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -521,7 +528,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    static void EmitBody(StringBuilder sb, FungeSpace space, FungeExecutionBinding fungeBinding, bool isStatic)
+    static void EmitBody(StringBuilder sb, FungeSpace space, FungeExecutionBinding fungeBinding, bool isStatic, CancellationToken cancellationToken)
     {
         var binding = fungeBinding.Binding;
         var inputExpr = binding.InputKind switch
@@ -538,7 +545,7 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         var argsExpr = fungeBinding.ArgsExpression ?? "null";
         var envsExpr = fungeBinding.EnvsExpression ?? "null";
 
-        EmitSpaceData(sb, space);
+        EmitSpaceData(sb, space, cancellationToken);
 
         var loggerExpr = "";
         if (binding.LoggerExpression is not null)
@@ -737,14 +744,18 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
         }
     }
 
-    static void EmitSpaceData(StringBuilder sb, FungeSpace space)
+    static void EmitSpaceData(StringBuilder sb, FungeSpace space, CancellationToken cancellationToken)
     {
         sb.AppendLine($"""
                 int __minX = {space.MinX}, __minY = {space.MinY}, __minZ = {space.MinZ}, __maxX = {space.MaxX}, __maxY = {space.MaxY}, __maxZ = {space.MaxZ};
                 var __cells = new {Names.Dictionary}<(int, int, int), int>();
         """);
         for (var z = space.MinZ; z <= space.MaxZ; z++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var y = space.MinY; y <= space.MaxY; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var x = space.MinX; x <= space.MaxX; x++)
                 {
                     var val = space[new FungeVector(x, y, z)];
@@ -753,17 +764,23 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                 __cells[({x}, {y}, {z})] = {val};
         """);
                 }
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
     // I/O scan
     // -----------------------------------------------------------------------
 
-    static (bool usesOutput, bool usesInput) ScanFungeIo(FungeSpace space)
+    static (bool usesOutput, bool usesInput) ScanFungeIo(FungeSpace space, CancellationToken cancellationToken)
     {
         bool usesOutput = false, usesInput = false;
         for (var z = space.MinZ; z <= space.MaxZ; z++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var y = space.MinY; y <= space.MaxY; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var x = space.MinX; x <= space.MaxX; x++)
                 {
                     var c = space[new FungeVector(x, y, z)];
@@ -771,6 +788,8 @@ public sealed partial class MethodGenerator : IIncrementalGenerator
                     if (c is '&' or '~') usesInput = true;
                     if (usesOutput && usesInput) return (true, true);
                 }
+            }
+        }
         return (usesOutput, usesInput);
     }
 
