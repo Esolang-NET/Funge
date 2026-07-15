@@ -24,6 +24,9 @@ partial class Program
 {
     public static async Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested)
+            return 0;
+
         var rootCommand = FungeInterpreterExtensions.BuildRootCommand();
         return await rootCommand.Parse(args).InvokeAsync(cancellationToken: cancellationToken);
     }

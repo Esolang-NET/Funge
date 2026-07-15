@@ -40,6 +40,7 @@ dotnet-funge --source $source
 Standard input / output are connected to the running program (`~` / `&` for input, `,` / `.` for output).
 
 The process exit code reflects the value passed to `q`; it is `0` if the program ends without `q`.
+If execution is cancelled before or during startup, the CLI returns `0`.
 
 ## Funge-98 Compliance
 
