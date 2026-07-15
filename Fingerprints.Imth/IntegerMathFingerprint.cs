@@ -6,19 +6,22 @@ namespace Esolang.Funge.Fingerprints.Imth;
 /// <summary>
 /// Provides the standard Funge-98 <c>IMTH</c> fingerprint (handprint <c>0x494D5448</c>).
 /// </summary>
-public sealed class IntegerMathFingerprint : IFingerprint
+public sealed class IntegerMathFingerprint(string? name = null) : IFingerprint
 {
     const int CellBitWidth = sizeof(int) * 8;
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"IMTH"</c>.
+    /// </summary>
+    public const string NAME = "IMTH";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("IMTH");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="IntegerMathFingerprint"/>.</summary>
-    public IntegerMathFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Average)
             .Add('B', AbsoluteValue)
             .Add('C', MultiplyByHundred)

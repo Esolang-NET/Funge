@@ -6,17 +6,21 @@ namespace Esolang.Funge.Fingerprints.Stck;
 /// <summary>
 /// Provides the standard Funge-98 <c>STCK</c> fingerprint (handprint <c>0x5354434B</c>).
 /// </summary>
-public sealed class StackManipulationFingerprint : IFingerprint
+public sealed class StackManipulationFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("STCK");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"STCK"</c>.
+    /// </summary>
+    public const string NAME = "STCK";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="StackManipulationFingerprint"/>.</summary>
-    public StackManipulationFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('B', Bury)
             .Add('C', Count)
             .Add('D', DuplicateTopValues)

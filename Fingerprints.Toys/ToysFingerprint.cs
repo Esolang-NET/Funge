@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Toys;
 /// <summary>
 /// Provides the standard Funge-98 <c>TOYS</c> fingerprint (handprint <c>0x544F5953</c>).
 /// </summary>
-public sealed class ToysFingerprint : IFingerprint
+public sealed class ToysFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("TOYS");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"TOYS"</c>.
+    /// </summary>
+    public const string NAME = "TOYS";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="ToysFingerprint"/>.</summary>
-    public ToysFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Replicate)
             .Add('B', Butterfly)
             .Add('C', CopyAscending)

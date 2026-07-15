@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Date;
 /// <summary>
 /// Provides the standard Funge-98 <c>DATE</c> fingerprint (handprint <c>0x44415445</c>).
 /// </summary>
-public sealed class DateFingerprint : IFingerprint
+public sealed class DateFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("DATE");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"DATE"</c>.
+    /// </summary>
+    public const string NAME = "DATE";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="DateFingerprint"/>.</summary>
-    public DateFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', AddDays)
             .Add('C', JulianDayToCalendarDate)
             .Add('D', DaysBetweenDates)

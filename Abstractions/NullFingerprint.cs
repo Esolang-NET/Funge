@@ -14,13 +14,18 @@ namespace Esolang.Funge;
 /// </para>
 /// <para>Use <see cref="Instance"/> to avoid allocating a new instance per use.</para>
 /// </remarks>
-public sealed class NullFingerprint : IFingerprint
+/// <param name="name">Optional name for the fingerprint; defaults to <c>"NULL"</c>.</param>
+public sealed class NullFingerprint(string? name = null) : IFingerprint
 {
+    /// <summary>
+    /// Gets the default name of the NULL fingerprint, which is <c>"NULL"</c>.
+    /// </summary>
+    public const string NAME = "NULL";
     /// <summary>Gets the singleton instance of <see cref="NullFingerprint"/>.</summary>
     public static readonly NullFingerprint Instance = new();
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("NULL");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
     /// <inheritdoc/>
     public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; } = MakeBuilder().BuildInstructions();

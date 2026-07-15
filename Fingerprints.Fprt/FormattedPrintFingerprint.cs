@@ -7,17 +7,21 @@ namespace Esolang.Funge.Fingerprints.Fprt;
 /// <summary>
 /// Provides the standard Funge-98 <c>FPRT</c> fingerprint (handprint <c>0x46505254</c>).
 /// </summary>
-public sealed partial class FormattedPrintFingerprint : IFingerprint
+public sealed partial class FormattedPrintFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("FPRT");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"FPRT"</c>.
+    /// </summary>
+    public const string NAME = "FPRT";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="FormattedPrintFingerprint"/>.</summary>
-    public FormattedPrintFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('D', FormatDouble)
             .Add('F', FormatFloat)
             .Add('I', FormatInteger)

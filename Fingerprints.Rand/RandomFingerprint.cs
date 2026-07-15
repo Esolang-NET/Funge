@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Rand;
 /// <summary>
 /// Provides the standard Funge-98 <c>RAND</c> fingerprint (handprint <c>0x52414E44</c>).
 /// </summary>
-public sealed class RandomFingerprint : IFingerprint
+public sealed class RandomFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("RAND");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"RAND"</c>.
+    /// </summary>
+    public const string NAME = "RAND";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="RandomFingerprint"/>.</summary>
-    public RandomFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('I', IntegerRandom)
             .Add('M', MaximumInteger)
             .Add('R', FloatRandom)

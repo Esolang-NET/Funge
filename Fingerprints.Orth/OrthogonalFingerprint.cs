@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Orth;
 /// <summary>
 /// Provides the standard Funge-98 <c>ORTH</c> fingerprint (handprint <c>0x4F525448</c>).
 /// </summary>
-public sealed class OrthogonalFingerprint : IFingerprint
+public sealed class OrthogonalFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("ORTH");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"ORTH"</c>.
+    /// </summary>
+    public const string NAME = "ORTH";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="OrthogonalFingerprint"/>.</summary>
-    public OrthogonalFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', BitwiseAnd)
             .Add('E', BitwiseXor)
             .Add('G', GetCell)

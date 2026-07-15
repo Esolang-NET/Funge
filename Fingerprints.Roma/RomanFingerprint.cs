@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Roma;
 /// <summary>
 /// Provides the standard Funge-98 <c>ROMA</c> fingerprint (handprint <c>0x524F4D41</c>).
 /// </summary>
-public sealed class RomanFingerprint : IFingerprint
+public sealed class RomanFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("ROMA");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"ROMA"</c>.
+    /// </summary>
+    public const string NAME = "ROMA";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="RomanFingerprint"/>.</summary>
-    public RomanFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('C', static ctx => ctx.Push(100))
             .Add('D', static ctx => ctx.Push(500))
             .Add('I', static ctx => ctx.Push(1))

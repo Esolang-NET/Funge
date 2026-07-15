@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Frth;
 /// <summary>
 /// Provides the standard Funge-98 <c>FRTH</c> fingerprint (handprint <c>0x46525448</c>).
 /// </summary>
-public sealed class ForthFingerprint : IFingerprint
+public sealed class ForthFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("FRTH");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"FRTH"</c>.
+    /// </summary>
+    public const string NAME = "FRTH";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="ForthFingerprint"/>.</summary>
-    public ForthFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('D', StackDepth)
             .Add('L', Roll)
             .Add('O', Over)

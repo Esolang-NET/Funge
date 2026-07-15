@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Arry;
 /// <summary>
 /// Provides the standard Funge-98 <c>ARRY</c> fingerprint (handprint <c>0x41525259</c>).
 /// </summary>
-public sealed class ArrayFingerprint : IFingerprint
+public sealed class ArrayFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("ARRY");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"ARRY"</c>.
+    /// </summary>
+    public const string NAME = "ARRY";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="ArrayFingerprint"/>.</summary>
-    public ArrayFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Store1D)
             .Add('B', Retrieve1D)
             .Add('C', Store2D)

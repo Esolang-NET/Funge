@@ -6,19 +6,22 @@ namespace Esolang.Funge.Fingerprints.Hrti;
 /// <summary>
 /// Provides the standard Funge-98 <c>HRTI</c> fingerprint (handprint <c>0x48525449</c>).
 /// </summary>
-public sealed class HighResTimerFingerprint : IFingerprint, IFungeInstructionPointerLifecycle
+public sealed class HighResTimerFingerprint(string? name = null) : IFingerprint, IFungeInstructionPointerLifecycle
 {
     readonly Dictionary<int, long> _marks = [];
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"HRTI"</c>.
+    /// </summary>
+    public const string NAME = "HRTI";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("HRTI");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="HighResTimerFingerprint"/>.</summary>
-    public HighResTimerFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('E', EraseMark)
             .Add('G', Granularity)
             .Add('M', Mark)

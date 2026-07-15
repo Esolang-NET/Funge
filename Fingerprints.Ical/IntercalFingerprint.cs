@@ -4,19 +4,22 @@ namespace Esolang.Funge.Fingerprints.Ical;
 /// <summary>
 /// Provides the standard Funge-98 <c>ICAL</c> fingerprint (handprint <c>0x4943414C</c>).
 /// </summary>
-public sealed class IntercalFingerprint : IFingerprint, IFungeInstructionPointerLifecycle
+public sealed class IntercalFingerprint(string? name = null) : IFingerprint, IFungeInstructionPointerLifecycle
 {
     readonly Dictionary<int, Stack<(int X, int Y, int Z)>> _addressStacks = [];
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"ICAL"</c>.
+    /// </summary>
+    public const string NAME = "ICAL";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("ICAL");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="IntercalFingerprint"/>.</summary>
-    public IntercalFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', UnaryAnd)
             .Add('F', Forget)
             .Add('I', Mingle)

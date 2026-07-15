@@ -4,7 +4,7 @@ namespace Esolang.Funge.Fingerprints.Fixp;
 /// <summary>
 /// Provides the standard Funge-98 <c>FIXP</c> fingerprint (handprint <c>0x46495850</c>).
 /// </summary>
-public sealed class FixedPointFingerprint : IFingerprint
+public sealed class FixedPointFingerprint(string? name = null) : IFingerprint
 {
     const int Scale = 10000;
     const double DegreesPerRadian = 180.0 / Math.PI;
@@ -12,16 +12,19 @@ public sealed class FixedPointFingerprint : IFingerprint
 
     readonly object _randomLock = new();
     readonly Random _random = new();
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"FIXP"</c>.
+    /// </summary>
+    public const string NAME = "FIXP";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("FIXP");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="FixedPointFingerprint"/>.</summary>
-    public FixedPointFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', BitwiseAnd)
             .Add('B', ArcCosine)
             .Add('C', Cosine)

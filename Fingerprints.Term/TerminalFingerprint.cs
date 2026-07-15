@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Term;
 /// <summary>
 /// Provides the standard Funge-98 <c>TERM</c> fingerprint (handprint <c>0x5445524D</c>).
 /// </summary>
-public sealed class TerminalFingerprint : IFingerprint
+public sealed class TerminalFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("TERM");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"TERM"</c>.
+    /// </summary>
+    public const string NAME = "TERM";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="TerminalFingerprint"/>.</summary>
-    public TerminalFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('C', ClearScreen)
             .Add('D', CursorDown)
             .Add('G', GotoPosition)

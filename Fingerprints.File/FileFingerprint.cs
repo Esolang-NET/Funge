@@ -26,7 +26,7 @@ namespace Esolang.Funge.Fingerprints.File;
 /// </list>
 /// </para>
 /// </remarks>
-public sealed class FileFingerprint : IFingerprint, IFungeInstructionPointerLifecycle, IDisposable
+public sealed class FileFingerprint(string? name = null) : IFingerprint, IFungeInstructionPointerLifecycle, IDisposable
 {
     sealed class FileHandle(
         string path,
@@ -54,16 +54,19 @@ public sealed class FileFingerprint : IFingerprint, IFungeInstructionPointerLife
 
     readonly Dictionary<int, InstructionPointerFileState> _statesByInstructionPointer = [];
     bool _disposed;
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"FILE"</c>.
+    /// </summary>
+    public const string NAME = "FILE";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("FILE");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="FileFingerprint"/>.</summary>
-    public FileFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('C', CloseFile)
             .Add('D', DeleteFile)
             .Add('G', GetString)

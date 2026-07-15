@@ -6,19 +6,22 @@ namespace Esolang.Funge.Fingerprints.Long;
 /// <summary>
 /// Provides the standard Funge-98 <c>LONG</c> fingerprint (handprint <c>0x4C4F4E47</c>).
 /// </summary>
-public sealed class LongIntegerFingerprint : IFingerprint
+public sealed class LongIntegerFingerprint(string? name = null) : IFingerprint
 {
     const int LongBitWidth = sizeof(long) * 8;
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"LONG"</c>.
+    /// </summary>
+    public const string NAME = "LONG";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("LONG");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="LongIntegerFingerprint"/>.</summary>
-    public LongIntegerFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Add)
             .Add('B', AbsoluteValue)
             .Add('D', Divide)

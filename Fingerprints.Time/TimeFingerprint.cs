@@ -4,19 +4,22 @@ namespace Esolang.Funge.Fingerprints.Time;
 /// <summary>
 /// Provides the standard Funge-98 <c>TIME</c> fingerprint (handprint <c>0x54494D45</c>).
 /// </summary>
-public sealed class TimeFingerprint : IFingerprint, IFungeInstructionPointerLifecycle
+public sealed class TimeFingerprint(string? name = null) : IFingerprint, IFungeInstructionPointerLifecycle
 {
     readonly Dictionary<int, bool> _useGmtByInstructionPointer = [];
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"TIME"</c>.
+    /// </summary>
+    public const string NAME = "TIME";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("TIME");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="TimeFingerprint"/>.</summary>
-    public TimeFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('D', GetDayOfMonth)
             .Add('F', GetDayOfYear)
             .Add('G', UseGmt)

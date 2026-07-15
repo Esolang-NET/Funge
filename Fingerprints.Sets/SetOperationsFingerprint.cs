@@ -7,17 +7,21 @@ namespace Esolang.Funge.Fingerprints.Sets;
 /// <summary>
 /// Provides the standard Funge-98 <c>SETS</c> fingerprint (handprint <c>0x53455453</c>).
 /// </summary>
-public sealed class SetOperationsFingerprint : IFingerprint
+public sealed class SetOperationsFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("SETS");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"SETS"</c>.
+    /// </summary>
+    public const string NAME = "SETS";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="SetOperationsFingerprint"/>.</summary>
-    public SetOperationsFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', AddElement)
             .Add('C', Count)
             .Add('D', Duplicate)

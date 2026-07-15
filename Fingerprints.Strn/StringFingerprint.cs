@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Strn;
 /// <summary>
 /// Provides the standard Funge-98 <c>STRN</c> fingerprint (handprint <c>0x5354524E</c>).
 /// </summary>
-public sealed class StringFingerprint : IFingerprint
+public sealed class StringFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("STRN");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"STRN"</c>.
+    /// </summary>
+    public const string NAME = "STRN";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="StringFingerprint"/>.</summary>
-    public StringFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Append)
             .Add('C', Compare)
             .Add('D', Display)

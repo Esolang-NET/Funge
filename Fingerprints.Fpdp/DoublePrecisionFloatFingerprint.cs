@@ -6,17 +6,21 @@ namespace Esolang.Funge.Fingerprints.Fpdp;
 /// <summary>
 /// Provides the standard Funge-98 <c>FPDP</c> fingerprint (handprint <c>0x46504450</c>).
 /// </summary>
-public sealed class DoublePrecisionFloatFingerprint : IFingerprint
+public sealed class DoublePrecisionFloatFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("FPDP");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"FPDP"</c>.
+    /// </summary>
+    public const string NAME = "FPDP";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="DoublePrecisionFloatFingerprint"/>.</summary>
-    public DoublePrecisionFloatFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Add)
             .Add('B', Sin)
             .Add('C', Cos)

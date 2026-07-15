@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Jstr;
 /// <summary>
 /// Provides the standard Funge-98 <c>JSTR</c> fingerprint (handprint <c>0x4A535452</c>).
 /// </summary>
-public sealed class JstrFingerprint : IFingerprint
+public sealed class JstrFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("JSTR");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"JSTR"</c>.
+    /// </summary>
+    public const string NAME = "JSTR";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="JstrFingerprint"/>.</summary>
-    public JstrFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('G', GetString)
             .Add('P', PutString)
             .BuildInstructions();

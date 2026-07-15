@@ -6,17 +6,21 @@ namespace Esolang.Funge.Fingerprints.Fpsp;
 /// <summary>
 /// Provides the standard Funge-98 <c>FPSP</c> fingerprint (handprint <c>0x46505350</c>).
 /// </summary>
-public sealed class SinglePrecisionFloatFingerprint : IFingerprint
+public sealed class SinglePrecisionFloatFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("FPSP");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"FPSP"</c>.
+    /// </summary>
+    public const string NAME = "FPSP";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="SinglePrecisionFloatFingerprint"/>.</summary>
-    public SinglePrecisionFloatFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Add)
             .Add('B', Sin)
             .Add('C', Cos)

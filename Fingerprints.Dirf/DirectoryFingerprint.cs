@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Dirf;
 /// <summary>
 /// Provides the standard Funge-98 <c>DIRF</c> fingerprint (handprint <c>0x44495246</c>).
 /// </summary>
-public sealed class DirectoryFingerprint : IFingerprint
+public sealed class DirectoryFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("DIRF");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"DIRF"</c>.
+    /// </summary>
+    public const string NAME = "DIRF";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="DirectoryFingerprint"/>.</summary>
-    public DirectoryFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('C', ChangeDirectory)
             .Add('M', MakeDirectory)
             .Add('R', RemoveDirectory)

@@ -4,20 +4,23 @@ namespace Esolang.Funge.Fingerprints.Refc;
 /// <summary>
 /// Provides the standard Funge-98 <c>REFC</c> fingerprint (handprint <c>0x52454643</c>).
 /// </summary>
-public sealed class ReferencedCellsFingerprint : IFingerprint
+public sealed class ReferencedCellsFingerprint(string? name = null) : IFingerprint
 {
     readonly Dictionary<int, (int X, int Y, int Z)> _table = [];
     int _nextRef;
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"REFC"</c>.
+    /// </summary>
+    public const string NAME = "REFC";
 
     /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("REFC");
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
+
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
-
-    /// <summary>Initializes a new instance of <see cref="ReferencedCellsFingerprint"/>.</summary>
-    public ReferencedCellsFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('R', Remember)
             .Add('D', Dereference)
             .BuildInstructions();

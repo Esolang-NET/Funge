@@ -6,17 +6,21 @@ namespace Esolang.Funge.Fingerprints.Cpli;
 /// <summary>
 /// Provides the standard Funge-98 <c>CPLI</c> fingerprint (handprint <c>0x43504C49</c>).
 /// </summary>
-public sealed class ComplexIntegerFingerprint : IFingerprint
+public sealed class ComplexIntegerFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("CPLI");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"CPLI"</c>.
+    /// </summary>
+    public const string NAME = "CPLI";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="ComplexIntegerFingerprint"/>.</summary>
-    public ComplexIntegerFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', Add)
             .Add('D', Divide)
             .Add('M', Multiply)

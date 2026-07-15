@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Modu;
 /// <summary>
 /// Provides the standard Funge-98 <c>MODU</c> fingerprint (handprint <c>0x4D4F4455</c>).
 /// </summary>
-public sealed class ModuloFingerprint : IFingerprint
+public sealed class ModuloFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("MODU");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"MODU"</c>.
+    /// </summary>
+    public const string NAME = "MODU";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="ModuloFingerprint"/>.</summary>
-    public ModuloFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('M', SignedResultModulo)
             .Add('R', Remainder)
             .Add('U', UnsignedResultModulo)

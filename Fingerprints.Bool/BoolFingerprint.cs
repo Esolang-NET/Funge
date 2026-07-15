@@ -5,17 +5,21 @@ namespace Esolang.Funge.Fingerprints.Bool;
 /// <summary>
 /// Provides the standard Funge-98 <c>BOOL</c> fingerprint (handprint <c>0x424F4F4C</c>).
 /// </summary>
-public sealed class BoolFingerprint : IFingerprint
+public sealed class BoolFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("BOOL");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"BOOL"</c>.
+    /// </summary>
+    public const string NAME = "BOOL";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="BoolFingerprint"/>.</summary>
-    public BoolFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('A', And)
             .Add('N', Not)
             .Add('O', Or)

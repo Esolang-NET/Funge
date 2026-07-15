@@ -4,17 +4,21 @@ namespace Esolang.Funge.Fingerprints.Base;
 /// <summary>
 /// Provides the standard Funge-98 <c>BASE</c> fingerprint (handprint <c>0x42415345</c>).
 /// </summary>
-public sealed class BaseFingerprint : IFingerprint
+public sealed class BaseFingerprint(string? name = null) : IFingerprint
 {
-    /// <inheritdoc/>
-    public int Handprint { get; } = FingerprintHandprint.Compute("BASE");
+    /// <summary>
+    /// Gets the default name of the fingerprint, which is <c>"BASE"</c>.
+    /// </summary>
+    public const string NAME = "BASE";
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions { get; }
+    public int Handprint { get; } = FingerprintHandprint.Compute(name ?? NAME);
 
-    /// <summary>Initializes a new instance of <see cref="BaseFingerprint"/>.</summary>
-    public BaseFingerprint() =>
-        Instructions = new FingerprintBuilder()
+    IReadOnlyDictionary<char, FingerprintInstruction>? _instructions;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<char, FingerprintInstruction> Instructions
+        => _instructions ??= new FingerprintBuilder()
             .Add('B', OutputTopOfStackInBinary)
             .Add('H', OutputTopOfStackInHex)
             .Add('I', ReadInputInSpecifiedBase)
