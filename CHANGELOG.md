@@ -10,6 +10,7 @@ The format is based on Keep a Changelog.
 
 - `Esolang.Funge.Fingerprints.ThreeDsp`: new package implementing the `3DSP` fingerprint (`0x33445350`) with instructions `A` (add), `B` (subtract), `C` (cross product), `D` (dot product), `L` (length), `M` (component multiply), `N` (normalize), `P` (copy matrix), `R` (rotation matrix), `S` (scale matrix), `T` (translation matrix), `U` (duplicate), `V` (perspective), `X` (transform vector), `Y` (multiply matrices), `Z` (scale), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Cpli`: new package implementing the `CPLI` fingerprint (`0x43504C49`) with instructions `A` (add), `D` (divide), `M` (multiply), `O` (output), `S` (subtract), `V` (magnitude), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
+- `Esolang.Funge.Fingerprints.Cshp`: new package implementing the `CSHP` fingerprint (`0x43534850`) with instructions `E` (evaluate to string), `I` (evaluate to integer), `S` (availability status), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Dirf`: new package implementing the `DIRF` fingerprint (`0x44495246`) with instructions `C` (change directory), `M` (make directory), `R` (remove directory), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Evar`: new package implementing the `EVAR` fingerprint (`0x45564152`) with instructions `G` (get variable), `N` (count variables), `P` (put variable), `V` (get variable by index), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Fingerprints.Fpdp`: new package implementing the `FPDP` fingerprint (`0x46504450`) with instructions `A` (add), `B` (sin), `C` (cos), `D` (divide), `E` (asin), `F` (from int), `G` (atan), `H` (acos), `I` (truncate), `K` (ln), `L` (log10), `M` (multiply), `N` (negate), `P` (print), `Q` (sqrt), `S` (subtract), `T` (tan), `V` (abs), `X` (exp), `Y` (pow), targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
@@ -34,7 +35,7 @@ The format is based on Keep a Changelog.
 - `Esolang.Funge.Fingerprints.Stck`: new package implementing the `STCK` fingerprint (`0x5354434B`) with instructions `B`, `C`, `D`, `G`, `K`, `N`, `P`, `R`, `S`, `T`, `U`, `W`, and `Z`, targeting `netstandard2.0`, `netstandard2.1`, and `net10.0`.
 - `Esolang.Funge.Generator`: new `[FingerprintsProvider]` attribute to register custom fingerprints; the generated runtime now dispatches fingerprint instructions through registered `IFingerprint` implementations.
 - `Esolang.Funge.Processor`: fingerprint load/unload (`(` `)`) now dispatches instructions through registered `IFingerprint` implementations; unrecognised fingerprints reflect as per spec.
-- `Esolang.Funge.Interpreter`: expanded built-in fingerprint CLI switches (`--fingerprint-*`) to cover the newly added fingerprint set.
+- `Esolang.Funge.Interpreter`: expanded built-in fingerprint CLI switches (`--fingerprint-*`) to cover the built-in fingerprint set shipped with the tool.
 
 ### Changed
 

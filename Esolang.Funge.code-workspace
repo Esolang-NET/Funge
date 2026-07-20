@@ -81,6 +81,14 @@
 			"path": "Fingerprints.Cpli.Tests"
 		},
 		{
+			"name": "Esolang.Funge.Fingerprints.Cshp",
+			"path": "Fingerprints.Cshp"
+		},
+		{
+			"name": "Esolang.Funge.Fingerprints.Cshp.Tests",
+			"path": "Fingerprints.Cshp.Tests"
+		},
+		{
 			"name": "Esolang.Funge.Fingerprints.Date",
 			"path": "Fingerprints.Date"
 		},
@@ -321,6 +329,8 @@
 			"Fingerprints.Bool.Tests": true,
 			"Fingerprints.Cpli": true,
 			"Fingerprints.Cpli.Tests": true,
+			"Fingerprints.Cshp": true,
+			"Fingerprints.Cshp.Tests": true,
 			"Fingerprints.Date": true,
 			"Fingerprints.Date.Tests": true,
 			"Fingerprints.Dirf": true,

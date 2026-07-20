@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <RootNamespace>Esolang.Funge.Fingerprints.Cshp</RootNamespace>
+    <Description>CSHP fingerprint (0x43534850) for Funge-98: C# script evaluation E I S.</Description>
+    <PackageId>Esolang.Funge.Fingerprints.Cshp</PackageId>
+    <PackageTags>esolang;funge;funge-98;befunge;fingerprints;cshp;csharp</PackageTags>
+    <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
+    <CopyLocalLockFileAssemblies Condition="'$(IsPacking)' == 'true'">true</CopyLocalLockFileAssemblies>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeCopyLocalReferencesInPackage</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <StripSymbols>false</StripSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../CHANGELOG.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Abstractions/Esolang.Funge.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting">
+      <PrivateAssets>build;buildTransitive;analyzers</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

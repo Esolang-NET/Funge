@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <AssemblyName>Esolang.Funge.Fingerprints.Cshp.Tests</AssemblyName>
+    <RootNamespace>Esolang.Funge.Fingerprints.Cshp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fingerprints.Cshp\Esolang.Funge.Fingerprints.Cshp.csproj" />
+  </ItemGroup>
+
+</Project>

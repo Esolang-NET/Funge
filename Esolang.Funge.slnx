@@ -1,5 +1,9 @@
 <Solution>
-  <Folder Name="/Esoalng.Funge.Fingerprints/">
+
+  <Folder Name="/Esolang.Funge.Abstractions/">
+    <Project Path="Abstractions/Esolang.Funge.Abstractions.csproj" />
+  </Folder>
+  <Folder Name="/Esolang.Funge.Fingerprints/">
     <Project Path="Fingerprints.Arry.Tests/Esolang.Funge.Fingerprints.Arry.Tests.csproj" />
     <Project Path="Fingerprints.Arry/Esolang.Funge.Fingerprints.Arry.csproj" />
     <Project Path="Fingerprints.Base.Tests/Esolang.Funge.Fingerprints.Base.Tests.csproj" />
@@ -36,6 +40,8 @@
     <Project Path="Fingerprints.Time/Esolang.Funge.Fingerprints.Time.csproj" />
     <Project Path="Fingerprints.Cpli.Tests/Esolang.Funge.Fingerprints.Cpli.Tests.csproj" />
     <Project Path="Fingerprints.Cpli/Esolang.Funge.Fingerprints.Cpli.csproj" />
+    <Project Path="Fingerprints.Cshp.Tests/Esolang.Funge.Fingerprints.Cshp.Tests.csproj" />
+    <Project Path="Fingerprints.Cshp/Esolang.Funge.Fingerprints.Cshp.csproj" />
     <Project Path="Fingerprints.Dirf.Tests/Esolang.Funge.Fingerprints.Dirf.Tests.csproj" />
     <Project Path="Fingerprints.Dirf/Esolang.Funge.Fingerprints.Dirf.csproj" />
     <Project Path="Fingerprints.Evar.Tests/Esolang.Funge.Fingerprints.Evar.Tests.csproj" />
@@ -74,7 +80,6 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="Abstractions/Esolang.Funge.Abstractions.csproj" />
   <Project Path="Generator.Tests/Esolang.Funge.Generator.Tests.csproj" />
   <Project Path="Generator/Esolang.Funge.Generator.csproj" />
   <Project Path="Interpreter.Tests/Esolang.Funge.Interpreter.Tests.csproj" />
