@@ -14,7 +14,8 @@ public static class FungeInterpreterExtensions
     /// <summary>
     /// Builds and returns the root command for the dotnet-funge tool.
     /// </summary>
-    public static RootCommand BuildRootCommand()
+    public static T AddFungeCommands<T>(this T rootCommand)
+        where T : Command
     {
         var pathOption = new Option<string?>(name: "--path", aliases: ["-p"])
         {
@@ -27,11 +28,9 @@ public static class FungeInterpreterExtensions
         };
         var fingerprintsOptions = new FingerprintsOptions();
 
-        var rootCommand = new RootCommand("Run Funge-98 (Befunge-98) programs.")
-        {
-            pathOption,
-            sourceOption,
-        };
+        rootCommand.Description = "Run Funge-98 (Befunge-98) programs.";
+        rootCommand.Add(pathOption);
+        rootCommand.Add(sourceOption);
         foreach (var option in fingerprintsOptions.Options)
             rootCommand.Add(option);
 
